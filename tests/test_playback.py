@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import stat
 from types import MappingProxyType
@@ -39,9 +39,16 @@ from tests.fakedevice import FakeDevice
 from tests.model.test_recordings import match, program_stream, result, searcher
 from tests.model.test_scrambling import CODE, recording
 
-NOW = dt_util.utcnow().replace(microsecond=0)
+# Noon in the US/Pacific test time zone, so recordings two hours earlier are still "today".
+NOW = datetime(2026, 10, 21, 19, 0, tzinfo=UTC)
 START = NOW - timedelta(hours=2)
 CLIPS = [match(START, 10, "timing", "a"), match(START + timedelta(minutes=30), 1, "motion", "b")]
+
+
+@pytest.fixture(autouse=True)
+def frozen_clock(freezer) -> None:
+    """Run every test at NOW."""
+    freezer.move_to(NOW)
 
 
 def recorded(device: FakeDevice, data: bytes) -> None:
