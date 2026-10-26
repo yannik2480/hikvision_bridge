@@ -205,6 +205,16 @@ async def test_optional_unsupported_is_remembered(rig) -> None:
     )
 
 
+async def test_optional_unsupported_with_query_is_remembered(rig) -> None:
+    device = FakeDevice()
+    link = await rig(device)
+    path = "/ISAPI/System/Holidays?format=json"
+    assert await link.read_json(path, optional=True) is None
+    count = len(device.requests)
+    assert await link.read_json(path, optional=True) is None
+    assert len(device.requests) == count
+
+
 async def test_unreachable() -> None:
     async with aiohttp.ClientSession() as session:
         link = IsapiLink(session, Endpoint("127.0.0.1", 1, "http"), "u", "p", connect_timeout=1)

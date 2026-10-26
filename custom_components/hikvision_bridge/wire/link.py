@@ -388,6 +388,10 @@ class IsapiLink:
 
     # ------------------------------------------------------------ helpers
 
+    def _known_unsupported(self, path: str) -> bool:
+        """Whether the path, or its resource without the query, answered unsupported."""
+        return path in self.unsupported or path.split("?", maxsplit=1)[0] in self.unsupported
+
     def _absent(self, path: str, optional: bool) -> bool:
         """Whether an optional read may answer None, i.e. the path never worked."""
         return optional and path.split("?", maxsplit=1)[0] not in self.served
@@ -397,7 +401,7 @@ class IsapiLink:
 
         A path that answered before is not taken for unsupported later: its errors are raised.
         """
-        if optional and path.split("?", maxsplit=1)[0] in self.unsupported:
+        if optional and self._known_unsupported(path):
             return None
         try:
             reply = await self.call("GET", path)
@@ -417,7 +421,7 @@ class IsapiLink:
             raise NotIsapi(f"{path}: {err}") from err
 
     async def read_text(self, path: str, *, optional: bool = False) -> str | None:
-        if optional and path.split("?", maxsplit=1)[0] in self.unsupported:
+        if optional and self._known_unsupported(path):
             return None
         try:
             return (await self.call("GET", path)).text

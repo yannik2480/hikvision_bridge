@@ -132,7 +132,7 @@
           "stream_key": "Mit Stream-Verschlüsselung aufgenommene Aufnahmen werden mit dem Verifizierungscode des Geräts entschlüsselt, der vom Gerät gelesen wird. Trage ihn hier nur ein, wenn das Gerät ihn nicht meldet, wie viele Kameras.",
           "sidebar_panel": "Gilt für alle Geräte und Konten dieser Integration. Die Dashboard-Karte bleibt verfügbar.",
           "panel_admin_only": "Benutzer ohne Administratorrechte sehen das Panel nicht mehr. Gilt für alle Geräte und Konten.",
-          "try_encrypted_stream": "Versuchen Sie die lokale RTSP-Wiedergabe, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams."
+          "try_encrypted_stream": "Spielt den lokalen RTSP-Livestream ab, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams."
         }
       },
       "webhook": {

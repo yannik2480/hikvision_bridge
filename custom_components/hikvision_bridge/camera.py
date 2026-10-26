@@ -63,8 +63,8 @@ class ChannelCamera(BridgeEntity, Camera):
     def _blocked_by_encryption(self) -> bool:
         """Hik-Connect stream encryption is on and no direct camera link avoids it.
 
-        A direct link that leaves the live stream on the recorder is an explicit choice to
-        try the recorder's stream anyway.
+        A direct link that leaves the live stream on the recorder, or the option to try the
+        live stream anyway, is an explicit choice to try the recorder's stream.
         """
         if self.bridge.entry.options.get(OPT_TRY_ENCRYPTED_STREAM, False):
             return False
@@ -168,7 +168,12 @@ class ChannelCamera(BridgeEntity, Camera):
                 continue
             try:
                 reply = await link.read_bytes(path)
-            except (Unsupported, DeviceRejected):
+            except Unsupported:
+                continue
+            except DeviceRejected:
+                if "?" in path:
+                    # The device refuses the size parameters: use its default size from now on.
+                    link.unsupported.add(path)
                 continue
             except BridgeFault as err:
                 _LOGGER.debug("Snapshot failed: %s", type(err).__name__)
