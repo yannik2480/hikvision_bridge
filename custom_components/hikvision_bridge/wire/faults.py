@@ -80,6 +80,16 @@ class DeviceRejected(BridgeFault):
         self.sub_status = sub_status
 
 
+def detail(err: BaseException) -> str:
+    """Kind of an error with what the device said, for debug logs."""
+    if isinstance(err, DeviceRejected):
+        said = " ".join(
+            part for part in (str(err), err.sub_status) if part and part != f"HTTP {err.status}"
+        )
+        return f"{type(err).__name__} (HTTP {err.status}{': ' + said if said else ''})"
+    return f"{type(err).__name__} ({err})" if str(err) else type(err).__name__
+
+
 @dataclass(frozen=True, slots=True)
 class DeviceStatus:
     """The device's own status block contained in error responses."""

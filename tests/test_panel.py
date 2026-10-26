@@ -72,6 +72,8 @@ def test_hls_args(tmp_path: Path) -> None:
     original = sessions.hls_args("rtsp://x", sessions.QUALITY_ORIGINAL, "H.265", tmp_path)
     assert original[original.index("-c:v") + 1] == "copy"
     assert "hvc1" in original
+    # A connection that sends nothing ends ffmpeg instead of waiting without a message.
+    assert original[original.index("-timeout") + 1] == str(sessions.RTSP_TIMEOUT)
     assert original[-1] == str(tmp_path / sessions.PLAYLIST)
     compatible = sessions.hls_args("rtsp://x", sessions.QUALITY_COMPATIBLE, "H.265", tmp_path)
     assert compatible[compatible.index("-c:v") + 1] == "libx264"

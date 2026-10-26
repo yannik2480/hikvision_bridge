@@ -29,7 +29,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..model.features import recordings
-from ..wire.faults import DeviceRejected, Unsupported
+from ..wire.faults import DeviceRejected, Unsupported, detail
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrub_text, scrubbed_logger
 from . import playback
@@ -42,6 +42,8 @@ QUALITY_COMPATIBLE = "compatible"
 QUALITIES = (QUALITY_ORIGINAL, QUALITY_COMPATIBLE)
 SEGMENT_SECONDS = 2
 FIRST_SEGMENT_TIMEOUT = 25
+# ffmpeg gives up on an RTSP connection that sends nothing for this long (microseconds).
+RTSP_TIMEOUT = 10_000_000
 IDLE_SECONDS = 45
 MAX_SESSIONS = 4
 # Video prepared beyond the last segment the player fetched (players buffer ahead too).
@@ -120,7 +122,7 @@ def hls_args(url: str, quality: str, codec: str | None, target: Path) -> list[st
     if url == PIPE:
         args += ["-f", "mpeg"]
     else:
-        args += ["-rtsp_transport", "tcp"]
+        args += ["-rtsp_transport", "tcp", "-timeout", str(RTSP_TIMEOUT)]
     # The streams are known after the first key frame; the default waits five seconds.
     args += ["-analyzeduration", "2000000", "-i", url, "-map", "0:v:0", "-map", "0:a:0?"]
     if quality == QUALITY_COMPATIBLE:
@@ -302,7 +304,7 @@ class SessionManager:
                 raise SessionError("playback_failed") from err
             if isinstance(err, FileNotFoundError) or not isinstance(err, Exception):
                 raise
-            _LOGGER.debug("No download of the time span, using RTSP: %s", type(err).__name__)
+            _LOGGER.debug("No download of the time span, using RTSP: %s", detail(err))
             # Only a refusal is lasting; a dropped connection may work next time.
             raise _UseRtsp(isinstance(err, (DeviceRejected, Unsupported, NoRecording))) from err
         reason = await self._first_segment(session)
@@ -411,9 +413,17 @@ class SessionManager:
             if session.process.returncode is not None:
                 break
             await asyncio.sleep(0.1)
+        running = session.process.returncode is None
         await self._end(session)
         errors = await self.hass.async_add_executor_job(_read, session.folder / LOG) or ""
-        _LOGGER.debug("Playback did not start: %s", scrub_text(errors[-400:]))
+        if errors:
+            _LOGGER.debug("Playback did not start: %s", scrub_text(errors[-400:]))
+        elif running:
+            _LOGGER.debug("Playback did not start: no video in %s s", FIRST_SEGMENT_TIMEOUT)
+        else:
+            _LOGGER.debug(
+                "Playback did not start: ffmpeg ended with %s", session.process.returncode
+            )
         return _reason(errors) if errors else "playback_failed"
 
     async def _end(self, session: Session) -> None:

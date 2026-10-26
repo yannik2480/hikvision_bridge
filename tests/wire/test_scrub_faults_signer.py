@@ -78,6 +78,16 @@ def test_classify_variants() -> None:
     )
 
 
+def test_detail_names_what_the_device_said() -> None:
+    assert (
+        faults.detail(faults.DeviceRejected("Invalid Content", 400, "badParameters"))
+        == "DeviceRejected (HTTP 400: Invalid Content badParameters)"
+    )
+    assert faults.detail(faults.DeviceRejected("HTTP 500", 500)) == "DeviceRejected (HTTP 500)"
+    assert faults.detail(faults.Unreachable("TimeoutError: ")) == "Unreachable (TimeoutError: )"
+    assert faults.detail(TimeoutError()) == "TimeoutError"
+
+
 def test_challenge_parsing_both_device_styles() -> None:
     nvr = parse_challenges(
         [

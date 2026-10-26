@@ -1329,7 +1329,9 @@ class Viewer {
       this.data.recordings.find((r) => r.start <= position && r.end > position) ||
       this.data.recordings.find((r) => r.start > position);
     if (!recording || !this.camera) return;
-    const path = `/api/${DOMAIN}/recording/${this.camera.entry_id}/${this.camera.channel_id}/${this.source}/mp4/${recording.token}?download=1`;
+    // Compatible playback means the browser lacks the codec: download as H.264 then too.
+    const format = this.player.level === "compatible" ? "h264" : "mp4";
+    const path = `/api/${DOMAIN}/recording/${this.camera.entry_id}/${this.camera.channel_id}/${this.source}/${format}/${recording.token}?download=1`;
     const signed = await this.hass.callWS({ type: "auth/sign_path", path, expires: 3600 });
     const link = document.createElement("a");
     link.href = signed.path;

@@ -21,7 +21,7 @@ from .const import (
 from .entity import BridgeEntity, add_entities
 from .model.inventory import StreamSpec
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault, DeviceRejected, Unsupported
+from .wire.faults import BridgeFault, DeviceRejected, Unsupported, detail
 from .wire.link import IsapiLink
 from .wire.scrub import scrubbed_logger
 
@@ -163,6 +163,7 @@ class ChannelCamera(BridgeEntity, Camera):
         if query:
             paths.append(f"/ISAPI/Streaming/channels/{stream_id}/picture{query}")
         paths.append(f"/ISAPI/Streaming/channels/{stream_id}/picture")
+        refused: DeviceRejected | None = None
         for path in paths:
             if path in link.unsupported:
                 continue
@@ -170,14 +171,22 @@ class ChannelCamera(BridgeEntity, Camera):
                 reply = await link.read_bytes(path)
             except Unsupported:
                 continue
-            except DeviceRejected:
+            except DeviceRejected as err:
+                refused = err
                 if "?" in path:
                     # The device refuses the size parameters: use its default size from now on.
                     link.unsupported.add(path)
                 continue
             except BridgeFault as err:
-                _LOGGER.debug("Snapshot failed: %s", type(err).__name__)
+                _LOGGER.debug("Snapshot of channel %s failed: %s", self.channel_id, detail(err))
                 return None
             if reply.content_type.startswith("image/"):
                 return reply.body
+        if refused is not None:
+            _LOGGER.debug(
+                "Snapshot of channel %s (stream %s) failed: %s",
+                self.channel_id,
+                stream_id,
+                detail(refused),
+            )
         return None
