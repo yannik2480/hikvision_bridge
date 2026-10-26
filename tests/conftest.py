@@ -40,7 +40,9 @@ async def serve(socket_enabled: None) -> Callable[[FakeDevice], Awaitable[TestSe
         await server.close()
 
 
-def device_entry(server: TestServer, device: FakeDevice, **overrides) -> MockConfigEntry:
+def device_entry(
+    server: TestServer, device: FakeDevice, options: dict | None = None, **overrides
+) -> MockConfigEntry:
     """Config entry as the config flow would store it for this simulated device."""
     data = {
         CONF_ENTRY_KIND: KIND_DEVICE,
@@ -53,4 +55,6 @@ def device_entry(server: TestServer, device: FakeDevice, **overrides) -> MockCon
         CONF_SERIAL: None,
         **overrides,
     }
-    return MockConfigEntry(domain=DOMAIN, data=data, title="Test recorder", version=1)
+    return MockConfigEntry(
+        domain=DOMAIN, data=data, title="Test recorder", version=1, options=options or {}
+    )

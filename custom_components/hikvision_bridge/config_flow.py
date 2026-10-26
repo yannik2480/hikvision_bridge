@@ -55,6 +55,7 @@ from .const import (
     OPT_SIDEBAR_PANEL,
     OPT_STREAM_KEY,
     OPT_TARGET_SENSORS,
+    OPT_TRY_ENCRYPTED_STREAM,
     OPT_WEBHOOK_ID,
     PLAYBACK_H264,
     PLAYBACK_MP4,
@@ -526,6 +527,10 @@ class BridgeOptionsFlow(OptionsFlow):
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
                 ),
+                vol.Required(
+                    OPT_TRY_ENCRYPTED_STREAM,
+                    default=options.get(OPT_TRY_ENCRYPTED_STREAM, False),
+                ): bool,
                 **_panel_fields(self.hass),
             }
         )

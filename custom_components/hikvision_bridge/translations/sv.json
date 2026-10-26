@@ -122,7 +122,8 @@
           "playback": "Uppspelning i mediabläddraren",
           "stream_key": "Verifieringskod (krypterade inspelningar)",
           "sidebar_panel": "Visa Hikvision-panelen i sidofältet",
-          "panel_admin_only": "Endast administratörer ser panelen"
+          "panel_admin_only": "Endast administratörer ser panelen",
+          "try_encrypted_stream": "Prova liveströmmen även med kryptering på"
         },
         "data_description": {
           "event_path": "Händelseströmmen kräver ingen ändring på enheten. Webhooken kräver att enheten skickar till Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Inspelningar är H.265 eller H.264. ”MP4 som inspelat” startar direkt, men webbläsare spelar bara H.265 med hårdvarustöd. ”Konvertera till H.264” fungerar överallt och kräver mycket CPU. ”Strömma från enheten” låter enheten spela upp inspelningen via RTSP.",
           "stream_key": "Inspelningar gjorda med strömkryptering dekrypteras med enhetens verifieringskod, som läses från enheten. Ange den här endast om enheten inte rapporterar den, som många kameror inte gör.",
           "sidebar_panel": "Gäller alla enheter och konton i denna integration. Instrumentpanelskortet finns kvar.",
-          "panel_admin_only": "Användare utan administratörsrättigheter ser inte längre panelen. Gäller alla enheter och konton."
+          "panel_admin_only": "Användare utan administratörsrättigheter ser inte längre panelen. Gäller alla enheter och konton.",
+          "try_encrypted_stream": "Försök spela upp lokal RTSP-video även om enheten rapporterar att Hik-Connect-strömkryptering är aktiverad."
         }
       },
       "webhook": {

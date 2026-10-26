@@ -122,7 +122,8 @@
           "playback": "Reprodução no navegador de mídia",
           "stream_key": "Código de verificação (gravações criptografadas)",
           "sidebar_panel": "Mostrar o painel Hikvision na barra lateral",
-          "panel_admin_only": "Somente administradores veem o painel"
+          "panel_admin_only": "Somente administradores veem o painel",
+          "try_encrypted_stream": "Tentar transmissão ao vivo mesmo com criptografia ativada"
         },
         "data_description": {
           "event_path": "O fluxo de eventos não exige mudanças no dispositivo. O webhook exige que o dispositivo envie para o Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "As gravações são H.265 ou H.264. \"MP4 como gravado\" começa na hora, mas os navegadores só reproduzem H.265 com suporte de hardware. \"Converter para H.264\" funciona em qualquer lugar e exige muita CPU. \"Transmitir do dispositivo\" deixa o dispositivo reproduzir a gravação via RTSP.",
           "stream_key": "As gravações feitas com criptografia de stream são descriptografadas com o código de verificação do dispositivo, lido do próprio dispositivo. Informe-o aqui apenas se o dispositivo não o fornecer, como acontece com muitas câmeras.",
           "sidebar_panel": "Vale para todos os dispositivos e contas desta integração. O cartão do dashboard continua disponível.",
-          "panel_admin_only": "Usuários sem direitos de administrador deixam de ver o painel. Vale para todos os dispositivos e contas."
+          "panel_admin_only": "Usuários sem direitos de administrador deixam de ver o painel. Vale para todos os dispositivos e contas.",
+          "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte criptografia Hik-Connect ativada."
         }
       },
       "webhook": {

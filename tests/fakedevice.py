@@ -145,7 +145,7 @@ class FakeDevice:
         trigger = self._single_trigger(path)
         if trigger is not None:
             return web.Response(text=trigger, content_type="application/xml")
-        if path.endswith("/picture"):
+        if request.path.endswith("/picture"):
             return web.Response(body=b"\xff\xd8\xff\xe0fakejpeg\xff\xd9", content_type="image/jpeg")
         return web.Response(
             status=403,

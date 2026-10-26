@@ -122,7 +122,8 @@
           "playback": "Redare în browserul media",
           "stream_key": "Cod de verificare (înregistrări criptate)",
           "sidebar_panel": "Afișează panoul Hikvision în bara laterală",
-          "panel_admin_only": "Doar administratorii văd panoul"
+          "panel_admin_only": "Doar administratorii văd panoul",
+          "try_encrypted_stream": "Încearcă fluxul live chiar și cu criptarea activată"
         },
         "data_description": {
           "event_path": "Fluxul de evenimente nu necesită modificări pe dispozitiv. Webhook-ul necesită ca dispozitivul să trimită către Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Înregistrările sunt H.265 sau H.264. „MP4 așa cum a fost înregistrat” pornește imediat, dar browserele redau H.265 doar cu suport hardware. „Convertire în H.264” funcționează oriunde și necesită mult procesor. „Flux de la dispozitiv” lasă dispozitivul să redea înregistrarea prin RTSP.",
           "stream_key": "Înregistrările făcute cu criptarea fluxului sunt decriptate cu codul de verificare al dispozitivului, citit de pe dispozitiv. Introdu-l aici doar dacă dispozitivul nu îl raportează, ca multe camere.",
           "sidebar_panel": "Se aplică tuturor dispozitivelor și conturilor acestei integrări. Cardul de pe tabloul de bord rămâne disponibil.",
-          "panel_admin_only": "Utilizatorii fără drepturi de administrator nu mai văd panoul. Se aplică tuturor dispozitivelor și conturilor."
+          "panel_admin_only": "Utilizatorii fără drepturi de administrator nu mai văd panoul. Se aplică tuturor dispozitivelor și conturilor.",
+          "try_encrypted_stream": "Încearcă redarea fluxului video RTSP local chiar dacă dispozitivul raportează criptarea fluxului Hik-Connect activată. Multe NVR-uri criptează doar fluxurile din cloud."
         }
       },
       "webhook": {

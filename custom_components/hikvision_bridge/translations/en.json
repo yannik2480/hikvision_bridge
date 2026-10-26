@@ -122,7 +122,8 @@
           "playback": "Playback in the media browser",
           "stream_key": "Verification code (encrypted recordings)",
           "sidebar_panel": "Show the Hikvision panel in the sidebar",
-          "panel_admin_only": "Only administrators see the panel"
+          "panel_admin_only": "Only administrators see the panel",
+          "try_encrypted_stream": "Try the live stream even with encryption on"
         },
         "data_description": {
           "event_path": "The event stream needs no device change. The webhook requires the device to send to Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Recordings are H.265 or H.264. 'MP4 as recorded' starts at once, but browsers play H.265 only with hardware support. 'Convert to H.264' plays everywhere and needs a lot of CPU. 'Stream from the device' lets the device play the recording over RTSP.",
           "stream_key": "Recordings made with stream encryption are decrypted with the device's verification code, which is read from the device. Enter it here only if the device does not report it (many cameras don't).",
           "sidebar_panel": "Applies to all devices and accounts of this integration. The dashboard card stays available.",
-          "panel_admin_only": "Users without administrator rights no longer see the panel. Applies to all devices and accounts."
+          "panel_admin_only": "Users without administrator rights no longer see the panel. Applies to all devices and accounts.",
+          "try_encrypted_stream": "Try playing local RTSP live video even if the device reports Hik-Connect stream encryption as enabled. Many recorders only encrypt cloud streams, leaving local RTSP streams unencrypted."
         }
       },
       "webhook": {

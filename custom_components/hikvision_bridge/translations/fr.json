@@ -122,7 +122,8 @@
           "playback": "Lecture dans le navigateur multimédia",
           "stream_key": "Code de vérification (enregistrements chiffrés)",
           "sidebar_panel": "Afficher le panneau Hikvision dans la barre latérale",
-          "panel_admin_only": "Seuls les administrateurs voient le panneau"
+          "panel_admin_only": "Seuls les administrateurs voient le panneau",
+          "try_encrypted_stream": "Essayer le flux en direct même avec le chiffrement activé"
         },
         "data_description": {
           "event_path": "Le flux d'événements ne nécessite aucune modification de l'appareil. Le webhook exige que l'appareil envoie vers Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Les enregistrements sont en H.265 ou H.264. « MP4 tel qu'enregistré » démarre immédiatement, mais les navigateurs ne lisent le H.265 qu'avec une prise en charge matérielle. « Convertir en H.264 » fonctionne partout et sollicite fortement le processeur. « Diffuser depuis l'appareil » laisse l'appareil lire l'enregistrement via RTSP.",
           "stream_key": "Les enregistrements effectués avec le chiffrement du flux sont déchiffrés avec le code de vérification de l'appareil, lu sur l'appareil. Saisissez-le ici uniquement si l'appareil ne le fournit pas, comme beaucoup de caméras.",
           "sidebar_panel": "S'applique à tous les appareils et comptes de cette intégration. La carte du tableau de bord reste disponible.",
-          "panel_admin_only": "Les utilisateurs sans droits d'administrateur ne voient plus le panneau. S'applique à tous les appareils et comptes."
+          "panel_admin_only": "Les utilisateurs sans droits d'administrateur ne voient plus le panneau. S'applique à tous les appareils et comptes.",
+          "try_encrypted_stream": "Essayez de lire le flux RTSP local même si l'appareil signale le chiffrement Hik-Connect. De nombreux enregistreurs ne chiffrent que les flux cloud."
         }
       },
       "webhook": {

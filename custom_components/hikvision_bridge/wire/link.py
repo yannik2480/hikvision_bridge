@@ -377,8 +377,11 @@ class IsapiLink:
             if method == "GET":
                 self.served.add(base)
             return reply
-        if isinstance(fault, Unsupported) and base not in self.served:
-            self.unsupported.add(base)
+        if isinstance(fault, Unsupported):
+            if path == base and base not in self.served:
+                self.unsupported.add(base)
+            elif path != base:
+                self.unsupported.add(path)
         if isinstance(fault, LockedOut):
             self._blocked = fault
         raise fault

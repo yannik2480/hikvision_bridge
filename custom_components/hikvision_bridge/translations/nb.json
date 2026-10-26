@@ -122,7 +122,8 @@
           "playback": "Avspilling i medieleseren",
           "stream_key": "Verifiseringskode (krypterte opptak)",
           "sidebar_panel": "Vis Hikvision-panelet i sidefeltet",
-          "panel_admin_only": "Bare administratorer ser panelet"
+          "panel_admin_only": "Bare administratorer ser panelet",
+          "try_encrypted_stream": "Prøv direktesendingen selv med kryptering på"
         },
         "data_description": {
           "event_path": "Hendelsesstrømmen krever ingen endring på enheten. Webhooken krever at enheten sender til Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Opptak er H.265 eller H.264. «MP4 som tatt opp» starter med en gang, men nettlesere spiller bare H.265 med maskinvarestøtte. «Konverter til H.264» virker overalt og krever mye CPU. «Strøm fra enheten» lar enheten spille av opptaket via RTSP.",
           "stream_key": "Opptak gjort med strømkryptering dekrypteres med enhetens verifiseringskode, som leses fra enheten. Skriv den inn her bare hvis enheten ikke oppgir den, slik mange kameraer ikke gjør.",
           "sidebar_panel": "Gjelder alle enheter og kontoer i denne integrasjonen. Dashbordkortet er fortsatt tilgjengelig.",
-          "panel_admin_only": "Brukere uten administratorrettigheter ser ikke lenger panelet. Gjelder alle enheter og kontoer."
+          "panel_admin_only": "Brukere uten administratorrettigheter ser ikke lenger panelet. Gjelder alle enheter og kontoer.",
+          "try_encrypted_stream": "Prøv å spille av lokal RTSP-video selv om enheten rapporterer at Hik-Connect-strømkryptering er aktivert."
         }
       },
       "webhook": {

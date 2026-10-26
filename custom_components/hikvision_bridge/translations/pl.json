@@ -122,7 +122,8 @@
           "playback": "Odtwarzanie w przeglądarce multimediów",
           "stream_key": "Kod weryfikacyjny (zaszyfrowane nagrania)",
           "sidebar_panel": "Pokaż panel Hikvision na pasku bocznym",
-          "panel_admin_only": "Panel widzą tylko administratorzy"
+          "panel_admin_only": "Panel widzą tylko administratorzy",
+          "try_encrypted_stream": "Spróbuj transmisji na żywo nawet przy włączonym szyfrowaniu"
         },
         "data_description": {
           "event_path": "Strumień zdarzeń nie wymaga zmian w urządzeniu. Webhook wymaga, aby urządzenie wysyłało do Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Nagrania są w H.265 lub H.264. „MP4 jak nagrano” startuje od razu, ale przeglądarki odtwarzają H.265 tylko przy wsparciu sprzętowym. „Konwertuj do H.264” działa wszędzie i mocno obciąża procesor. „Strumień z urządzenia” pozwala urządzeniu odtworzyć nagranie przez RTSP.",
           "stream_key": "Nagrania wykonane z szyfrowaniem strumienia są odszyfrowywane kodem weryfikacyjnym urządzenia, odczytywanym z urządzenia. Wpisz go tutaj tylko wtedy, gdy urządzenie go nie podaje, jak wiele kamer.",
           "sidebar_panel": "Dotyczy wszystkich urządzeń i kont tej integracji. Karta pulpitu pozostaje dostępna.",
-          "panel_admin_only": "Użytkownicy bez uprawnień administratora nie widzą już panelu. Dotyczy wszystkich urządzeń i kont."
+          "panel_admin_only": "Użytkownicy bez uprawnień administratora nie widzą już panelu. Dotyczy wszystkich urządzeń i kont.",
+          "try_encrypted_stream": "Spróbuj odtworzyć lokalne wideo RTSP, nawet jeśli urządzenie zgłasza szyfrowanie Hik-Connect."
         }
       },
       "webhook": {

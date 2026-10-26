@@ -122,7 +122,8 @@
           "playback": "Pemutaran di peramban media",
           "stream_key": "Kode verifikasi (rekaman terenkripsi)",
           "sidebar_panel": "Tampilkan panel Hikvision di bilah samping",
-          "panel_admin_only": "Hanya administrator yang melihat panel"
+          "panel_admin_only": "Hanya administrator yang melihat panel",
+          "try_encrypted_stream": "Coba streaming langsung meskipun enkripsi aktif"
         },
         "data_description": {
           "event_path": "Aliran peristiwa tidak memerlukan perubahan pada perangkat. Webhook mengharuskan perangkat mengirim ke Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Rekaman berformat H.265 atau H.264. 'MP4 sesuai rekaman' langsung dimulai, tetapi peramban hanya memutar H.265 dengan dukungan perangkat keras. 'Ubah ke H.264' bisa diputar di mana saja dan butuh banyak CPU. 'Streaming dari perangkat' membiarkan perangkat memutar rekaman melalui RTSP.",
           "stream_key": "Rekaman yang dibuat dengan enkripsi stream didekripsi dengan kode verifikasi perangkat, yang dibaca dari perangkat. Masukkan di sini hanya jika perangkat tidak melaporkannya, seperti banyak kamera.",
           "sidebar_panel": "Berlaku untuk semua perangkat dan akun integrasi ini. Kartu dasbor tetap tersedia.",
-          "panel_admin_only": "Pengguna tanpa hak administrator tidak lagi melihat panel. Berlaku untuk semua perangkat dan akun."
+          "panel_admin_only": "Pengguna tanpa hak administrator tidak lagi melihat panel. Berlaku untuk semua perangkat dan akun.",
+          "try_encrypted_stream": "Coba putar video RTSP lokal meskipun perangkat melaporkan enkripsi streaming Hik-Connect aktif."
         }
       },
       "webhook": {

@@ -122,7 +122,8 @@
           "playback": "Lejátszás a médiaböngészőben",
           "stream_key": "Ellenőrző kód (titkosított felvételek)",
           "sidebar_panel": "Hikvision panel megjelenítése az oldalsávban",
-          "panel_admin_only": "A panelt csak a rendszergazdák látják"
+          "panel_admin_only": "A panelt csak a rendszergazdák látják",
+          "try_encrypted_stream": "Élő közvetítés megpróbálása bekapcsolt titkosítással is"
         },
         "data_description": {
           "event_path": "Az eseményfolyam nem igényel módosítást az eszközön. A webhookhoz az eszköznek a Home Assistantnak kell küldenie.",
@@ -130,7 +131,8 @@
           "playback": "A felvételek H.265 vagy H.264 formátumúak. Az „MP4 felvett formában” azonnal indul, de a böngészők a H.265-öt csak hardveres támogatással játsszák le. Az „Átalakítás H.264-re” mindenhol működik, és sok processzort igényel. A „Streamelés az eszközről” az eszközzel játszatja le a felvételt RTSP-n keresztül.",
           "stream_key": "A streamtitkosítással készült felvételeket az eszköz ellenőrző kódjával fejtjük vissza, amelyet az eszközről olvasunk ki. Csak akkor add meg itt, ha az eszköz nem közli, ahogy sok kamera sem.",
           "sidebar_panel": "Az integráció összes eszközére és fiókjára vonatkozik. Az irányítópult-kártya továbbra is elérhető.",
-          "panel_admin_only": "A rendszergazdai jogok nélküli felhasználók többé nem látják a panelt. Minden eszközre és fiókra vonatkozik."
+          "panel_admin_only": "A rendszergazdai jogok nélküli felhasználók többé nem látják a panelt. Minden eszközre és fiókra vonatkozik.",
+          "try_encrypted_stream": "Próbálja meg lejátszani a helyi RTSP-videót még akkor is, ha az eszköz Hik-Connect stream titkosítást jelez."
         }
       },
       "webhook": {

@@ -122,7 +122,8 @@
           "playback": "Medya tarayıcısında oynatma",
           "stream_key": "Doğrulama kodu (şifreli kayıtlar)",
           "sidebar_panel": "Hikvision panelini kenar çubuğunda göster",
-          "panel_admin_only": "Paneli yalnızca yöneticiler görsün"
+          "panel_admin_only": "Paneli yalnızca yöneticiler görsün",
+          "try_encrypted_stream": "Şifreleme açıkken bile canlı akışı dene"
         },
         "data_description": {
           "event_path": "Olay akışı cihazda değişiklik gerektirmez. Webhook, cihazın Home Assistant'a göndermesini gerektirir.",
@@ -130,7 +131,8 @@
           "playback": "Kayıtlar H.265 veya H.264'tür. 'Kaydedildiği gibi MP4' hemen başlar, ancak tarayıcılar H.265'i yalnızca donanım desteğiyle oynatır. 'H.264'e dönüştür' her yerde çalışır ve çok işlemci gerektirir. 'Cihazdan akış' kaydı cihazın RTSP üzerinden oynatmasını sağlar.",
           "stream_key": "Akış şifrelemesiyle yapılan kayıtlar, cihazdan okunan doğrulama koduyla çözülür. Kodu buraya yalnızca cihaz bildirmiyorsa girin; birçok kamera bildirmez.",
           "sidebar_panel": "Bu entegrasyonun tüm cihazları ve hesapları için geçerlidir. Gösterge paneli kartı kullanılabilir kalır.",
-          "panel_admin_only": "Yönetici yetkisi olmayan kullanıcılar paneli artık görmez. Tüm cihazlar ve hesaplar için geçerlidir."
+          "panel_admin_only": "Yönetici yetkisi olmayan kullanıcılar paneli artık görmez. Tüm cihazlar ve hesaplar için geçerlidir.",
+          "try_encrypted_stream": "Cihaz Hik-Connect akış şifrelemesini bildirse bile yerel RTSP videosunu oynatmayı deneyin."
         }
       },
       "webhook": {

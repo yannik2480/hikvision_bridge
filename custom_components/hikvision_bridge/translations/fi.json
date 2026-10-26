@@ -122,7 +122,8 @@
           "playback": "Toisto mediaselaimessa",
           "stream_key": "Vahvistuskoodi (salatut tallenteet)",
           "sidebar_panel": "Näytä Hikvision-paneeli sivupalkissa",
-          "panel_admin_only": "Vain ylläpitäjät näkevät paneelin"
+          "panel_admin_only": "Vain ylläpitäjät näkevät paneelin",
+          "try_encrypted_stream": "Kokeile suoraa lähetystä salauksen ollessa päällä"
         },
         "data_description": {
           "event_path": "Tapahtumavirta ei vaadi muutoksia laitteeseen. Webhook edellyttää, että laite lähettää Home Assistantiin.",
@@ -130,7 +131,8 @@
           "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta.",
           "stream_key": "Virran salauksella tehdyt tallenteet puretaan laitteen vahvistuskoodilla, joka luetaan laitteesta. Syötä se tähän vain, jos laite ei ilmoita sitä, kuten moni kamera.",
           "sidebar_panel": "Koskee kaikkia tämän integraation laitteita ja tilejä. Kojelaudan kortti pysyy käytettävissä.",
-          "panel_admin_only": "Käyttäjät ilman ylläpitäjän oikeuksia eivät enää näe paneelia. Koskee kaikkia laitteita ja tilejä."
+          "panel_admin_only": "Käyttäjät ilman ylläpitäjän oikeuksia eivät enää näe paneelia. Koskee kaikkia laitteita ja tilejä.",
+          "try_encrypted_stream": "Kokeile toistaa paikallista RTSP-videota, vaikka laite ilmoittaisi Hik-Connect-suojauksen olevan käytössä."
         }
       },
       "webhook": {

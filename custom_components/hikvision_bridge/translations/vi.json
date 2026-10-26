@@ -122,7 +122,8 @@
           "playback": "Phát trong trình duyệt phương tiện",
           "stream_key": "Mã xác minh (bản ghi được mã hóa)",
           "sidebar_panel": "Hiển thị bảng Hikvision trên thanh bên",
-          "panel_admin_only": "Chỉ quản trị viên thấy bảng"
+          "panel_admin_only": "Chỉ quản trị viên thấy bảng",
+          "try_encrypted_stream": "Thử phát trực tiếp ngay cả khi bật mã hóa"
         },
         "data_description": {
           "event_path": "Luồng sự kiện không cần thay đổi gì trên thiết bị. Webhook yêu cầu thiết bị gửi đến Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Bản ghi là H.265 hoặc H.264. 'MP4 như khi ghi' bắt đầu ngay, nhưng trình duyệt chỉ phát H.265 khi có hỗ trợ phần cứng. 'Chuyển sang H.264' phát được ở mọi nơi và tốn nhiều CPU. 'Phát trực tiếp từ thiết bị' để thiết bị phát bản ghi qua RTSP.",
           "stream_key": "Bản ghi được tạo khi bật mã hóa luồng sẽ được giải mã bằng mã xác minh của thiết bị, được đọc từ thiết bị. Chỉ nhập ở đây nếu thiết bị không cung cấp, như nhiều camera.",
           "sidebar_panel": "Áp dụng cho mọi thiết bị và tài khoản của tích hợp này. Thẻ bảng điều khiển vẫn dùng được.",
-          "panel_admin_only": "Người dùng không có quyền quản trị sẽ không còn thấy bảng. Áp dụng cho mọi thiết bị và tài khoản."
+          "panel_admin_only": "Người dùng không có quyền quản trị sẽ không còn thấy bảng. Áp dụng cho mọi thiết bị và tài khoản.",
+          "try_encrypted_stream": "Thử phát video RTSP cục bộ ngay cả khi thiết bị báo cáo mã hóa luồng Hik-Connect đã bật."
         }
       },
       "webhook": {

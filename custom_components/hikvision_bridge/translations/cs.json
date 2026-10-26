@@ -122,7 +122,8 @@
           "playback": "Přehrávání v prohlížeči médií",
           "stream_key": "Ověřovací kód (šifrované záznamy)",
           "sidebar_panel": "Zobrazit panel Hikvision v postranním panelu",
-          "panel_admin_only": "Panel vidí jen správci"
+          "panel_admin_only": "Panel vidí jen správci",
+          "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování"
         },
         "data_description": {
           "event_path": "Stream událostí nevyžaduje žádnou změnu v zařízení. Webhook vyžaduje, aby zařízení odesílalo do Home Assistant.",
@@ -130,7 +131,8 @@
           "playback": "Záznamy jsou v H.265 nebo H.264. „MP4 jak bylo nahráno“ začne hned, ale prohlížeče přehrávají H.265 jen s hardwarovou podporou. „Převést na H.264“ funguje všude a hodně zatěžuje procesor. „Streamovat ze zařízení“ nechá zařízení přehrát záznam přes RTSP.",
           "stream_key": "Záznamy pořízené se šifrováním streamu se dešifrují ověřovacím kódem zařízení, který se čte ze zařízení. Zadejte ho sem jen tehdy, když ho zařízení neuvádí, jako mnoho kamer.",
           "sidebar_panel": "Platí pro všechna zařízení a účty této integrace. Karta na nástěnce zůstává dostupná.",
-          "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty."
+          "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty.",
+          "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect."
         }
       },
       "webhook": {

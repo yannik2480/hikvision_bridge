@@ -14,7 +14,7 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 
-from custom_components.hikvision_bridge.const import DOMAIN
+from custom_components.hikvision_bridge.const import DOMAIN, OPT_TRY_ENCRYPTED_STREAM
 from custom_components.hikvision_bridge.diagnostics import async_get_config_entry_diagnostics
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from tests.conftest import device_entry
@@ -97,6 +97,82 @@ async def test_stream_encryption_is_followed_without_reload(hass: HomeAssistant,
     assert hass.states.get(camera).attributes["supported_features"] == CameraEntityFeature.STREAM
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
     assert {method for method, _ in device.requests} == {"GET"}
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_try_encrypted_stream_unblocks_camera_and_snapshots_use_resolution(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    server = await serve(device)
+    entry = device_entry(server, device, options={OPT_TRY_ENCRYPTED_STREAM: True})
+    await _set_up_entry(hass, entry)
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    camera = next(e.entity_id for e in entities if e.unique_id.endswith("_stream_1"))
+
+    assert hass.states.get(camera).attributes["stream_encrypted"] is True
+    assert hass.states.get(camera).attributes["supported_features"] == CameraEntityFeature.STREAM
+
+    camera_obj = hass.data["camera"].get_entity(camera)
+    img = await camera_obj.async_camera_image()
+    assert img == b"\xff\xd8\xff\xe0fakejpeg\xff\xd9"
+    assert any("videoResolutionWidth=" in path for _, path in device.requests)
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_snapshot_resolution_unsupported_falls_back_to_plain_picture(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    res_path = "/ISAPI/ContentMgmt/StreamingProxy/channels/101/picture?videoResolutionWidth=3840&videoResolutionHeight=2160"
+    device.overrides[res_path] = (
+        404,
+        "<ResponseStatus><statusCode>4</statusCode><subStatusCode>notSupport</subStatusCode></ResponseStatus>",
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    await _set_up_entry(hass, entry)
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    camera = next(e.entity_id for e in entities if e.unique_id.endswith("_stream_1"))
+
+    camera_obj = hass.data["camera"].get_entity(camera)
+    img = await camera_obj.async_camera_image()
+    assert img == b"\xff\xd8\xff\xe0fakejpeg\xff\xd9"
+    bridge = entry.runtime_data
+    assert "/ISAPI/ContentMgmt/StreamingProxy/channels/101/picture" not in bridge.link.unsupported
+    assert res_path in bridge.link.unsupported
+
+    device.requests.clear()
+    img2 = await camera_obj.async_camera_image()
+    assert img2 == b"\xff\xd8\xff\xe0fakejpeg\xff\xd9"
+    assert not any("videoResolutionWidth=" in path for _, path in device.requests)
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_snapshot_resolution_rejected_falls_back_to_plain_picture(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    res_path = "/ISAPI/ContentMgmt/StreamingProxy/channels/101/picture?videoResolutionWidth=3840&videoResolutionHeight=2160"
+    device.overrides[res_path] = (
+        500,
+        "<ResponseStatus><statusCode>2</statusCode><subStatusCode>deviceError</subStatusCode></ResponseStatus>",
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    await _set_up_entry(hass, entry)
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    camera = next(e.entity_id for e in entities if e.unique_id.endswith("_stream_1"))
+
+    camera_obj = hass.data["camera"].get_entity(camera)
+    img = await camera_obj.async_camera_image()
+    assert img == b"\xff\xd8\xff\xe0fakejpeg\xff\xd9"
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()

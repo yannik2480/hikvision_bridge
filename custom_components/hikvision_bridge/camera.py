@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import (
     OPT_RTSP_PORT,
     OPT_RTSP_TRANSPORT,
+    OPT_TRY_ENCRYPTED_STREAM,
     RTSP_PORT_DEFAULT,
     RTSP_TCP,
     SUBENTRY_CHANNEL_LINK,
@@ -20,7 +21,7 @@ from .const import (
 from .entity import BridgeEntity, add_entities
 from .model.inventory import StreamSpec
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault, Unsupported
+from .wire.faults import BridgeFault, DeviceRejected, Unsupported
 from .wire.link import IsapiLink
 from .wire.scrub import scrubbed_logger
 
@@ -65,6 +66,8 @@ class ChannelCamera(BridgeEntity, Camera):
         A direct link that leaves the live stream on the recorder is an explicit choice to
         try the recorder's stream anyway.
         """
+        if self.bridge.entry.options.get(OPT_TRY_ENCRYPTED_STREAM, False):
+            return False
         cloud = self.bridge.profile.cloud
         route = self.bridge.routes.get(self.channel_id)
         direct = route is not None and route.healthy
@@ -81,10 +84,11 @@ class ChannelCamera(BridgeEntity, Camera):
     @property
     def extra_state_attributes(self) -> dict:
         stream = self._stream
+        cloud = self.bridge.profile.cloud
         return {
             "codec": stream.codec,
             "resolution": f"{stream.width}x{stream.height}" if stream.width else None,
-            "stream_encrypted": self._blocked_by_encryption,
+            "stream_encrypted": bool(cloud and cloud.stream_encrypted),
         }
 
     async def async_added_to_hass(self) -> None:
@@ -144,15 +148,27 @@ class ChannelCamera(BridgeEntity, Camera):
         self, width: int | None = None, height: int | None = None
     ) -> bytes | None:
         link, stream_id, _ = self._source()
-        paths = [f"/ISAPI/Streaming/channels/{stream_id}/picture"]
+        query = (
+            f"?videoResolutionWidth={self._stream.width}&videoResolutionHeight={self._stream.height}"
+            if self._stream.width and self._stream.height
+            else ""
+        )
+        paths = []
         if link is self.bridge.link and self.bridge.profile.shape.records:
-            paths.insert(0, f"/ISAPI/ContentMgmt/StreamingProxy/channels/{stream_id}/picture")
+            if query:
+                paths.append(
+                    f"/ISAPI/ContentMgmt/StreamingProxy/channels/{stream_id}/picture{query}"
+                )
+            paths.append(f"/ISAPI/ContentMgmt/StreamingProxy/channels/{stream_id}/picture")
+        if query:
+            paths.append(f"/ISAPI/Streaming/channels/{stream_id}/picture{query}")
+        paths.append(f"/ISAPI/Streaming/channels/{stream_id}/picture")
         for path in paths:
             if path in link.unsupported:
                 continue
             try:
                 reply = await link.read_bytes(path)
-            except Unsupported:
+            except (Unsupported, DeviceRejected):
                 continue
             except BridgeFault as err:
                 _LOGGER.debug("Snapshot failed: %s", type(err).__name__)
