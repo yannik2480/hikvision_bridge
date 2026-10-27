@@ -4,8 +4,9 @@ The device hands out the recordings of a time span as a download, much faster th
 them; it is decrypted if needed and fed to ffmpeg, which only repackages it. The download is
 held back once the prepared video is far enough ahead of the player. Some recorders refuse
 the download of a span but hand out their recorded files; a session then covers the file that
-holds the wanted time, and ffmpeg leaves out the part of it before that time. Devices that
-refuse both play the span over RTSP instead, in real time and without decryption.
+holds the wanted time and starts at the last key frame before it. The part of the file before
+that is dropped as fast as the device sends it, without ffmpeg. Devices that refuse both play
+the span over RTSP instead, in real time and without decryption.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -16,6 +17,7 @@ process ends before the new one starts.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -31,6 +33,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..model.features import recordings
+from ..model.features.scrambling import ProgramStream
 from ..wire.faults import DeviceRejected, Unsupported, detail
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrub_text, scrubbed_logger
@@ -44,6 +47,11 @@ QUALITY_COMPATIBLE = "compatible"
 QUALITIES = (QUALITY_ORIGINAL, QUALITY_COMPATIBLE)
 SEGMENT_SECONDS = 2
 FIRST_SEGMENT_TIMEOUT = 25
+# Longest wait for the part of a recorded file before the wanted time; slower devices start
+# playing from the latest key frame they reached.
+SKIP_SECONDS = 30
+# Download kept while no key frame was found yet; past it the file plays from its start.
+SKIP_SEARCH_BYTES = 8 * 1024 * 1024
 # ffmpeg gives up on an RTSP connection that sends nothing for this long (microseconds).
 RTSP_TIMEOUT = 10_000_000
 IDLE_SECONDS = 45
@@ -127,24 +135,15 @@ def playback_uri(
     )
 
 
-def hls_args(
-    url: str, quality: str, codec: str | None, target: Path, skip: float = 0.0
-) -> list[str]:
-    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin.
-
-    The first ``skip`` seconds of the input are left out; copied video then starts with the
-    next key frame.
-    """
+def hls_args(url: str, quality: str, codec: str | None, target: Path) -> list[str]:
+    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin."""
     args = ["-hide_banner", "-loglevel", "error"]
     if url == PIPE:
         args += ["-f", "mpeg"]
     else:
         args += ["-rtsp_transport", "tcp", "-timeout", str(RTSP_TIMEOUT)]
     # The streams are known after the first key frame; the default waits five seconds.
-    args += ["-analyzeduration", "2000000", "-i", url]
-    if skip > 0:
-        args += ["-ss", f"{skip:.3f}"]
-    args += ["-map", "0:v:0", "-map", "0:a:0?"]
+    args += ["-analyzeduration", "2000000", "-i", url, "-map", "0:v:0", "-map", "0:a:0?"]
     if quality == QUALITY_COMPATIBLE:
         args += [
             "-c:v",
@@ -200,6 +199,52 @@ def played_seconds(playlist: str, fetched: int) -> float:
                 break
             total += duration
     return total
+
+
+async def skipped(
+    stream: ProgramStream, chunks: AsyncIterator[bytes], skip: float
+) -> tuple[bytes, float]:
+    """Read ``chunks`` up to ``skip`` seconds and drop what lies before the last key frame.
+
+    Returns the bytes from that key frame on and its playing time. Stops at the latest key
+    frame reached after SKIP_SECONDS; without any key frame the file plays from its start.
+    """
+    began = time.monotonic()
+    stream.key_frames = []
+    kept = bytearray()
+    kept_at = 0  # stream offset of kept[0]
+    cut: float | None = None
+    async for data in chunks:
+        kept += data
+        frames, stream.key_frames = stream.key_frames, []
+        for at, seconds in frames:
+            if cut is None or seconds <= skip:
+                drop = min(at - kept_at, len(kept))
+                del kept[:drop]
+                kept_at += drop
+                cut = seconds
+        if cut is None:
+            if len(kept) > SKIP_SEARCH_BYTES:
+                break
+        elif stream.seconds >= skip or time.monotonic() - began > SKIP_SECONDS:
+            break
+    stream.key_frames = None
+    if cut is None:
+        _LOGGER.debug("No key frame in the recorded file, playing it from its start")
+        return recordings.strip_header(bytes(kept)), 0.0
+    _LOGGER.debug(
+        "Recorded file plays from %.0f s (wanted %.0f s), reached in %.1f s",
+        cut,
+        skip,
+        time.monotonic() - began,
+    )
+    return bytes(kept), cut
+
+
+async def _joined(first: bytes, chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    yield first
+    async for data in chunks:
+        yield data
 
 
 def _reason(errors: str) -> str:
@@ -357,13 +402,15 @@ class SessionManager:
             self._pump(session, source, uri, ready, skip),
             "hikvision_bridge playback download",
         )
+        wait = FIRST_SEGMENT_TIMEOUT + (SKIP_SECONDS if skip > 0 else 0)
         try:
-            await asyncio.wait_for(asyncio.shield(ready), FIRST_SEGMENT_TIMEOUT)
+            await asyncio.wait_for(asyncio.shield(ready), wait)
         except BaseException as err:
             await _cancel(session.pump)
             if isinstance(err, RecordingEncrypted):
                 raise SessionError("playback_encrypted") from err
             if isinstance(err, TimeoutError):
+                _LOGGER.debug("Playback of %s did not start: no data in %s s", what, wait)
                 raise SessionError("playback_failed") from err
             if isinstance(err, FileNotFoundError) or not isinstance(err, Exception):
                 raise
@@ -373,10 +420,11 @@ class SessionManager:
                 isinstance(err, (DeviceRejected, Unsupported, NoRecording)),
                 isinstance(err, DeviceRejected),
             ) from err
-        reason = await self._first_segment(session)
+        reason = await self._first_segment(session, what)
         if reason is not None:
             await self._end(session)
             raise SessionError(reason)
+        _LOGGER.debug("Playing %s", what)
         return session
 
     async def _pump(
@@ -389,26 +437,33 @@ class SessionManager:
     ) -> None:
         """Download, decrypt and hand the span to ffmpeg, keeping READ_AHEAD in front.
 
-        ffmpeg leaves out the first ``skip`` seconds; they go through without holding back.
+        With ``skip`` the video starts at the last key frame before that many seconds, and
+        the session start moves back to that frame.
         """
         stdin = None
         try:
             async with recordings.open_download(source.link, uri) as response:
                 head = await playback.read_head(response)
                 info, stream = await playback.prepare(source, head)
+                chunks = playback.passed(stream, head, response)
+                cut = 0.0
+                if skip > 0:
+                    first, cut = await skipped(stream, chunks, skip)
+                    session.start -= timedelta(seconds=skip - cut)
+                    chunks = _joined(first, chunks)
+                else:
+                    chunks = playback.stripped(chunks)
                 session.process = await self._spawn(
-                    session,
-                    hls_args(PIPE, session.quality, info.codec, session.folder, skip),
-                    True,
+                    session, hls_args(PIPE, session.quality, info.codec, session.folder), True
                 )
                 stdin = session.process.stdin
                 assert stdin is not None
                 ready.set_result(None)
                 played = (-1, 0.0)
-                async for data in playback.stripped(playback.passed(stream, head, response)):
+                async for data in chunks:
                     stdin.write(data)
                     await stdin.drain()
-                    while stream.seconds - skip > played[1] + READ_AHEAD:
+                    while stream.seconds - cut > played[1] + READ_AHEAD:
                         if session.fetched != played[0]:
                             text = await self.hass.async_add_executor_job(
                                 _read, session.folder / PLAYLIST
@@ -451,8 +506,9 @@ class SessionManager:
             session.process = await self._spawn(
                 session, hls_args(url, quality, codec, folder), False
             )
-            reason = await self._first_segment(session)
+            reason = await self._first_segment(session, "RTSP")
             if reason is None:
+                _LOGGER.debug("Playing over RTSP")
                 return session
             if reason != "playback_busy" or attempt:
                 break
@@ -477,7 +533,7 @@ class SessionManager:
         finally:
             await self.hass.async_add_executor_job(log.close)
 
-    async def _first_segment(self, session: Session) -> str | None:
+    async def _first_segment(self, session: Session, what: str) -> str | None:
         """None once the first segment is written, else why ffmpeg gave up."""
         assert session.process is not None
         playlist = session.folder / PLAYLIST
@@ -492,14 +548,14 @@ class SessionManager:
         running = session.process.returncode is None
         await self._end(session)
         errors = await self.hass.async_add_executor_job(_read, session.folder / LOG) or ""
-        if errors:
-            _LOGGER.debug("Playback did not start: %s", scrub_text(errors[-400:]))
-        elif running:
-            _LOGGER.debug("Playback did not start: no video in %s s", FIRST_SEGMENT_TIMEOUT)
-        else:
-            _LOGGER.debug(
-                "Playback did not start: ffmpeg ended with %s", session.process.returncode
-            )
+        _LOGGER.debug(
+            "Playback of %s did not start: %s%s",
+            what,
+            f"no video in {FIRST_SEGMENT_TIMEOUT} s"
+            if running
+            else f"ffmpeg ended with {session.process.returncode}",
+            f"; ffmpeg: {scrub_text(errors[-400:])}" if errors else "",
+        )
         return _reason(errors) if errors else "playback_failed"
 
     async def _end(self, session: Session) -> None:

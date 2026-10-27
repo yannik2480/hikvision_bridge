@@ -15,12 +15,13 @@ import pytest
 from custom_components.hikvision_bridge.const import DOMAIN
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
+from custom_components.hikvision_bridge.model.features.scrambling import ProgramStream
 from custom_components.hikvision_bridge.runtime import playback, sessions
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
 from tests.model.test_recordings import CLIPS as MODEL_CLIPS, T0, result
-from tests.model.test_scrambling import CODE, recording
+from tests.model.test_scrambling import CODE, PACK, VPS, _packets, recording
 from tests.test_playback import START, ezviz, recorded
 
 HLS = (
@@ -91,9 +92,66 @@ def test_hls_args(tmp_path: Path) -> None:
     assert "-rtsp_transport" not in piped
     assert piped[piped.index("-hls_segment_filename") + 1] == str(tmp_path / "seg%05d.m4s")
     assert "-ss" not in piped
-    skipped = sessions.hls_args(sessions.PIPE, sessions.QUALITY_ORIGINAL, "hevc", tmp_path, 90)
-    # Left out after the input, so that ffmpeg reads up to there instead of seeking a pipe.
-    assert skipped[skipped.index("-i") + 2 : skipped.index("-i") + 4] == ["-ss", "90.000"]
+
+
+def _keyed(parameters: bytes, key: bytes, other: bytes) -> tuple[bytes, dict[int, int]]:
+    """A recorded file with a frame every 2 s and a key frame every 4 s, and where they start."""
+    data = b"IMKH" + bytes(36)
+    keys: dict[int, int] = {}
+    for second in range(0, 16, 2):
+        if second % 4 == 0:
+            keys[second] = len(data)
+            frame = b"\x00\x00\x00\x01" + parameters + b"\x00\x00\x00\x01" + key
+        else:
+            frame = b"\x00\x00\x00\x01" + other
+        data += PACK + _packets(frame + bytes(range(1, 200)), False, 90000 * second)
+    return data, keys
+
+
+async def _fed(stream: ProgramStream, data: bytes):
+    for at in range(0, len(data), 333):
+        yield stream.feed(data[at : at + 333])
+    yield stream.flush()
+
+
+@pytest.mark.parametrize(
+    ("codec", "parameters", "key", "other"),
+    [
+        ("hevc", VPS, b"\x26\x01", b"\x02\x01"),
+        ("h264", b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a"),
+    ],
+)
+async def test_skipped_starts_at_key_frame(
+    codec: str, parameters: bytes, key: bytes, other: bytes
+) -> None:
+    """The part before the last key frame ahead of the wanted time never reaches ffmpeg."""
+    data, keys = _keyed(parameters, key, other)
+    stream = ProgramStream(codec=codec)
+    chunks = _fed(stream, data)
+    first, cut = await sessions.skipped(stream, chunks, 10)
+    assert cut == 8
+    rest = b"".join([chunk async for chunk in chunks])
+    assert first + rest == data[keys[8] :]
+    assert stream.key_frames is None
+
+    # Wanted before the first key frame: the file plays from that frame.
+    stream = ProgramStream(codec=codec)
+    first, cut = await sessions.skipped(stream, _fed(stream, data[: keys[4]]), 1)
+    assert cut == 0
+    assert first.startswith(data[keys[0] : keys[0] + 50])
+
+
+async def test_skipped_without_key_frames() -> None:
+    data = (
+        b"IMKH"
+        + bytes(36)
+        + PACK
+        + _packets(b"\x00\x00\x00\x01\x02\x01" + bytes(range(1, 99)), False, 0)
+    )
+    stream = ProgramStream(codec="hevc")
+    first, cut = await sessions.skipped(stream, _fed(stream, data), 10)
+    assert cut == 0
+    assert first == recordings.strip_header(data)
 
 
 def test_covering() -> None:
@@ -352,15 +410,15 @@ async def test_playback_session_from_recorded_file(
         assert answer["success"], answer
         return answer["result"]
 
-    moment = START + timedelta(minutes=5)
-    started = await play(moment)
-    assert started["start"] == moment.isoformat()
+    started = await play(START + timedelta(minutes=5))
+    # The file's only key frame is at its start, so the session starts there.
+    assert started["start"] == START.isoformat()
     assert started["end"] == (START + timedelta(minutes=10)).isoformat()
     session = sessions.manager(hass).sessions[started["session_id"]]
     args = await hass.async_add_executor_job((session.folder / "args").read_text)
-    assert "pipe:0 -ss 300.000 " in args
+    assert "-ss" not in args
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
-    assert fed == recordings.strip_header(data)
+    assert fed == data[40 + len(PACK) :]
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
     assert len(downloads) == 2
     assert "name=" not in downloads[0]

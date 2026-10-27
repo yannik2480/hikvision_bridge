@@ -41,7 +41,8 @@ class ProgramStream:
 
     Data goes in with ``feed`` in pieces of any size and comes out in the same order; bytes
     are held back only until the packet (or encrypted block) they belong to is complete.
-    Also tracks the playing time (from the video time stamps) of what came out so far.
+    Also tracks the playing time (from the video time stamps) of what came out so far, and,
+    once ``key_frames`` is a list, collects where key frames start.
     """
 
     def __init__(self, key: bytes | None = None, codec: str | None = None) -> None:
@@ -49,6 +50,9 @@ class ProgramStream:
         self._aes = Cipher(algorithms.AES(key), modes.ECB()) if key else None  # noqa: S305
         self.codec = codec
         self.key_fits: bool | None = None  # known once an encrypted parameter set was seen
+        # (stream offset of the pack, playing time) of each key frame, when asked for.
+        self.key_frames: list[tuple[int, float]] | None = None
+        self._pack = 0  # stream offset of the latest pack header
         self._buffer = bytearray()
         self._base = 0  # stream offset of the first buffered byte
         self._next = 0  # stream offset of the next packet to parse
@@ -116,6 +120,8 @@ class ProgramStream:
                 size = 6 + int.from_bytes(buffer[at + 4 : at + 6], "big")
             if len(buffer) - at < size:
                 return
+            if stream_id == 0xBA:
+                self._pack = self._base + at
             if 0xE0 <= stream_id <= 0xEF and size > 9 and buffer[at + 6] >> 6 == 2:
                 self._video(at, at + size)
             self._next += size
@@ -179,6 +185,9 @@ class ProgramStream:
         self._in_nal = True
         self._encrypted = scrambled and self._aes is not None
         self._nal_type = (first >> 1) & 0x3F if self.codec == "hevc" else first & 0x1F
+        # Key frames start with their parameter sets (VPS, SPS).
+        if self.key_frames is not None and self._nal_type == (32 if self.codec == "hevc" else 7):
+            self.key_frames.append((self._pack, self.seconds))
         self._skip = 2 if self.codec == "hevc" else 1
         self._done = 0
         self._first_block = self._encrypted
