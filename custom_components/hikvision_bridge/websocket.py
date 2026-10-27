@@ -281,6 +281,7 @@ async def ws_playback_start(
             msg["quality"],
             main.codec if main else None,
             msg.get("replace"),
+            found,
         )
     except sessions.SessionError as err:
         connection.send_error(msg["id"], err.reason, err.reason)

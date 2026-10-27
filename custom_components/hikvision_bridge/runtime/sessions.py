@@ -2,8 +2,10 @@
 
 The device hands out the recordings of a time span as a download, much faster than playing
 them; it is decrypted if needed and fed to ffmpeg, which only repackages it. The download is
-held back once the prepared video is far enough ahead of the player. Devices that refuse such
-downloads play the span over RTSP instead, in real time and without decryption.
+held back once the prepared video is far enough ahead of the player. Some recorders refuse
+the download of a span but hand out their recorded files; a session then covers the file that
+holds the wanted time, and ffmpeg leaves out the part of it before that time. Devices that
+refuse both play the span over RTSP instead, in real time and without decryption.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -69,11 +71,12 @@ class SessionError(Exception):
 
 
 class _UseRtsp(Exception):
-    """The device did not hand out this span as a download; ``lasting`` if it refused."""
+    """No download from the device; ``lasting`` if none will come, ``refused`` if it said no."""
 
-    def __init__(self, lasting: bool) -> None:
+    def __init__(self, lasting: bool, refused: bool = False) -> None:
         super().__init__(lasting)
         self.lasting = lasting
+        self.refused = refused
 
 
 @dataclass(slots=True)
@@ -106,6 +109,14 @@ def locate(found: list[recordings.Recording], moment: datetime) -> tuple[datetim
     return None
 
 
+def covering(found: list[recordings.Recording], moment: datetime) -> recordings.Recording | None:
+    """The recorded file holding ``moment``; in a gap, the next one."""
+    ordered = sorted(found, key=lambda r: r.start)
+    return next((r for r in ordered if r.start <= moment < r.end), None) or next(
+        (r for r in ordered if r.start > moment), None
+    )
+
+
 def playback_uri(
     source: PlaybackSource, start: datetime, end: datetime, wall: timedelta = timedelta(0)
 ) -> str:
@@ -116,15 +127,24 @@ def playback_uri(
     )
 
 
-def hls_args(url: str, quality: str, codec: str | None, target: Path) -> list[str]:
-    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin."""
+def hls_args(
+    url: str, quality: str, codec: str | None, target: Path, skip: float = 0.0
+) -> list[str]:
+    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin.
+
+    The first ``skip`` seconds of the input are left out; copied video then starts with the
+    next key frame.
+    """
     args = ["-hide_banner", "-loglevel", "error"]
     if url == PIPE:
         args += ["-f", "mpeg"]
     else:
         args += ["-rtsp_transport", "tcp", "-timeout", str(RTSP_TIMEOUT)]
     # The streams are known after the first key frame; the default waits five seconds.
-    args += ["-analyzeduration", "2000000", "-i", url, "-map", "0:v:0", "-map", "0:a:0?"]
+    args += ["-analyzeduration", "2000000", "-i", url]
+    if skip > 0:
+        args += ["-ss", f"{skip:.3f}"]
+    args += ["-map", "0:v:0", "-map", "0:a:0?"]
     if quality == QUALITY_COMPATIBLE:
         args += [
             "-c:v",
@@ -223,6 +243,8 @@ class SessionManager:
         self._lock = asyncio.Lock()
         self._unsub: CALLBACK_TYPE | None = None
         self._rtsp_only: WeakSet[IsapiLink] = WeakSet()
+        # Devices that refuse the download of a span but hand out recorded files.
+        self._by_file: WeakSet[IsapiLink] = WeakSet()
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
@@ -239,7 +261,9 @@ class SessionManager:
         quality: str,
         codec: str | None,
         replace: str | None = None,
+        found: list[recordings.Recording] | None = None,
     ) -> Session:
+        """Play from ``start``; ``found`` are the recorded files around it."""
         async with self._lock:
             if replace:
                 await self._stop(replace)
@@ -256,8 +280,8 @@ class SessionManager:
             try:
                 if source.link not in self._rtsp_only:
                     try:
-                        session = await self._from_download(
-                            source, key, start, end, uri, quality, folder
+                        session = await self._download(
+                            source, key, start, end, uri, quality, folder, found or []
                         )
                     except _UseRtsp as err:
                         if err.lasting:
@@ -278,6 +302,43 @@ class SessionManager:
 
     # ------------------------------------------------------------- download
 
+    async def _download(
+        self,
+        source: PlaybackSource,
+        key: tuple[str, str, str],
+        start: datetime,
+        end: datetime,
+        uri: str,
+        quality: str,
+        folder: Path,
+        found: list[recordings.Recording],
+    ) -> Session:
+        """A session from the download of the span, else of the recorded file at ``start``."""
+        recording = covering(found, start)
+        if source.link not in self._by_file:
+            try:
+                return await self._from_download(
+                    source, key, start, end, uri, quality, folder, "the time span"
+                )
+            except _UseRtsp as err:
+                if not err.refused or recording is None:
+                    raise
+                self._by_file.add(source.link)
+        if recording is None:
+            raise _UseRtsp(False)
+        start = max(start, recording.start)
+        return await self._from_download(
+            source,
+            key,
+            start,
+            min(end, recording.end),
+            recording.playback_uri,
+            quality,
+            folder,
+            "the recorded file",
+            (start - recording.start).total_seconds(),
+        )
+
     async def _from_download(
         self,
         source: PlaybackSource,
@@ -287,11 +348,13 @@ class SessionManager:
         uri: str,
         quality: str,
         folder: Path,
+        what: str,
+        skip: float = 0.0,
     ) -> Session:
         session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
         ready: asyncio.Future[None] = self.hass.loop.create_future()
         session.pump = self.hass.async_create_background_task(
-            self._pump(session, source, uri, ready),
+            self._pump(session, source, uri, ready, skip),
             "hikvision_bridge playback download",
         )
         try:
@@ -304,9 +367,12 @@ class SessionManager:
                 raise SessionError("playback_failed") from err
             if isinstance(err, FileNotFoundError) or not isinstance(err, Exception):
                 raise
-            _LOGGER.debug("No download of the time span, using RTSP: %s", detail(err))
+            _LOGGER.debug("No download of %s: %s", what, detail(err))
             # Only a refusal is lasting; a dropped connection may work next time.
-            raise _UseRtsp(isinstance(err, (DeviceRejected, Unsupported, NoRecording))) from err
+            raise _UseRtsp(
+                isinstance(err, (DeviceRejected, Unsupported, NoRecording)),
+                isinstance(err, DeviceRejected),
+            ) from err
         reason = await self._first_segment(session)
         if reason is not None:
             await self._end(session)
@@ -314,16 +380,26 @@ class SessionManager:
         return session
 
     async def _pump(
-        self, session: Session, source: PlaybackSource, uri: str, ready: asyncio.Future[None]
+        self,
+        session: Session,
+        source: PlaybackSource,
+        uri: str,
+        ready: asyncio.Future[None],
+        skip: float = 0.0,
     ) -> None:
-        """Download, decrypt and hand the span to ffmpeg, keeping READ_AHEAD in front."""
+        """Download, decrypt and hand the span to ffmpeg, keeping READ_AHEAD in front.
+
+        ffmpeg leaves out the first ``skip`` seconds; they go through without holding back.
+        """
         stdin = None
         try:
             async with recordings.open_download(source.link, uri) as response:
                 head = await playback.read_head(response)
                 info, stream = await playback.prepare(source, head)
                 session.process = await self._spawn(
-                    session, hls_args(PIPE, session.quality, info.codec, session.folder), True
+                    session,
+                    hls_args(PIPE, session.quality, info.codec, session.folder, skip),
+                    True,
                 )
                 stdin = session.process.stdin
                 assert stdin is not None
@@ -332,7 +408,7 @@ class SessionManager:
                 async for data in playback.stripped(playback.passed(stream, head, response)):
                     stdin.write(data)
                     await stdin.drain()
-                    while stream.seconds > played[1] + READ_AHEAD:
+                    while stream.seconds - skip > played[1] + READ_AHEAD:
                         if session.fetched != played[0]:
                             text = await self.hass.async_add_executor_job(
                                 _read, session.folder / PLAYLIST

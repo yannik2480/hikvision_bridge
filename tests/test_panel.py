@@ -6,6 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 import stat
 
+from aiohttp import web
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
@@ -89,6 +90,19 @@ def test_hls_args(tmp_path: Path) -> None:
     assert "hvc1" in piped
     assert "-rtsp_transport" not in piped
     assert piped[piped.index("-hls_segment_filename") + 1] == str(tmp_path / "seg%05d.m4s")
+    assert "-ss" not in piped
+    skipped = sessions.hls_args(sessions.PIPE, sessions.QUALITY_ORIGINAL, "hevc", tmp_path, 90)
+    # Left out after the input, so that ffmpeg reads up to there instead of seeking a pipe.
+    assert skipped[skipped.index("-i") + 2 : skipped.index("-i") + 4] == ["-ss", "90.000"]
+
+
+def test_covering() -> None:
+    found = _found()
+    assert sessions.covering(found, T0 + timedelta(minutes=15)).name == "b"
+    assert sessions.covering(found, T0 + timedelta(minutes=10)).name == "b"
+    # In a gap, the next file.
+    assert sessions.covering(found, T0 + timedelta(minutes=21)).name == "c"
+    assert sessions.covering(found, T0 + timedelta(hours=1)) is None
 
 
 def test_played_seconds() -> None:
@@ -298,6 +312,67 @@ async def test_playback_session_from_download(
     )
     assert (await client.receive_json())["success"]
     assert not sessions.manager(hass).sessions
+
+
+async def test_playback_session_from_recorded_file(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A recorder that refuses the span but hands out its files plays the file at the time."""
+    device, entry = await _setup(hass, serve)
+    data = recording(encrypted=False)
+
+    def download(_method: str, body: str) -> web.Response:
+        if "name=" in body:
+            return web.Response(body=data, content_type="application/binary")
+        return web.Response(
+            status=500,
+            text="<ResponseStatus><statusCode>6</statusCode><statusString>Device Error</statusString></ResponseStatus>",
+            content_type="application/xml",
+        )
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+
+    async def play(moment) -> dict:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": moment.isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        return answer["result"]
+
+    moment = START + timedelta(minutes=5)
+    started = await play(moment)
+    assert started["start"] == moment.isoformat()
+    assert started["end"] == (START + timedelta(minutes=10)).isoformat()
+    session = sessions.manager(hass).sessions[started["session_id"]]
+    args = await hass.async_add_executor_job((session.folder / "args").read_text)
+    assert "pipe:0 -ss 300.000 " in args
+    fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
+    assert fed == recordings.strip_header(data)
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert len(downloads) == 2
+    assert "name=" not in downloads[0]
+    assert "name=a" in downloads[1]
+
+    # The device is known now: the next playback asks for the file straight away.
+    started = await play(START + timedelta(minutes=30))
+    assert started["end"] == (START + timedelta(minutes=31)).isoformat()
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert len(downloads) == 3
+    assert "name=b" in downloads[2]
+    await sessions.manager(hass).stop_all()
 
 
 async def test_playback_busy(
