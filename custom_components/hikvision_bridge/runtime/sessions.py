@@ -4,9 +4,10 @@ The device hands out the recordings of a time span as a download, much faster th
 them; it is decrypted if needed and fed to ffmpeg, which only repackages it. The download is
 held back once the prepared video is far enough ahead of the player. Some recorders refuse
 the download of a span but hand out their recorded files; a session then covers the file that
-holds the wanted time and starts at the last key frame before it. The part of the file before
-that is dropped as fast as the device sends it, without ffmpeg. Devices that refuse both play
-the span over RTSP instead, in real time and without decryption.
+holds the wanted time and starts at the last key frame before it. Where the device can, it
+leaves out the part before that time itself; otherwise that part is dropped as fast as the
+device sends it, without ffmpeg. Devices that refuse both play the span over RTSP instead, in
+real time and without decryption.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -33,7 +34,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..model.features import recordings
-from ..model.features.scrambling import ProgramStream
+from ..model.features.scrambling import PTS_WRAP, ProgramStream
 from ..wire.faults import DeviceRejected, Unsupported, detail
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrub_text, scrubbed_logger
@@ -52,6 +53,10 @@ FIRST_SEGMENT_TIMEOUT = 25
 SKIP_SECONDS = 30
 # Download kept while no key frame was found yet; past it the file plays from its start.
 SKIP_SEARCH_BYTES = 8 * 1024 * 1024
+# From this far into a recorded file the device is asked to start it at the wanted time.
+LATER_START_SECONDS = 20
+# Bytes compared to tell whether the device sent a recorded file from its start anyway.
+COMPARE_BYTES = 64 * 1024
 # ffmpeg gives up on an RTSP connection that sends nothing for this long (microseconds).
 RTSP_TIMEOUT = 10_000_000
 IDLE_SECONDS = 45
@@ -241,6 +246,23 @@ async def skipped(
     return bytes(kept), cut
 
 
+def left_out(whole: bytes, later: bytes, wanted: float) -> float | None:
+    """Seconds of a recorded file the device left out at the start of ``later``.
+
+    ``whole`` is the start of the file itself. None if both start alike: the device sent the
+    file from its start. Without time stamps the device is taken to start where it was asked.
+    """
+    whole, later = recordings.strip_header(whole), recordings.strip_header(later)
+    size = min(len(whole), len(later), COMPARE_BYTES)
+    if whole[:size] == later[:size]:
+        return None
+    first, then = recordings.first_pts(whole), recordings.first_pts(later)
+    if first is None or then is None:
+        return wanted
+    seconds = ((then - first) % PTS_WRAP) / 90000
+    return seconds if 0 < seconds <= wanted + 60 else wanted
+
+
 async def _joined(first: bytes, chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     yield first
     async for data in chunks:
@@ -290,6 +312,8 @@ class SessionManager:
         self._rtsp_only: WeakSet[IsapiLink] = WeakSet()
         # Devices that refuse the download of a span but hand out recorded files.
         self._by_file: WeakSet[IsapiLink] = WeakSet()
+        # Devices that send recorded files only from their start.
+        self._whole_files: WeakSet[IsapiLink] = WeakSet()
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
@@ -372,16 +396,37 @@ class SessionManager:
         if recording is None:
             raise _UseRtsp(False)
         start = max(start, recording.start)
+        end = min(end, recording.end)
+        skip = (start - recording.start).total_seconds()
+        if skip >= LATER_START_SECONDS and source.link not in self._whole_files:
+            wall = await recordings.wall_offset(source.link)
+            if later := recordings.starting_at(recording.playback_uri, start, wall):
+                try:
+                    return await self._from_download(
+                        source,
+                        key,
+                        start,
+                        end,
+                        later,
+                        quality,
+                        folder,
+                        "the recorded file from the time",
+                        skip,
+                        recording.playback_uri,
+                    )
+                except _UseRtsp as err:
+                    if err.refused:
+                        self._whole_files.add(source.link)
         return await self._from_download(
             source,
             key,
             start,
-            min(end, recording.end),
+            end,
             recording.playback_uri,
             quality,
             folder,
             "the recorded file",
-            (start - recording.start).total_seconds(),
+            skip,
         )
 
     async def _from_download(
@@ -395,11 +440,12 @@ class SessionManager:
         folder: Path,
         what: str,
         skip: float = 0.0,
+        whole: str | None = None,
     ) -> Session:
         session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
         ready: asyncio.Future[None] = self.hass.loop.create_future()
         session.pump = self.hass.async_create_background_task(
-            self._pump(session, source, uri, ready, skip),
+            self._pump(session, source, uri, ready, skip, whole),
             "hikvision_bridge playback download",
         )
         wait = FIRST_SEGMENT_TIMEOUT + (SKIP_SECONDS if skip > 0 else 0)
@@ -434,25 +480,37 @@ class SessionManager:
         uri: str,
         ready: asyncio.Future[None],
         skip: float = 0.0,
+        whole: str | None = None,
     ) -> None:
         """Download, decrypt and hand the span to ffmpeg, keeping READ_AHEAD in front.
 
         With ``skip`` the video starts at the last key frame before that many seconds, and
-        the session start moves back to that frame.
+        the session start moves back to that frame. ``uri`` may ask the device to leave
+        out the part before; ``whole`` is then the file from its start, to compare with.
         """
         stdin = None
         try:
+            reference = await self._head(source, whole) if whole else b""
             async with recordings.open_download(source.link, uri) as response:
                 head = await playback.read_head(response)
+                device = 0.0  # seconds the device left out
+                if whole:
+                    device = left_out(reference, head, skip) or 0.0
+                    if device:
+                        _LOGGER.debug("Recorder starts the file at %.0f s", device)
+                    else:
+                        _LOGGER.debug("Recorder sends recorded files only from their start")
+                        self._whole_files.add(source.link)
                 info, stream = await playback.prepare(source, head)
                 chunks = playback.passed(stream, head, response)
+                rest = skip - device
                 cut = 0.0
-                if skip > 0:
-                    first, cut = await skipped(stream, chunks, skip)
-                    session.start -= timedelta(seconds=skip - cut)
+                if rest > 0:
+                    first, cut = await skipped(stream, chunks, rest)
                     chunks = _joined(first, chunks)
                 else:
                     chunks = playback.stripped(chunks)
+                session.start -= timedelta(seconds=rest - cut)
                 session.process = await self._spawn(
                     session, hls_args(PIPE, session.quality, info.codec, session.folder), True
                 )
@@ -485,6 +543,10 @@ class SessionManager:
             if stdin is not None:
                 with suppress(BrokenPipeError, ConnectionResetError, OSError):
                     stdin.close()
+
+    async def _head(self, source: PlaybackSource, uri: str) -> bytes:
+        async with recordings.open_download(source.link, uri) as response:
+            return await playback.read_head(response)
 
     # ------------------------------------------------------------- RTSP
 

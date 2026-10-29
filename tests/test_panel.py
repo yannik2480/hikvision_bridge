@@ -420,17 +420,86 @@ async def test_playback_session_from_recorded_file(
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
     assert fed == data[40 + len(PACK) :]
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
-    assert len(downloads) == 2
+    # The span, the file's start to compare with, then the file asked from the time on:
+    # this device sent it from its start anyway.
+    assert len(downloads) == 3
     assert "name=" not in downloads[0]
     assert "name=a" in downloads[1]
+    assert f"starttime={recordings.compact(START)}" in downloads[1]
+    assert "name=a" in downloads[2]
+    assert f"starttime={recordings.compact(START)}" not in downloads[2]
 
     # The device is known now: the next playback asks for the file straight away.
     started = await play(START + timedelta(minutes=30))
     assert started["end"] == (START + timedelta(minutes=31)).isoformat()
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
-    assert len(downloads) == 3
-    assert "name=b" in downloads[2]
+    assert len(downloads) == 4
+    assert "name=b" in downloads[3]
     await sessions.manager(hass).stop_all()
+
+
+async def test_playback_session_from_later_in_recorded_file(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A recorder that starts a recorded file at the asked time sends only what is played."""
+    monkeypatch.setattr(sessions, "LATER_START_SECONDS", 5)
+    device, entry = await _setup(hass, serve)
+    data, keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    later = data[:40] + data[keys[8] :]
+
+    def download(_method: str, body: str) -> web.Response:
+        if "name=" not in body:
+            return web.Response(
+                status=400,
+                text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
+                content_type="application/xml",
+            )
+        whole = f"starttime={recordings.compact(START)}" in body
+        return web.Response(body=data if whole else later, content_type="application/binary")
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {
+            "type": f"{DOMAIN}/playback/start",
+            "entry_id": entry.entry_id,
+            "channel_id": "1",
+            "source": "auto",
+            "time": (START + timedelta(seconds=10)).isoformat(),
+        }
+    )
+    answer = await client.receive_json()
+    assert answer["success"], answer
+    # The device started at the key frame at 8 s, found from the time stamps.
+    assert answer["result"]["start"] == (START + timedelta(seconds=8)).isoformat()
+    session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+    fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
+    assert fed == data[keys[8] :]
+    await sessions.manager(hass).stop_all()
+
+
+def test_left_out() -> None:
+    data, keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    header = data[:40]
+    assert sessions.left_out(data, data, 10) is None
+    assert sessions.left_out(data, header + data[keys[8] :], 10) == 8
+    # Time stamps starting over: taken as started where asked.
+    assert sessions.left_out(data, header + b"\x00\x00\x01\xba" + bytes(20), 10) == 10
+
+
+def test_starting_at() -> None:
+    uri = "rtsp://x/Streaming/tracks/101/?starttime=20260101T000000Z&endtime=20260101T010000Z&name=a&size=9"
+    moved = recordings.starting_at(uri, T0 + timedelta(minutes=5), timedelta(hours=1))
+    assert moved == uri.replace(
+        "starttime=20260101T000000Z",
+        f"starttime={recordings.compact(T0 + timedelta(minutes=5), timedelta(hours=1))}",
+    )
+    assert recordings.starting_at("rtsp://x/Streaming/tracks/101/?name=a", T0) is None
 
 
 async def test_playback_busy(

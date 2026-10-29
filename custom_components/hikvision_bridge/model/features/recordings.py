@@ -14,6 +14,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+import re
 import time
 from urllib.parse import parse_qsl, urlsplit
 import uuid
@@ -332,6 +333,30 @@ def inspect_head(data: bytes) -> MediaHead:
         checked += 1
         position = data.find(b"\x00\x00\x01\xe0", position + 4)
     return MediaHead(header, codec, scrambled)
+
+
+def first_pts(data: bytes) -> int | None:
+    """Time stamp (90 kHz) of the first video packet that has one."""
+    position = data.find(b"\x00\x00\x01\xe0")
+    while position >= 0 and position + 14 <= len(data):
+        if data[position + 6] & 0xC0 == 0x80 and data[position + 7] & 0x80:
+            raw = data[position + 9 : position + 14]
+            return (
+                ((raw[0] >> 1) & 0x07) << 30
+                | raw[1] << 22
+                | (raw[2] >> 1) << 15
+                | raw[3] << 7
+                | raw[4] >> 1
+            )
+        position = data.find(b"\x00\x00\x01\xe0", position + 4)
+    return None
+
+
+def starting_at(playback_uri: str, moment: datetime, wall: timedelta = _NO_OFFSET) -> str | None:
+    """The URI of a recorded file asking for it from ``moment`` on; None without a start."""
+    if "starttime=" not in playback_uri:
+        return None
+    return re.sub(r"starttime=[^&]*", f"starttime={compact(moment, wall)}", playback_uri, count=1)
 
 
 def strip_header(data: bytes) -> bytes:
