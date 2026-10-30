@@ -26,6 +26,7 @@ const TEXT = {
   no_recordings: "No recordings on this day.",
   no_recording: "No recording from this time on.",
   playback_encrypted: "The recording is encrypted and the verification code does not fit. Enter it in the integration options.",
+  playback_unreadable: "The video from the camera could not be read, often because of a weak connection (for example Wi-Fi). Try again or choose a lower quality. If the recordings are encrypted, check the verification code in the integration options.",
   live_encrypted: "The live stream is encrypted (Hik-Connect stream encryption) and cannot be played here.",
   playback_busy: "The camera is already playing a recording elsewhere. Try again in a moment.",
   playback_auth: "The device rejected the login.",

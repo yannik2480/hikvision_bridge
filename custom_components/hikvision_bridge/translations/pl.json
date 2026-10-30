@@ -908,6 +908,7 @@
         "no_recordings": "Brak nagrań tego dnia.",
         "no_recording": "Od tej chwili nie ma nagrania.",
         "playback_encrypted": "Nagranie jest zaszyfrowane, a kod weryfikacyjny nie pasuje. Wpisz go w opcjach integracji.",
+        "playback_unreadable": "Nie udało się odczytać wideo z kamery, często z powodu słabego połączenia (na przykład Wi-Fi). Spróbuj ponownie lub wybierz niższą jakość. Jeśli nagrania są zaszyfrowane, sprawdź kod weryfikacyjny w opcjach integracji.",
         "live_encrypted": "Transmisja na żywo jest zaszyfrowana (szyfrowanie strumienia Hik-Connect) i nie można jej tu odtworzyć.",
         "playback_busy": "Kamera odtwarza już nagranie w innym miejscu. Spróbuj ponownie za chwilę.",
         "playback_auth": "Urządzenie odrzuciło dane logowania.",

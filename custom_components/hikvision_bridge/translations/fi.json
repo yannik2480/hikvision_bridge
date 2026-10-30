@@ -908,6 +908,7 @@
         "no_recordings": "Tältä päivältä ei ole tallenteita.",
         "no_recording": "Tästä hetkestä eteenpäin ei ole tallennetta.",
         "playback_encrypted": "Tallenne on salattu, eikä vahvistuskoodi sovi. Syötä se integraation asetuksiin.",
+        "playback_unreadable": "Kameran videota ei voitu lukea, usein heikon yhteyden (esimerkiksi Wi-Fin) vuoksi. Yritä uudelleen tai valitse pienempi laatu. Jos tallenteet on salattu, tarkista vahvistuskoodi integraation asetuksista.",
         "live_encrypted": "Suora lähetys on salattu (Hik-Connectin virran salaus), eikä sitä voi toistaa täällä.",
         "playback_busy": "Kamera toistaa jo tallennetta muualla. Yritä hetken päästä uudelleen.",
         "playback_auth": "Laite hylkäsi kirjautumistiedot.",

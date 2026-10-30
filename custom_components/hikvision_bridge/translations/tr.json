@@ -908,6 +908,7 @@
         "no_recordings": "Bu günde kayıt yok.",
         "no_recording": "Bu andan itibaren kayıt yok.",
         "playback_encrypted": "Kayıt şifreli ve doğrulama kodu uymuyor. Kodu entegrasyon seçeneklerine girin.",
+        "playback_unreadable": "Kameranın videosu okunamadı; bu genellikle zayıf bir bağlantıdan (örneğin Wi-Fi) kaynaklanır. Tekrar deneyin veya daha düşük bir kalite seçin. Kayıtlar şifreliyse entegrasyon seçeneklerindeki doğrulama kodunu kontrol edin.",
         "live_encrypted": "Canlı yayın şifreli (Hik-Connect akış şifrelemesi) ve burada oynatılamaz.",
         "playback_busy": "Kamera zaten başka bir yerde kayıt oynatıyor. Birazdan tekrar deneyin.",
         "playback_auth": "Cihaz oturum açma bilgilerini reddetti.",

@@ -908,6 +908,7 @@
         "no_recordings": "Không có bản ghi trong ngày này.",
         "no_recording": "Không có bản ghi từ thời điểm này.",
         "playback_encrypted": "Bản ghi được mã hóa và mã xác minh không khớp. Hãy nhập mã trong tùy chọn của tích hợp.",
+        "playback_unreadable": "Không thể đọc video từ camera, thường do kết nối yếu (ví dụ Wi-Fi). Hãy thử lại hoặc chọn chất lượng thấp hơn. Nếu bản ghi được mã hóa, hãy kiểm tra mã xác minh trong tùy chọn tích hợp.",
         "live_encrypted": "Luồng trực tiếp được mã hóa (mã hóa luồng Hik-Connect) và không thể phát tại đây.",
         "playback_busy": "Camera đang phát một bản ghi ở nơi khác. Hãy thử lại sau giây lát.",
         "playback_auth": "Thiết bị đã từ chối thông tin đăng nhập.",

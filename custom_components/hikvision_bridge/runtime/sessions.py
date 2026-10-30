@@ -269,10 +269,15 @@ async def _joined(first: bytes, chunks: AsyncIterator[bytes]) -> AsyncIterator[b
         yield data
 
 
-def _reason(errors: str) -> str:
+def _reason(errors: str, scrambled: bool = False) -> str:
+    """Why ffmpeg gave up; ``scrambled`` if the video was known to be encrypted.
+
+    Unreadable video is blamed on the verification code only for an encrypted recording:
+    over a weak link (Wi-Fi) a plain recording breaks off the same way.
+    """
     text = errors.lower()
     if "dimensions not set" in text or "invalid data" in text:
-        return "playback_encrypted"
+        return "playback_encrypted" if scrambled else "playback_unreadable"
     if "453" in text or "not enough bandwidth" in text:
         return "playback_busy"
     if "401" in text or "unauthorized" in text:
@@ -292,6 +297,7 @@ class Session:
     pump: asyncio.Task | None = None
     last_access: float = field(default_factory=time.monotonic)
     fetched: int = -1  # highest segment number the player asked for
+    scrambled: bool = False  # the download was encrypted
 
     @property
     def url(self) -> str:
@@ -502,6 +508,7 @@ class SessionManager:
                         _LOGGER.debug("Recorder sends recorded files only from their start")
                         self._whole_files.add(source.link)
                 info, stream = await playback.prepare(source, head)
+                session.scrambled = info.scrambled
                 chunks = playback.passed(stream, head, response)
                 rest = skip - device
                 cut = 0.0
@@ -572,9 +579,10 @@ class SessionManager:
             if reason is None:
                 _LOGGER.debug("Playing over RTSP")
                 return session
-            if reason != "playback_busy" or attempt:
+            if reason not in ("playback_busy", "playback_unreadable") or attempt:
                 break
-            await asyncio.sleep(1.5)  # the device releases the previous playback late
+            # The device releases the previous playback late; a weak link may just drop data.
+            await asyncio.sleep(1.5)
         raise SessionError(reason)
 
     # ------------------------------------------------------------- common
@@ -618,7 +626,7 @@ class SessionManager:
             else f"ffmpeg ended with {session.process.returncode}",
             f"; ffmpeg: {scrub_text(errors[-400:])}" if errors else "",
         )
-        return _reason(errors) if errors else "playback_failed"
+        return _reason(errors, session.scrambled) if errors else "playback_failed"
 
     async def _end(self, session: Session) -> None:
         await _cancel(session.pump)

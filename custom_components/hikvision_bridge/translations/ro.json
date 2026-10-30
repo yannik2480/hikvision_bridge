@@ -908,6 +908,7 @@
         "no_recordings": "Nicio înregistrare în această zi.",
         "no_recording": "Nu există înregistrare de la acest moment.",
         "playback_encrypted": "Înregistrarea este criptată și codul de verificare nu se potrivește. Introdu-l în opțiunile integrării.",
+        "playback_unreadable": "Videoclipul camerei nu a putut fi citit, adesea din cauza unei conexiuni slabe (de exemplu Wi-Fi). Încercați din nou sau alegeți o calitate mai mică. Dacă înregistrările sunt criptate, verificați codul de verificare în opțiunile integrării.",
         "live_encrypted": "Fluxul live este criptat (criptarea fluxului Hik-Connect) și nu poate fi redat aici.",
         "playback_busy": "Camera redă deja o înregistrare în altă parte. Încearcă din nou peste puțin timp.",
         "playback_auth": "Dispozitivul a respins datele de autentificare.",

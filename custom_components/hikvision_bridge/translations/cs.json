@@ -908,6 +908,7 @@
         "no_recordings": "Tento den nejsou žádné záznamy.",
         "no_recording": "Od tohoto okamžiku není žádný záznam.",
         "playback_encrypted": "Záznam je šifrovaný a ověřovací kód nesedí. Zadejte ho v možnostech integrace.",
+        "playback_unreadable": "Video z kamery nebylo možné přečíst, často kvůli slabému připojení (například Wi-Fi). Zkuste to znovu nebo zvolte nižší kvalitu. Pokud jsou záznamy šifrované, zkontrolujte ověřovací kód v možnostech integrace.",
         "live_encrypted": "Živý přenos je šifrovaný (šifrování streamu Hik-Connect) a nelze ho zde přehrát.",
         "playback_busy": "Kamera už přehrává záznam jinde. Zkuste to za chvíli znovu.",
         "playback_auth": "Zařízení odmítlo přihlašovací údaje.",

@@ -908,6 +908,7 @@
         "no_recordings": "Ingen optagelser denne dag.",
         "no_recording": "Der er ingen optagelse fra dette tidspunkt.",
         "playback_encrypted": "Optagelsen er krypteret, og bekræftelseskoden passer ikke. Angiv den i integrationens indstillinger.",
+        "playback_unreadable": "Videoen fra kameraet kunne ikke læses, ofte på grund af en svag forbindelse (for eksempel Wi-Fi). Prøv igen, eller vælg en lavere kvalitet. Hvis optagelserne er krypterede, så kontrollér bekræftelseskoden i integrationens indstillinger.",
         "live_encrypted": "Livestreamen er krypteret (Hik-Connect-streamkryptering) og kan ikke afspilles her.",
         "playback_busy": "Kameraet afspiller allerede en optagelse et andet sted. Prøv igen om lidt.",
         "playback_auth": "Enheden afviste loginoplysningerne.",

@@ -908,6 +908,7 @@
         "no_recordings": "Keine Aufnahmen an diesem Tag.",
         "no_recording": "Ab diesem Zeitpunkt gibt es keine Aufnahme.",
         "playback_encrypted": "Die Aufnahme ist verschlüsselt und der Verifizierungscode passt nicht. Trage ihn in den Optionen der Integration ein.",
+        "playback_unreadable": "Das Video der Kamera konnte nicht gelesen werden, oft wegen einer schwachen Verbindung (zum Beispiel WLAN). Versuche es erneut oder wähle eine niedrigere Qualität. Sind die Aufnahmen verschlüsselt, prüfe den Verifizierungscode in den Optionen der Integration.",
         "live_encrypted": "Der Livestream ist verschlüsselt (Hik-Connect-Stream-Verschlüsselung) und kann hier nicht abgespielt werden.",
         "playback_busy": "Die Kamera spielt bereits anderswo eine Aufnahme ab. Versuche es gleich noch einmal.",
         "playback_auth": "Das Gerät hat die Anmeldedaten abgelehnt.",

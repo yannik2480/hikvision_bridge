@@ -908,6 +908,7 @@
         "no_recordings": "Geen opnames op deze dag.",
         "no_recording": "Vanaf dit moment is er geen opname.",
         "playback_encrypted": "De opname is versleuteld en de verificatiecode past niet. Vul hem in bij de opties van de integratie.",
+        "playback_unreadable": "De video van de camera kon niet worden gelezen, vaak door een zwakke verbinding (bijvoorbeeld wifi). Probeer het opnieuw of kies een lagere kwaliteit. Zijn de opnamen versleuteld, controleer dan de verificatiecode in de opties van de integratie.",
         "live_encrypted": "De livestream is versleuteld (Hik-Connect-streamversleuteling) en kan hier niet worden afgespeeld.",
         "playback_busy": "De camera speelt al ergens anders een opname af. Probeer het zo opnieuw.",
         "playback_auth": "Het apparaat heeft de inloggegevens geweigerd.",

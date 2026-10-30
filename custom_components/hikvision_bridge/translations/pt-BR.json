@@ -908,6 +908,7 @@
         "no_recordings": "Nenhuma gravação neste dia.",
         "no_recording": "Não há gravação a partir deste momento.",
         "playback_encrypted": "A gravação está criptografada e o código de verificação não confere. Informe-o nas opções da integração.",
+        "playback_unreadable": "Não foi possível ler o vídeo da câmera, muitas vezes por causa de uma conexão fraca (por exemplo, Wi-Fi). Tente novamente ou escolha uma qualidade menor. Se as gravações estiverem criptografadas, verifique o código de verificação nas opções da integração.",
         "live_encrypted": "A transmissão ao vivo está criptografada (criptografia de stream do Hik-Connect) e não pode ser reproduzida aqui.",
         "playback_busy": "A câmera já está reproduzindo uma gravação em outro lugar. Tente de novo em instantes.",
         "playback_auth": "O dispositivo rejeitou as credenciais.",

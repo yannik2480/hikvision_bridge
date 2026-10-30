@@ -908,6 +908,7 @@
         "no_recordings": "Nessuna registrazione in questo giorno.",
         "no_recording": "Nessuna registrazione da questo momento.",
         "playback_encrypted": "La registrazione è cifrata e il codice di verifica non corrisponde. Inseriscilo nelle opzioni dell'integrazione.",
+        "playback_unreadable": "Impossibile leggere il video della telecamera, spesso a causa di una connessione debole (ad esempio Wi-Fi). Riprova o scegli una qualità inferiore. Se le registrazioni sono crittografate, controlla il codice di verifica nelle opzioni dell'integrazione.",
         "live_encrypted": "Il flusso live è cifrato (crittografia del flusso Hik-Connect) e non può essere riprodotto qui.",
         "playback_busy": "La telecamera sta già riproducendo una registrazione altrove. Riprova tra un momento.",
         "playback_auth": "Il dispositivo ha rifiutato le credenziali.",

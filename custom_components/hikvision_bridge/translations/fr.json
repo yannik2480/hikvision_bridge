@@ -908,6 +908,7 @@
         "no_recordings": "Aucun enregistrement ce jour-là.",
         "no_recording": "Aucun enregistrement à partir de ce moment.",
         "playback_encrypted": "L'enregistrement est chiffré et le code de vérification ne correspond pas. Saisissez-le dans les options de l'intégration.",
+        "playback_unreadable": "La vidéo de la caméra n'a pas pu être lue, souvent à cause d'une connexion faible (par exemple le Wi-Fi). Réessayez ou choisissez une qualité plus basse. Si les enregistrements sont chiffrés, vérifiez le code de vérification dans les options de l'intégration.",
         "live_encrypted": "Le flux en direct est chiffré (chiffrement du flux Hik-Connect) et ne peut pas être lu ici.",
         "playback_busy": "La caméra lit déjà un enregistrement ailleurs. Réessayez dans un instant.",
         "playback_auth": "L'appareil a refusé les identifiants.",

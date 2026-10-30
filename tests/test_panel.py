@@ -171,16 +171,18 @@ def test_played_seconds() -> None:
 
 
 @pytest.mark.parametrize(
-    ("errors", "reason"),
+    ("errors", "scrambled", "reason"),
     [
-        ("Could not find codec parameters (dimensions not set)", "playback_encrypted"),
-        ("method PLAY failed: 453 Not Enough Bandwidth", "playback_busy"),
-        ("method DESCRIBE failed: 401 Unauthorized", "playback_auth"),
-        ("Connection refused", "playback_failed"),
+        ("Could not find codec parameters (dimensions not set)", True, "playback_encrypted"),
+        ("Could not find codec parameters (dimensions not set)", False, "playback_unreadable"),
+        ("pipe:0: Invalid data found when processing input", False, "playback_unreadable"),
+        ("method PLAY failed: 453 Not Enough Bandwidth", False, "playback_busy"),
+        ("method DESCRIBE failed: 401 Unauthorized", False, "playback_auth"),
+        ("Connection refused", False, "playback_failed"),
     ],
 )
-def test_reason(errors: str, reason: str) -> None:
-    assert sessions._reason(errors) == reason
+def test_reason(errors: str, scrambled: bool, reason: str) -> None:
+    assert sessions._reason(errors, scrambled) == reason
 
 
 async def _setup(hass: HomeAssistant, serve, data: bytes = b""):

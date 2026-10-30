@@ -908,6 +908,7 @@
         "no_recordings": "这一天没有录像。",
         "no_recording": "从此时刻起没有录像。",
         "playback_encrypted": "录像已加密,且验证码不匹配。请在集成选项中填写。",
+        "playback_unreadable": "无法读取摄像机的视频，通常是因为连接较弱（例如 Wi-Fi）。请重试或选择较低的画质。如果录像已加密，请在集成选项中检查验证码。",
         "live_encrypted": "实时流已加密(Hik-Connect 码流加密),无法在此播放。",
         "playback_busy": "摄像机正在其他地方播放录像，请稍后重试。",
         "playback_auth": "设备拒绝了登录凭据。",

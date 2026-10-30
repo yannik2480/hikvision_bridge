@@ -908,6 +908,7 @@
         "no_recordings": "Ezen a napon nincs felvétel.",
         "no_recording": "Ettől az időponttól nincs felvétel.",
         "playback_encrypted": "A felvétel titkosított, és az ellenőrző kód nem illik hozzá. Add meg az integráció beállításaiban.",
+        "playback_unreadable": "A kamera videóját nem sikerült beolvasni, gyakran gyenge kapcsolat (például Wi-Fi) miatt. Próbálja újra, vagy válasszon alacsonyabb minőséget. Ha a felvételek titkosítottak, ellenőrizze az ellenőrző kódot az integráció beállításaiban.",
         "live_encrypted": "Az élő adás titkosított (Hik-Connect streamtitkosítás), ezért itt nem játszható le.",
         "playback_busy": "A kamera már máshol játszik le felvételt. Próbáld újra egy kicsit később.",
         "playback_auth": "Az eszköz elutasította a bejelentkezési adatokat.",

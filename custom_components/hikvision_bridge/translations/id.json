@@ -908,6 +908,7 @@
         "no_recordings": "Tidak ada rekaman pada hari ini.",
         "no_recording": "Tidak ada rekaman sejak saat ini.",
         "playback_encrypted": "Rekaman terenkripsi dan kode verifikasi tidak cocok. Masukkan di opsi integrasi.",
+        "playback_unreadable": "Video dari kamera tidak dapat dibaca, sering kali karena koneksi yang lemah (misalnya Wi-Fi). Coba lagi atau pilih kualitas yang lebih rendah. Jika rekaman dienkripsi, periksa kode verifikasi di opsi integrasi.",
         "live_encrypted": "Siaran langsung terenkripsi (enkripsi stream Hik-Connect) dan tidak dapat diputar di sini.",
         "playback_busy": "Kamera sedang memutar rekaman di tempat lain. Coba lagi sebentar lagi.",
         "playback_auth": "Perangkat menolak kredensial login.",
