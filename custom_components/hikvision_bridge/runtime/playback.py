@@ -289,11 +289,11 @@ async def passed(
         yield data
 
 
-async def stripped(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
-    """``chunks`` without the file header, which ffmpeg does not know."""
+async def headed(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    """``chunks`` from the file header on, where ffmpeg looks for it."""
     first = True
     async for chunk in chunks:
-        yield recordings.strip_header(chunk) if first else chunk
+        yield recordings.for_ffmpeg(chunk) if first else chunk
         first = False
 
 
@@ -318,7 +318,7 @@ async def run_ffmpeg(
     chunks: AsyncIterator[bytes],
     sink: Callable[[bytes], object] | None = None,
 ) -> bytes:
-    """Feed ``chunks`` (header removed) to ffmpeg and pass its output to ``sink``.
+    """Feed ``chunks`` (from the file header on) to ffmpeg and pass its output to ``sink``.
 
     Without a sink the output is collected and returned. The process is killed if the
     caller goes away (for example a closed browser tab).
@@ -336,7 +336,7 @@ async def run_ffmpeg(
 
     async def feed() -> None:
         try:
-            async for chunk in stripped(chunks):
+            async for chunk in headed(chunks):
                 process.stdin.write(chunk)
                 await process.stdin.drain()
         except (BrokenPipeError, ConnectionResetError):

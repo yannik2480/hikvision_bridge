@@ -363,3 +363,19 @@ def strip_header(data: bytes) -> bytes:
     """Drop the file header; downloads by time put another 24 bytes in front of it."""
     first_pack = data.find(PACK_START, 0, 1024)
     return data[first_pack:] if first_pack > 0 and HEADER_MAGIC in data[:64] else data
+
+
+def file_header(data: bytes) -> bytes:
+    """The file header at the start of ``data`` without the bytes before it; b"" if none.
+
+    ffmpeg needs it first in its input: it tells ffmpeg that the audio is G.711, which it
+    otherwise takes for MPEG audio, cannot decode and then waits for until the end.
+    """
+    at = data.find(HEADER_MAGIC, 0, 64)
+    first_pack = data.find(PACK_START, 0, 1024)
+    return data[at:first_pack] if 0 <= at < first_pack else b""
+
+
+def for_ffmpeg(data: bytes) -> bytes:
+    """The start of a download as ffmpeg reads it: from the file header on."""
+    return file_header(data) + strip_header(data)

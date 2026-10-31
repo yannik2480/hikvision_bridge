@@ -357,7 +357,7 @@ async def test_playback_session_from_download(
     assert "pipe:0" in args
     assert "hvc1" in args
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
-    assert fed == recordings.strip_header(recording(encrypted=False))
+    assert fed == recordings.for_ffmpeg(recording(encrypted=False))
     download = [w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH][-1]
     assert "starttime=" in download[2]
     assert "name=" not in download[2]
@@ -420,7 +420,7 @@ async def test_playback_session_from_recorded_file(
     args = await hass.async_add_executor_job((session.folder / "args").read_text)
     assert "-ss" not in args
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
-    assert fed == data[40 + len(PACK) :]
+    assert fed == data[:40] + data[40 + len(PACK) :]
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
     # The span, the file's start to compare with, then the file asked from the time on:
     # this device sent it from its start anyway.
@@ -481,7 +481,7 @@ async def test_playback_session_from_later_in_recorded_file(
     assert answer["result"]["start"] == (START + timedelta(seconds=8)).isoformat()
     session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
-    assert fed == data[keys[8] :]
+    assert fed == data[:40] + data[keys[8] :]
     await sessions.manager(hass).stop_all()
 
 

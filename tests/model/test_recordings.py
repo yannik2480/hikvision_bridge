@@ -192,6 +192,12 @@ def test_inspect_head() -> None:
     assert recordings.inspect_head(wrapped).header
     assert recordings.strip_header(wrapped) == recordings.strip_header(program_stream())
     assert recordings.strip_header(b"\x00\x00\x01\xba") == b"\x00\x00\x01\xba"
+    # ffmpeg gets the header first: it tells the audio format.
+    assert recordings.file_header(wrapped) == program_stream()[:40]
+    assert recordings.for_ffmpeg(wrapped) == program_stream()
+    assert recordings.for_ffmpeg(program_stream()) == program_stream()
+    assert recordings.file_header(b"\x00\x00\x01\xba") == b""
+    assert recordings.for_ffmpeg(b"\x00\x00\x01\xba") == b"\x00\x00\x01\xba"
 
 
 def test_ffmpeg_args() -> None:

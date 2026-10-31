@@ -514,9 +514,9 @@ class SessionManager:
                 cut = 0.0
                 if rest > 0:
                     first, cut = await skipped(stream, chunks, rest)
-                    chunks = _joined(first, chunks)
+                    chunks = _joined(recordings.file_header(head) + first, chunks)
                 else:
-                    chunks = playback.stripped(chunks)
+                    chunks = playback.headed(chunks)
                 session.start -= timedelta(seconds=rest - cut)
                 session.process = await self._spawn(
                     session, hls_args(PIPE, session.quality, info.codec, session.folder), True

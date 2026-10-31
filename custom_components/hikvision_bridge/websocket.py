@@ -19,7 +19,7 @@ from .runtime import identity, sessions
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import pick_source, sources
 from .views import encode_token
-from .wire.faults import BridgeFault
+from .wire.faults import BridgeFault, detail
 from .wire.scrub import scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
@@ -188,6 +188,7 @@ async def ws_timeline(
             found = await recordings.search(source.link, source.track, start, end)
         except BridgeFault as err:
             error = type(err).__name__
+            _LOGGER.debug("No recordings list from the %s: %s", source.key, detail(err))
     events = await _events(hass, _event_entities(hass, bridge, msg["channel_id"]), start, end)
     connection.send_result(
         msg["id"],

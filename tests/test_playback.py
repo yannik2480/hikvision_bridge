@@ -140,8 +140,8 @@ async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffm
     path = played.url.split("?", 1)[0]
     converted = await client.get(path)
     assert converted.status == 200
-    # The fake ffmpeg passes through what it gets: the stream without the device header.
-    assert await converted.read() == recordings.strip_header(program_stream())
+    # The fake ffmpeg passes through what it gets: the stream from the device header on.
+    assert await converted.read() == recordings.for_ffmpeg(program_stream())
     original = await client.get(path.replace("/mp4/", "/original/"))
     assert await original.read() == program_stream()
     download = next(w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH)
@@ -214,7 +214,7 @@ async def test_encrypted_recording_is_decrypted(
     answer = await client.get(recording_url(entry.entry_id, "1", "card", "mp4", uri))
     assert answer.status == status
     if status == 200:
-        assert await answer.read() == recordings.strip_header(recording(encrypted=False))
+        assert await answer.read() == recordings.for_ffmpeg(recording(encrypted=False))
 
 
 async def test_download_recording(
@@ -256,7 +256,7 @@ async def test_download_recording(
     saved = Path(answer["files"][0])
     assert saved.suffix == ".mp4"
     content = await hass.async_add_executor_job(saved.read_bytes)
-    assert content == recordings.strip_header(program_stream())
+    assert content == recordings.for_ffmpeg(program_stream())
     assert not list(saved.parent.glob(".*.part"))
 
     with pytest.raises(HomeAssistantError) as err:
