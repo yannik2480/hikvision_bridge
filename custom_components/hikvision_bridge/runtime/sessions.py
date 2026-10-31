@@ -7,12 +7,13 @@ the download of a span but hand out their recorded files; a session then covers 
 holds the wanted time and starts at the last key frame before it. Where the device can, it
 leaves out the part before that time itself; otherwise that part is dropped as fast as the
 device sends it, without ffmpeg. Devices that refuse both play the span over RTSP instead, in
-real time and without decryption.
+real time and without decryption. Devices that send recorded files only from their start
+play a time further into a file than they reach in SKIP_SECONDS over RTSP as well, if they can.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
 one playback at a time; a viewer that seeks therefore replaces its session, and the old
-process ends before the new one starts.
+process ends before the new one starts, and a seek still starting is dropped for the newer one.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from weakref import WeakSet
+from weakref import WeakKeyDictionary, WeakSet
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -84,12 +85,16 @@ class SessionError(Exception):
 
 
 class _UseRtsp(Exception):
-    """No download from the device; ``lasting`` if none will come, ``refused`` if it said no."""
+    """No download from the device; ``lasting`` if none will come, ``refused`` if it said no.
 
-    def __init__(self, lasting: bool, refused: bool = False) -> None:
+    ``far`` if the time lies further into a recorded file than the device reaches in time.
+    """
+
+    def __init__(self, lasting: bool, refused: bool = False, far: bool = False) -> None:
         super().__init__(lasting)
         self.lasting = lasting
         self.refused = refused
+        self.far = far
 
 
 @dataclass(slots=True)
@@ -320,6 +325,12 @@ class SessionManager:
         self._by_file: WeakSet[IsapiLink] = WeakSet()
         # Devices that send recorded files only from their start.
         self._whole_files: WeakSet[IsapiLink] = WeakSet()
+        # Seconds into a recorded file a device reached in SKIP_SECONDS, if it fell short.
+        self._reach: WeakKeyDictionary[IsapiLink, float] = WeakKeyDictionary()
+        # Devices whose RTSP playback failed for a time beyond that reach.
+        self._no_far_rtsp: WeakSet[IsapiLink] = WeakSet()
+        # Starts still running, by camera; a newer one for the camera cancels them.
+        self._starting: dict[tuple[str, str, str], asyncio.Task[Session]] = {}
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
@@ -338,7 +349,38 @@ class SessionManager:
         replace: str | None = None,
         found: list[recordings.Recording] | None = None,
     ) -> Session:
-        """Play from ``start``; ``found`` are the recorded files around it."""
+        """Play from ``start``; ``found`` are the recorded files around it.
+
+        Raises SessionError("playback_replaced") if a newer start for the camera came in.
+        """
+        if (pending := self._starting.get(key)) is not None:
+            pending.cancel()
+        task = asyncio.ensure_future(
+            self._start(source, key, start, end, quality, codec, replace, found)
+        )
+        self._starting[key] = task
+        try:
+            return await task
+        except asyncio.CancelledError:
+            current = asyncio.current_task()
+            if task.cancelled() and (current is None or not current.cancelling()):
+                raise SessionError("playback_replaced") from None
+            raise
+        finally:
+            if self._starting.get(key) is task:
+                del self._starting[key]
+
+    async def _start(
+        self,
+        source: PlaybackSource,
+        key: tuple[str, str, str],
+        start: datetime,
+        end: datetime,
+        quality: str,
+        codec: str | None,
+        replace: str | None,
+        found: list[recordings.Recording] | None,
+    ) -> Session:
         async with self._lock:
             if replace:
                 await self._stop(replace)
@@ -353,6 +395,7 @@ class SessionManager:
                 await self.hass.async_add_executor_job(tempfile.mkdtemp, "", "hikvision_")
             )
             try:
+                far = False
                 if source.link not in self._rtsp_only:
                     try:
                         session = await self._download(
@@ -361,13 +404,26 @@ class SessionManager:
                     except _UseRtsp as err:
                         if err.lasting:
                             self._rtsp_only.add(source.link)
+                        far = err.far
                     else:
                         self.sessions[session.session_id] = session
                         self._watch()
                         return session
-                session = await self._from_rtsp(
-                    source, key, start, end, uri, quality, codec, folder
-                )
+                try:
+                    session = await self._from_rtsp(
+                        source, key, start, end, uri, quality, codec, folder
+                    )
+                except SessionError as err:
+                    if not far:
+                        raise
+                    # Read the recorded file up to the time after all.
+                    self._no_far_rtsp.add(source.link)
+                    try:
+                        session = await self._download(
+                            source, key, start, end, uri, quality, folder, found or []
+                        )
+                    except _UseRtsp:
+                        raise err from None
             except BaseException:
                 await self.hass.async_add_executor_job(shutil.rmtree, folder, True)
                 raise
@@ -404,6 +460,17 @@ class SessionManager:
         start = max(start, recording.start)
         end = min(end, recording.end)
         skip = (start - recording.start).total_seconds()
+        if (
+            source.link in self._whole_files
+            and source.link not in self._no_far_rtsp
+            and skip > self._reach.get(source.link, skip)
+        ):
+            _LOGGER.debug(
+                "Recorded file reaches %.0f s in time, not %.0f s: playing over RTSP",
+                self._reach[source.link],
+                skip,
+            )
+            raise _UseRtsp(False, far=True)
         if skip >= LATER_START_SECONDS and source.link not in self._whole_files:
             wall = await recordings.wall_offset(source.link)
             if later := recordings.starting_at(recording.playback_uri, start, wall):
@@ -513,7 +580,10 @@ class SessionManager:
                 rest = skip - device
                 cut = 0.0
                 if rest > 0:
+                    began = time.monotonic()
                     first, cut = await skipped(stream, chunks, rest)
+                    if cut < rest - 1 and time.monotonic() - began >= SKIP_SECONDS:
+                        self._reach[source.link] = device + stream.seconds
                     chunks = _joined(recordings.file_header(head) + first, chunks)
                 else:
                     chunks = playback.headed(chunks)
@@ -608,13 +678,17 @@ class SessionManager:
         assert session.process is not None
         playlist = session.folder / PLAYLIST
         deadline = time.monotonic() + FIRST_SEGMENT_TIMEOUT
-        while time.monotonic() < deadline:
-            text = await self.hass.async_add_executor_job(_read, playlist)
-            if text and "#EXTINF" in text:
-                return None
-            if session.process.returncode is not None:
-                break
-            await asyncio.sleep(0.1)
+        try:
+            while time.monotonic() < deadline:
+                text = await self.hass.async_add_executor_job(_read, playlist)
+                if text and "#EXTINF" in text:
+                    return None
+                if session.process.returncode is not None:
+                    break
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            await self._end(session)
+            raise
         running = session.process.returncode is None
         await self._end(session)
         errors = await self.hass.async_add_executor_job(_read, session.folder / LOG) or ""

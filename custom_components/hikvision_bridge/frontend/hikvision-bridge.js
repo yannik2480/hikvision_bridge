@@ -585,7 +585,10 @@ class Player {
     this.token = 0;
     this.video.addEventListener("waiting", () => this._stalled());
     this.video.addEventListener("playing", () => this._smooth());
-    this.video.addEventListener("ended", () => this.host.onEnded());
+    // The old video may end while a seek starts a new session; the seek wins.
+    this.video.addEventListener("ended", () => {
+      if (this.starting !== this.token) this.host.onEnded();
+    });
     this._upgradeTimer = null;
     this._keepAlive = null;
   }
@@ -620,6 +623,8 @@ class Player {
           fragLoadingMaxRetry: 6,
         });
         this.hls.on(Hls.Events.ERROR, (_e, data) => {
+          // A newer start ends this session on the server; the video stays until it is ready.
+          if (token !== this.token) return;
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.MEDIA_ERROR) this.hls.recoverMediaError();
             else this.host.showError("playback_failed");
@@ -710,6 +715,7 @@ class Player {
   async _play(time, level) {
     const token = ++this.token;
     this.host.busy(true);
+    this.starting = token;
     const previous = this.session;
     try {
       const session = await this.host.hass.callWS({
@@ -737,6 +743,8 @@ class Player {
       if (token !== this.token) return;
       if (previous && this.session === previous) this.session = null;
       this.host.showError(err.code || "playback_failed");
+    } finally {
+      if (this.starting === token) this.starting = null;
     }
   }
 

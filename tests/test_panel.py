@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 import stat
@@ -482,6 +483,120 @@ async def test_playback_session_from_later_in_recorded_file(
     session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
     assert fed == data[:40] + data[keys[8] :]
+    await sessions.manager(hass).stop_all()
+
+
+async def test_playback_beyond_reach_of_recorded_file(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A time further into a file than the device sends in time plays over RTSP, if it can."""
+    monkeypatch.setattr(sessions, "SKIP_SECONDS", 0)
+    device, entry = await _setup(hass, serve)
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+
+    def download(_method: str, body: str) -> web.Response:
+        if "name=" not in body:
+            return web.Response(
+                status=400,
+                text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
+                content_type="application/xml",
+            )
+        return web.Response(body=data, content_type="application/binary")
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+
+    async def play(moment) -> dict:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": moment.isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+        return answer["result"], await hass.async_add_executor_job(
+            (session.folder / "args").read_text
+        )
+
+    # The file is read from its start and ends at its last key frame, 12 s in.
+    started, args = await play(START + timedelta(minutes=5))
+    assert started["start"] == (START + timedelta(seconds=12)).isoformat()
+    assert "pipe:0" in args
+    # Further than that: RTSP plays from the time itself.
+    started, args = await play(START + timedelta(minutes=6))
+    assert started["start"] == (START + timedelta(minutes=6)).isoformat()
+    assert "/Streaming/tracks/101/?starttime=" in args
+
+    # Without RTSP playback the file is read up to the time after all.
+    _script(
+        tmp_path,
+        monkeypatch,
+        '#!/bin/sh\ncase "$*" in *rtsp://*) echo "Connection refused" >&2; exit 1;; esac\n'
+        + HLS_PIPE.removeprefix("#!/bin/sh\n"),
+    )
+    started, args = await play(START + timedelta(minutes=7))
+    assert started["start"] == (START + timedelta(seconds=12)).isoformat()
+    assert "pipe:0" in args
+    downloads = len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH])
+    _script(tmp_path, monkeypatch, HLS)
+    started, args = await play(START + timedelta(minutes=8))
+    assert "pipe:0" in args
+    assert len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]) > downloads
+    await sessions.manager(hass).stop_all()
+
+
+async def test_playback_start_replaced_while_starting(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A seek while the previous one is still starting drops that one instead of waiting."""
+    _, entry = await _setup(hass, serve)
+    marker = tmp_path / "first"
+    # The first ffmpeg writes nothing; the ones after it play.
+    _script(
+        tmp_path,
+        monkeypatch,
+        f'#!/bin/sh\nif [ ! -e "{marker}" ]; then touch "{marker}"; exec sleep 30; fi\n'
+        + HLS.removeprefix("#!/bin/sh\n"),
+    )
+    client = await hass_ws_client(hass)
+
+    def start(minutes: int) -> dict:
+        return {
+            "type": f"{DOMAIN}/playback/start",
+            "entry_id": entry.entry_id,
+            "channel_id": "1",
+            "source": "auto",
+            "time": (START + timedelta(minutes=minutes)).isoformat(),
+        }
+
+    await client.send_json_auto_id(start(2))
+    for _ in range(100):
+        if await hass.async_add_executor_job(marker.exists):
+            break
+        await asyncio.sleep(0.05)
+    await client.send_json_auto_id(start(4))
+    answers = {}
+    for _ in range(2):
+        answer = await client.receive_json()
+        answers[answer["id"]] = answer
+    first, second = (answers[i] for i in sorted(answers))
+    assert first["error"]["code"] == "playback_replaced"
+    assert second["success"], second
+    assert list(sessions.manager(hass).sessions) == [second["result"]["session_id"]]
     await sessions.manager(hass).stop_all()
 
 
