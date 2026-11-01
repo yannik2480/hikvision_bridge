@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 
 from ..const import BUS_EVENT, DOMAIN, GRACE_BEFORE_UNAVAILABLE
+from ..model.features import recordings
 from ..model.vocabulary import DEVICE_WIDE, Kind, canonical
 from ..wire.faults import BridgeFault
 from ..wire.feed import FeedFrame
@@ -136,6 +137,9 @@ class EventRouter:
         if frame.device_time is not None:
             self.latency_ms = round((frame.received - frame.device_time).total_seconds() * 1000)
         self._remember(scope, kind, frame)
+        if scope != DEVICE_SCOPE and origin.channel_map is None:
+            # Recordings the device's own events start show which clock it searches on.
+            recordings.note_event(self._bridge.link, frame.received)
 
         if kind == Kind.ANPR and frame.plate is not None and frame.is_active:
             self.last_plate[scope] = frame

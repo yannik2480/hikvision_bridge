@@ -5,13 +5,14 @@ file name, size). The same URI is handed back to ``/ISAPI/ContentMgmt/download``
 answers with that whole file. Most devices give and take the times of searches and playback
 URIs on their wall clock, although marked as UTC; they are converted with the offset of that
 clock. Some (older cameras) use real UTC; which one a device uses is learned from where its
-newest recording ends (``learn_basis``).
+newest recording ends and from the recordings its events started (``learn_basis``).
 Devices write their recordings as MPEG program stream, usually behind a 40 byte ``IMKH``
 header; the codec field of search results is not reliable and is therefore not used.
 """
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -35,6 +36,12 @@ TIME_PATH = "/ISAPI/System/time"
 OFFSET_TTL = 3600
 # How close the end of a recording in progress is to the device's present.
 NOW_TOLERANCE = timedelta(minutes=5)
+# Events kept per device to learn its clock from the recordings they started.
+EVENTS_KEPT = 20
+EVENT_SPACING = timedelta(minutes=1)
+EVENTS_SPAN = timedelta(hours=6)
+# How far an event may lie outside the recording it started (pre and post record).
+EVENT_TOLERANCE = timedelta(minutes=1)
 _NO_OFFSET = timedelta(0)
 DOWNLOAD_PATH = "/ISAPI/ContentMgmt/download"
 DAYS_PATH = "/ISAPI/ContentMgmt/record/tracks/{track}/dailyDistribution"
@@ -124,7 +131,16 @@ _offsets: WeakKeyDictionary[IsapiLink, tuple[float, timedelta]] = WeakKeyDiction
 # Whether a device's search times are real UTC (True) or its wall clock (False), once known.
 _utc_basis: WeakKeyDictionary[IsapiLink, bool] = WeakKeyDictionary()
 # When the basis was last looked for.
-_basis_tried: WeakKeyDictionary[IsapiLink, float] = WeakKeyDictionary()
+_basis_tried: WeakKeyDictionary[IsapiLink, datetime] = WeakKeyDictionary()
+# When the device's events arrived (UTC, own clock), newest last.
+_events: WeakKeyDictionary[IsapiLink, deque[datetime]] = WeakKeyDictionary()
+
+
+def note_event(link: IsapiLink, received: datetime) -> None:
+    """Remember when an event of the device arrived; recordings it starts show the clock."""
+    seen = _events.setdefault(link, deque(maxlen=EVENTS_KEPT))
+    if not seen or received - seen[-1] >= EVENT_SPACING:
+        seen.append(received)
 
 
 async def clock_offset(link: IsapiLink) -> timedelta:
@@ -169,27 +185,59 @@ def basis_of(newest_end: datetime | None, now: datetime, wall: timedelta) -> boo
     return None
 
 
+def basis_from_events(
+    found: list[Recording], events: list[datetime], wall: timedelta
+) -> bool | None:
+    """Whether a device's times are real UTC, from the recordings its events started.
+
+    ``found`` holds recordings with their times taken literally as UTC. An event lies in a
+    recording either at its real time (UTC) or shifted by the wall clock offset; short
+    (event) recordings can only hold it one way. None when neither or both do.
+    """
+    if abs(wall) <= 2 * NOW_TOLERANCE:
+        return None
+
+    def held(moment: datetime) -> bool:
+        return any(r.start - EVENT_TOLERANCE <= moment <= r.end + EVENT_TOLERANCE for r in found)
+
+    in_utc = sum(held(moment) for moment in events)
+    on_wall = sum(held(moment + wall) for moment in events)
+    if in_utc and not on_wall:
+        return True
+    if on_wall and not in_utc:
+        return False
+    return None
+
+
 async def learn_basis(link: IsapiLink, track: str) -> None:
     """Find out whether the device's search times are real UTC or its wall clock.
 
-    Searches literally from shortly before the earlier present to shortly after the later
-    one, again every OFFSET_TTL seconds; without a recent recording the last answer stays.
+    Searches with literal times around both presents and the device's recent events, again
+    every OFFSET_TTL seconds or after new events; while neither a recording in progress nor
+    the recordings of events tell, the last answer stays.
     """
+    now = datetime.now(UTC)
+    events = [moment for moment in _events.get(link, ()) if now - moment <= EVENTS_SPAN]
     tried = _basis_tried.get(link)
-    if tried is not None and time.monotonic() - tried < OFFSET_TTL:
+    if (
+        tried is not None
+        and now - tried < timedelta(seconds=OFFSET_TTL)
+        and not any(moment > tried for moment in events)
+    ):
         return
-    _basis_tried[link] = time.monotonic()
+    _basis_tried[link] = now
     wall = await clock_offset(link)
     if abs(wall) <= 2 * NOW_TOLERANCE:
         return
-    now = datetime.now(UTC)
-    start = min(now, now + wall) - NOW_TOLERANCE
-    end = max(now, now + wall) + NOW_TOLERANCE
+    start = min([now, *events]) + min(wall, _NO_OFFSET) - NOW_TOLERANCE
+    end = now + max(wall, _NO_OFFSET) + NOW_TOLERANCE
     try:
         found = await _search(link, track, start, end, _NO_OFFSET)
     except BridgeFault:
         return
     utc = basis_of(max((r.end for r in found), default=None), now, wall)
+    if utc is None:
+        utc = basis_from_events(found, events, wall)
     if utc is not None:
         _utc_basis[link] = utc
 

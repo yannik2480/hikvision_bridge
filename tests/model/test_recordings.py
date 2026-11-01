@@ -310,3 +310,54 @@ def test_trim() -> None:
         None,
         None,
     )
+
+
+def test_basis_from_events() -> None:
+    wall = timedelta(hours=2)
+    event = datetime(2026, 11, 1, 15, 48, 45, tzinfo=UTC)
+
+    def clip(start: datetime) -> recordings.Recording:
+        return recordings.Recording("101", start, start + timedelta(seconds=40), "motion", "u")
+
+    # The clip holds the event at its real time: real UTC; shifted by the offset: wall clock.
+    assert recordings.basis_from_events([clip(event - timedelta(seconds=5))], [event], wall)
+    assert (
+        recordings.basis_from_events([clip(event + wall - timedelta(seconds=5))], [event], wall)
+        is False
+    )
+    # Unrelated clips or long files that hold it both ways tell nothing.
+    assert recordings.basis_from_events([clip(event - timedelta(hours=1))], [event], wall) is None
+    long = recordings.Recording("101", event - wall, event + wall + wall, "continuous", "u")
+    assert recordings.basis_from_events([long], [event], wall) is None
+    assert recordings.basis_from_events([clip(event)], [], wall) is None
+
+
+async def test_motion_recordings_in_real_utc(serve) -> None:
+    """A camera recording only on motion, in real UTC, learns it from the motion events."""
+    device = FakeDevice("camera_g3")
+    now = datetime.now(UTC).replace(microsecond=0)
+    event = now - timedelta(hours=1)
+    clip = match(event - timedelta(seconds=5), 1, "VMD", "m")
+
+    def respond(_method: str, body: str) -> web.Response:
+        start = re.search(r"<startTime>([^<]+)", body)[1]
+        end = re.search(r"<endTime>([^<]+)", body)[1]
+        wanted = f"{event - timedelta(seconds=5):%Y-%m-%dT%H:%M:%SZ}"
+        chosen = [clip] if start <= wanted <= end else []
+        return web.Response(text=result(chosen, "OK"), content_type="application/xml")
+
+    device.responders[recordings.SEARCH_PATH] = respond
+    wall_now = now + timedelta(hours=2)
+    device.responders[recordings.TIME_PATH] = lambda _m, _b: web.Response(
+        text=f"<Time><localTime>{wall_now:%Y-%m-%dT%H:%M:%S}+02:00</localTime></Time>",
+        content_type="application/xml",
+    )
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        recordings.note_event(link, event)
+        found = await recordings.search(link, "101", now - timedelta(hours=2), now)
+        assert await recordings.wall_offset(link) == timedelta(0)
+    assert [r.start for r in found] == [event - timedelta(seconds=5)]
