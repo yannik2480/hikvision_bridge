@@ -585,10 +585,8 @@ class Player {
     this.token = 0;
     this.video.addEventListener("waiting", () => this._stalled());
     this.video.addEventListener("playing", () => this._smooth());
-    // The old video may end while a seek starts a new session; the seek wins.
-    this.video.addEventListener("ended", () => {
-      if (this.starting !== this.token) this.host.onEnded();
-    });
+    this.starting = null; // token of the playback start still running
+    this.video.addEventListener("ended", () => this.host.onEnded());
     this._upgradeTimer = null;
     this._keepAlive = null;
   }
@@ -742,7 +740,9 @@ class Player {
     } catch (err) {
       if (token !== this.token) return;
       if (previous && this.session === previous) this.session = null;
-      this.host.showError(err.code || "playback_failed");
+      // Replaced by a newer start for the camera from elsewhere (another viewer).
+      const code = err.code === "playback_replaced" ? "playback_busy" : err.code;
+      this.host.showError(code || "playback_failed");
     } finally {
       if (this.starting === token) this.starting = null;
     }
@@ -760,7 +760,8 @@ class Player {
   // Seek inside the running session if that part is prepared, else start a new one. The
   // session keeps everything from its start and prepares a minute or more ahead.
   async seek(time) {
-    if (this.mode === "playback" && this.session && this.base != null) {
+    // While a start is running the server has already ended the session still shown.
+    if (this.mode === "playback" && this.session && this.base != null && this.starting == null) {
       const video = this.video;
       const offset = (time - this.session.start) / 1000 + this.base;
       for (let i = 0; i < video.seekable.length; i += 1) {
@@ -1262,6 +1263,8 @@ class Viewer {
   onEnded() {
     // End of a stretch of recordings: continue with the next one.
     if (this.mode !== "playback" || !this.player.session) return;
+    // The old video may end while a seek starts a new session; the seek wins.
+    if (this.player.starting != null) return;
     // A session ends early when the device broke off the download: carry on from there.
     const position = this.player.position;
     if (position != null && position < this.player.session.end - 5000) {

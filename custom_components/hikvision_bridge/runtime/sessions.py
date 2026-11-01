@@ -331,6 +331,20 @@ class SessionManager:
         self._no_far_rtsp: WeakSet[IsapiLink] = WeakSet()
         # Starts still running, by camera; a newer one for the camera cancels them.
         self._starting: dict[tuple[str, str, str], asyncio.Task[Session]] = {}
+        # Latest start asked for, by camera.
+        self._claims: dict[tuple[str, str, str], int] = {}
+
+    def claim(self, key: tuple[str, str, str]) -> int:
+        """Note a start for the camera as it comes in; it drops the starts asked for before.
+
+        Pass the ticket to ``start``: a start whose ticket is no longer the latest is dropped,
+        however late it gets there.
+        """
+        ticket = self._claims.get(key, 0) + 1
+        self._claims[key] = ticket
+        if (pending := self._starting.get(key)) is not None:
+            pending.cancel()
+        return ticket
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
@@ -348,11 +362,15 @@ class SessionManager:
         codec: str | None,
         replace: str | None = None,
         found: list[recordings.Recording] | None = None,
+        ticket: int | None = None,
     ) -> Session:
         """Play from ``start``; ``found`` are the recorded files around it.
 
-        Raises SessionError("playback_replaced") if a newer start for the camera came in.
+        Raises SessionError("playback_replaced") if a newer start for the camera came in;
+        ``ticket`` from ``claim`` dates this one to when it was asked for.
         """
+        if ticket is not None and ticket != self._claims.get(key):
+            raise SessionError("playback_replaced")
         if (pending := self._starting.get(key)) is not None:
             pending.cancel()
         task = asyncio.ensure_future(
@@ -416,11 +434,13 @@ class SessionManager:
                 except SessionError as err:
                     if not far:
                         raise
-                    # Read the recorded file up to the time after all.
-                    self._no_far_rtsp.add(source.link)
+                    # Read the recorded file up to the time after all. A camera still busy
+                    # with the previous playback says nothing about its RTSP playback.
+                    if err.reason != "playback_busy":
+                        self._no_far_rtsp.add(source.link)
                     try:
                         session = await self._download(
-                            source, key, start, end, uri, quality, folder, found or []
+                            source, key, start, end, uri, quality, folder, found or [], far=True
                         )
                     except _UseRtsp:
                         raise err from None
@@ -443,8 +463,12 @@ class SessionManager:
         quality: str,
         folder: Path,
         found: list[recordings.Recording],
+        far: bool = False,
     ) -> Session:
-        """A session from the download of the span, else of the recorded file at ``start``."""
+        """A session from the download of the span, else of the recorded file at ``start``.
+
+        ``far`` reads the file up to ``start`` even beyond the device's reach.
+        """
         recording = covering(found, start)
         if source.link not in self._by_file:
             try:
@@ -461,7 +485,8 @@ class SessionManager:
         end = min(end, recording.end)
         skip = (start - recording.start).total_seconds()
         if (
-            source.link in self._whole_files
+            not far
+            and source.link in self._whole_files
             and source.link not in self._no_far_rtsp
             and skip > self._reach.get(source.link, skip)
         ):
@@ -525,7 +550,8 @@ class SessionManager:
         try:
             await asyncio.wait_for(asyncio.shield(ready), wait)
         except BaseException as err:
-            await _cancel(session.pump)
+            # Ends ffmpeg too, should the download have started it.
+            await self._end(session)
             if isinstance(err, RecordingEncrypted):
                 raise SessionError("playback_encrypted") from err
             if isinstance(err, TimeoutError):
@@ -642,9 +668,12 @@ class SessionManager:
         reason = "playback_failed"
         for attempt in range(2):
             session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
-            session.process = await self._spawn(
-                session, hls_args(url, quality, codec, folder), False
-            )
+            try:
+                await self._spawn(session, hls_args(url, quality, codec, folder), False)
+            except asyncio.CancelledError:
+                # A newer start: the camera serves one playback, this one must not linger.
+                await self._end(session)
+                raise
             reason = await self._first_segment(session, "RTSP")
             if reason is None:
                 _LOGGER.debug("Playing over RTSP")
@@ -660,10 +689,11 @@ class SessionManager:
     async def _spawn(
         self, session: Session, args: list[str], piped: bool
     ) -> asyncio.subprocess.Process:
+        """Start ffmpeg as ``session.process``, set before anything can cancel the caller."""
         # Errors go to a file: a pipe nobody reads would stall a long session.
         log = await self.hass.async_add_executor_job((session.folder / LOG).open, "wb")
         try:
-            return await asyncio.create_subprocess_exec(
+            session.process = await asyncio.create_subprocess_exec(
                 playback.ffmpeg_binary(self.hass),
                 *args,
                 stdin=asyncio.subprocess.PIPE if piped else asyncio.subprocess.DEVNULL,
@@ -671,7 +701,8 @@ class SessionManager:
                 stderr=log,
             )
         finally:
-            await self.hass.async_add_executor_job(log.close)
+            await asyncio.shield(self.hass.async_add_executor_job(log.close))
+        return session.process
 
     async def _first_segment(self, session: Session, what: str) -> str | None:
         """None once the first segment is written, else why ffmpeg gave up."""

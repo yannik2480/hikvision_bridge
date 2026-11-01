@@ -537,6 +537,19 @@ async def test_playback_beyond_reach_of_recorded_file(
     assert started["start"] == (START + timedelta(minutes=6)).isoformat()
     assert "/Streaming/tracks/101/?starttime=" in args
 
+    # A camera still busy with the last playback: the file this time, RTSP again next time.
+    _script(
+        tmp_path,
+        monkeypatch,
+        '#!/bin/sh\ncase "$*" in *rtsp://*) echo "method PLAY failed: 453 Not Enough Bandwidth"'
+        " >&2; exit 1;; esac\n" + HLS_PIPE.removeprefix("#!/bin/sh\n"),
+    )
+    started, args = await play(START + timedelta(minutes=7))
+    assert "pipe:0" in args
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    started, args = await play(START + timedelta(minutes=7))
+    assert "/Streaming/tracks/101/?starttime=" in args
+
     # Without RTSP playback the file is read up to the time after all.
     _script(
         tmp_path,
@@ -598,6 +611,67 @@ async def test_playback_start_replaced_while_starting(
     assert second["success"], second
     assert list(sessions.manager(hass).sessions) == [second["result"]["session_id"]]
     await sessions.manager(hass).stop_all()
+
+
+async def test_playback_start_older_one_arriving_late(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A seek whose recordings search ends after the next seek's is dropped, not played."""
+    _, entry = await _setup(hass, serve)
+    _script(tmp_path, monkeypatch, HLS)
+    search = recordings.search
+    release = asyncio.Event()
+    calls = 0
+
+    async def slow_first(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            await release.wait()
+        return await search(*args, **kwargs)
+
+    monkeypatch.setattr(recordings, "search", slow_first)
+    client = await hass_ws_client(hass)
+
+    def start(minutes: int) -> dict:
+        return {
+            "type": f"{DOMAIN}/playback/start",
+            "entry_id": entry.entry_id,
+            "channel_id": "1",
+            "source": "auto",
+            "time": (START + timedelta(minutes=minutes)).isoformat(),
+        }
+
+    await client.send_json_auto_id(start(2))
+    for _ in range(100):
+        if calls:
+            break
+        await asyncio.sleep(0.01)
+    await client.send_json_auto_id(start(4))
+    second = await client.receive_json()
+    assert second["success"], second
+    release.set()
+    first = await client.receive_json()
+    assert first["error"]["code"] == "playback_replaced"
+    # The newer playback goes on.
+    assert list(sessions.manager(hass).sessions) == [second["result"]["session_id"]]
+    await sessions.manager(hass).stop_all()
+
+
+async def test_claim_drops_older_tickets(hass: HomeAssistant) -> None:
+    manager = sessions.SessionManager(hass)
+    key = ("entry", "1", "auto")
+    first = manager.claim(key)
+    manager.claim(key)
+    with pytest.raises(sessions.SessionError) as err:
+        await manager.start(None, key, START, START, "original", None, ticket=first)
+    assert err.value.reason == "playback_replaced"
+    # Other cameras keep their own order.
+    assert manager.claim(("entry", "2", "auto")) == 1
 
 
 def test_left_out() -> None:

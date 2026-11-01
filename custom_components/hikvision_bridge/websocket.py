@@ -257,6 +257,10 @@ async def ws_playback_start(
     if bridge is None or source is None:
         connection.send_error(msg["id"], "not_found", "Unknown camera or recording source")
         return
+    manager = sessions.manager(hass)
+    key = (bridge.entry.entry_id, channel_id, source.key)
+    # Claimed before the search: over a slow link an older search may finish later.
+    ticket = manager.claim(key)
     try:
         moment = _time(msg["time"])
         found = await recordings.search(
@@ -274,15 +278,16 @@ async def ws_playback_start(
         return
     main = bridge.profile.channels[channel_id].main_stream
     try:
-        session = await sessions.manager(hass).start(
+        session = await manager.start(
             source,
-            (bridge.entry.entry_id, channel_id, source.key),
+            key,
             span[0],
             span[1],
             msg["quality"],
             main.codec if main else None,
             msg.get("replace"),
             found,
+            ticket,
         )
     except sessions.SessionError as err:
         connection.send_error(msg["id"], err.reason, err.reason)
