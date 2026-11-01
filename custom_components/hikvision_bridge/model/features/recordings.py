@@ -2,8 +2,10 @@
 
 Search results carry an RTSP ``playbackURI`` that names one recorded file (start, end,
 file name, size). The same URI is handed back to ``/ISAPI/ContentMgmt/download``, which
-answers with that whole file. All times in searches and playback URIs are on the device's
-wall clock, although marked as UTC; they are converted with the offset of that clock.
+answers with that whole file. Most devices give and take the times of searches and playback
+URIs on their wall clock, although marked as UTC; they are converted with the offset of that
+clock. Some (older cameras) use real UTC; which one a device uses is learned from where its
+newest recording ends (``learn_basis``).
 Devices write their recordings as MPEG program stream, usually behind a 40 byte ``IMKH``
 header; the codec field of search results is not reliable and is therefore not used.
 """
@@ -31,6 +33,8 @@ SEARCH_PATH = "/ISAPI/ContentMgmt/search"
 TIME_PATH = "/ISAPI/System/time"
 # The clock offset is read again after this long (daylight saving time changes it).
 OFFSET_TTL = 3600
+# How close the end of a recording in progress is to the device's present.
+NOW_TOLERANCE = timedelta(minutes=5)
 _NO_OFFSET = timedelta(0)
 DOWNLOAD_PATH = "/ISAPI/ContentMgmt/download"
 DAYS_PATH = "/ISAPI/ContentMgmt/record/tracks/{track}/dailyDistribution"
@@ -117,7 +121,13 @@ def wall_offset_of(local_time: str | None, now: datetime) -> timedelta:
 _offsets: WeakKeyDictionary[IsapiLink, tuple[float, timedelta]] = WeakKeyDictionary()
 
 
-async def wall_offset(link: IsapiLink) -> timedelta:
+# Whether a device's search times are real UTC (True) or its wall clock (False), once known.
+_utc_basis: WeakKeyDictionary[IsapiLink, bool] = WeakKeyDictionary()
+# When the basis was last looked for.
+_basis_tried: WeakKeyDictionary[IsapiLink, float] = WeakKeyDictionary()
+
+
+async def clock_offset(link: IsapiLink) -> timedelta:
     """The device's wall clock ahead of UTC, read again every OFFSET_TTL seconds."""
     cached = _offsets.get(link)
     if cached is not None and time.monotonic() - cached[0] < OFFSET_TTL:
@@ -129,6 +139,59 @@ async def wall_offset(link: IsapiLink) -> timedelta:
         offset = cached[1] if cached is not None else timedelta(0)
     _offsets[link] = (time.monotonic(), offset)
     return offset
+
+
+async def wall_offset(link: IsapiLink) -> timedelta:
+    """How far the times of searches and playback URIs are ahead of UTC.
+
+    The offset of the wall clock, unless the device turned out to use real UTC.
+    """
+    offset = await clock_offset(link)
+    return timedelta(0) if _utc_basis.get(link) else offset
+
+
+def basis_of(newest_end: datetime | None, now: datetime, wall: timedelta) -> bool | None:
+    """Whether a device's times are real UTC, from the newest recording end it gives.
+
+    ``newest_end`` is that time taken literally as UTC. A device can't have recorded past
+    its own present: an end later than the earlier of both presents (UTC, wall clock) rules
+    that one out; an end at the earlier one is a recording in progress on that clock.
+    None when it can't tell (no recent recording, or both clocks too close together).
+    """
+    if newest_end is None or abs(wall) <= 2 * NOW_TOLERANCE:
+        return None
+    wall_is_later = wall > timedelta(0)
+    earlier = now if wall_is_later else now + wall
+    if newest_end > earlier + NOW_TOLERANCE:
+        return not wall_is_later
+    if newest_end >= earlier - NOW_TOLERANCE:
+        return wall_is_later
+    return None
+
+
+async def learn_basis(link: IsapiLink, track: str) -> None:
+    """Find out whether the device's search times are real UTC or its wall clock.
+
+    Searches literally from shortly before the earlier present to shortly after the later
+    one, again every OFFSET_TTL seconds; without a recent recording the last answer stays.
+    """
+    tried = _basis_tried.get(link)
+    if tried is not None and time.monotonic() - tried < OFFSET_TTL:
+        return
+    _basis_tried[link] = time.monotonic()
+    wall = await clock_offset(link)
+    if abs(wall) <= 2 * NOW_TOLERANCE:
+        return
+    now = datetime.now(UTC)
+    start = min(now, now + wall) - NOW_TOLERANCE
+    end = max(now, now + wall) + NOW_TOLERANCE
+    try:
+        found = await _search(link, track, start, end, _NO_OFFSET)
+    except BridgeFault:
+        return
+    utc = basis_of(max((r.end for r in found), default=None), now, wall)
+    if utc is not None:
+        _utc_basis[link] = utc
 
 
 def parse_time(text: str | None, wall: timedelta = _NO_OFFSET) -> datetime | None:
@@ -224,8 +287,14 @@ async def search(link: IsapiLink, track: str, start: datetime, end: datetime) ->
     Some devices page by ``maxResults``, others answer everything at once and still say
     MORE; paging stops as soon as a page brings nothing new.
     """
+    await learn_basis(link, track)
+    return await _search(link, track, start, end, await wall_offset(link))
+
+
+async def _search(
+    link: IsapiLink, track: str, start: datetime, end: datetime, wall: timedelta
+) -> list[Recording]:
     found: dict[tuple[str, datetime, str], Recording] = {}
-    wall = await wall_offset(link)
     position = 0
     while position < MAX_RESULTS:
         body = search_body(track, start, end, position, wall)

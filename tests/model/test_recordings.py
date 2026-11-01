@@ -168,8 +168,87 @@ async def test_search_on_the_wall_clock(serve) -> None:
         start = T0 - timedelta(hours=2)
         found = await recordings.search(link, "101", start, start + timedelta(hours=1))
     searches = [w for w in device.writes if w[1] == recordings.SEARCH_PATH]
-    assert "<startTime>2026-03-01T08:00:00Z</startTime>" in searches[0][2]
+    # The first search looks for recent recordings; without any the wall clock stays.
+    assert "<startTime>2026-03-01T08:00:00Z</startTime>" in searches[-1][2]
     assert [r.start for r in found][:1] == [T0 - timedelta(hours=2)]
+
+
+def test_basis_of() -> None:
+    now = datetime(2026, 11, 1, 15, 48, tzinfo=UTC)
+    ahead, behind = timedelta(hours=2), timedelta(hours=-5)
+    # Ahead of UTC: an end in the "future" of UTC is on the wall clock, one at UTC's present
+    # is a real UTC recording in progress.
+    assert recordings.basis_of(now + ahead, now, ahead) is False
+    assert recordings.basis_of(now - timedelta(minutes=1), now, ahead) is True
+    assert recordings.basis_of(now - timedelta(hours=1), now, ahead) is None
+    # Behind UTC it's the other way round.
+    assert recordings.basis_of(now, now, behind) is True
+    assert recordings.basis_of(now + behind, now, behind) is False
+    assert recordings.basis_of(now + behind - timedelta(hours=1), now, behind) is None
+    assert recordings.basis_of(None, now, ahead) is None
+    assert recordings.basis_of(now, now, timedelta(0)) is None
+
+
+def recording_now(now: datetime) -> callable:
+    """Search answers of a device that records continuously, with times literally in UTC."""
+    items = [match(now - timedelta(minutes=10 * (n + 1)), 10, "timing", f"r{n}") for n in range(6)]
+
+    def respond(_method: str, body: str) -> web.Response:
+        start = datetime.strptime(re.search(r"<startTime>([^<]+)", body)[1], "%Y-%m-%dT%H:%M:%SZ")
+        end = datetime.strptime(re.search(r"<endTime>([^<]+)", body)[1], "%Y-%m-%dT%H:%M:%SZ")
+        start, end = start.replace(tzinfo=UTC), end.replace(tzinfo=UTC)
+        chosen = [
+            item
+            for n, item in enumerate(items)
+            if now - timedelta(minutes=10 * (n + 1)) < end
+            and now - timedelta(minutes=10 * n) > start
+        ]
+        return web.Response(text=result(chosen, "OK"), content_type="application/xml")
+
+    return respond
+
+
+@pytest.mark.parametrize("wall_hours", [2, -5])
+async def test_search_in_real_utc(serve, wall_hours: int) -> None:
+    """Older cameras give real UTC although their wall clock is ahead or behind (issue 19)."""
+    device = FakeDevice("camera_g3")
+    now = datetime.now(UTC).replace(microsecond=0)
+    device.responders[recordings.SEARCH_PATH] = recording_now(now)
+    wall_now = now + timedelta(hours=wall_hours)
+    device.responders[recordings.TIME_PATH] = lambda _m, _b: web.Response(
+        text=f"<Time><localTime>{wall_now:%Y-%m-%dT%H:%M:%S}</localTime></Time>",
+        content_type="application/xml",
+    )
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        found = await recordings.search(link, "101", now - timedelta(minutes=30), now)
+        assert await recordings.wall_offset(link) == timedelta(0)
+    assert [r.end for r in found] == [now - timedelta(minutes=20), now - timedelta(minutes=10), now]
+    searches = [w for w in device.writes if w[1] == recordings.SEARCH_PATH]
+    assert f"<endTime>{now:%Y-%m-%dT%H:%M:%SZ}</endTime>" in searches[-1][2]
+
+
+async def test_search_on_the_wall_clock_while_recording(serve) -> None:
+    """A device recording right now on its wall clock keeps the wall clock offset."""
+    device = FakeDevice("camera_g3")
+    now = datetime.now(UTC).replace(microsecond=0)
+    wall = timedelta(hours=2)
+    device.responders[recordings.SEARCH_PATH] = recording_now(now + wall)
+    device.responders[recordings.TIME_PATH] = lambda _m, _b: web.Response(
+        text=f"<Time><localTime>{now + wall:%Y-%m-%dT%H:%M:%S}</localTime></Time>",
+        content_type="application/xml",
+    )
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        found = await recordings.search(link, "101", now - timedelta(minutes=30), now)
+        assert await recordings.wall_offset(link) == wall
+    assert found[-1].end == now
 
 
 def program_stream(*, scrambled: bool = False, codec: str = "hevc") -> bytes:
