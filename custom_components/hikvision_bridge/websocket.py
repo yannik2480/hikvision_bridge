@@ -233,8 +233,8 @@ async def ws_days(
             days = await recordings.recorded_days(
                 source.link, source.track, msg["year"], msg["month"]
             )
-        except BridgeFault:
-            days = None
+        except BridgeFault as err:
+            _LOGGER.debug("No recorded days from the %s: %s", source.key, detail(err))
     connection.send_result(msg["id"], {"days": days})
 
 

@@ -1167,7 +1167,12 @@ class Viewer {
     const days = this.hass
       .callWS({ type: `${DOMAIN}/days`, entry_id: camera.entry_id, channel_id: camera.channel_id, source: this.source, year, month })
       .then((result) => (result.days ? new Set(result.days) : null))
-      .catch(() => null);
+      .catch(() => null)
+      .then((found) => {
+        // No answer this time (device busy with a playback): ask again next time.
+        if (!found && this._days.get(key)?.days === days) this._days.delete(key);
+        return found;
+      });
     this._days.set(key, { at: Date.now(), days });
     return days;
   }

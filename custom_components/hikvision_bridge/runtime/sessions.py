@@ -60,6 +60,8 @@ LATER_START_SECONDS = 20
 COMPARE_BYTES = 64 * 1024
 # ffmpeg gives up on an RTSP connection that sends nothing for this long (microseconds).
 RTSP_TIMEOUT = 10_000_000
+# Pause before asking a device again that is still releasing the previous playback.
+BUSY_PAUSE = 2.0
 IDLE_SECONDS = 45
 MAX_SESSIONS = 4
 # Video prepared beyond the last segment the player fetched (players buffer ahead too).
@@ -283,7 +285,8 @@ def _reason(errors: str, scrambled: bool = False) -> str:
     text = errors.lower()
     if "dimensions not set" in text or "invalid data" in text:
         return "playback_encrypted" if scrambled else "playback_unreadable"
-    if "453" in text or "not enough bandwidth" in text:
+    # A device still releasing the previous playback refuses the next one for a moment.
+    if "453" in text or "not enough bandwidth" in text or "500 (internal server error)" in text:
         return "playback_busy"
     if "401" in text or "unauthorized" in text:
         return "playback_auth"
@@ -484,6 +487,16 @@ class SessionManager:
         start = max(start, recording.start)
         end = min(end, recording.end)
         skip = (start - recording.start).total_seconds()
+        # Search results of the same file: devices may list one file in several parts.
+        parts = [r for r in found if recording.name and r.name == recording.name]
+        _LOGGER.debug(
+            "Recorded file %s to %s, %.0f s in; %d search results of this file from %s",
+            recording.start.isoformat(),
+            recording.end.isoformat(),
+            skip,
+            len(parts),
+            min(r.start for r in parts).isoformat() if parts else "-",
+        )
         if (
             not far
             and source.link in self._whole_files
@@ -540,31 +553,40 @@ class SessionManager:
         skip: float = 0.0,
         whole: str | None = None,
     ) -> Session:
-        session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
-        ready: asyncio.Future[None] = self.hass.loop.create_future()
-        session.pump = self.hass.async_create_background_task(
-            self._pump(session, source, uri, ready, skip, whole),
-            "hikvision_bridge playback download",
-        )
         wait = FIRST_SEGMENT_TIMEOUT + (SKIP_SECONDS if skip > 0 else 0)
-        try:
-            await asyncio.wait_for(asyncio.shield(ready), wait)
-        except BaseException as err:
-            # Ends ffmpeg too, should the download have started it.
-            await self._end(session)
-            if isinstance(err, RecordingEncrypted):
-                raise SessionError("playback_encrypted") from err
-            if isinstance(err, TimeoutError):
-                _LOGGER.debug("Playback of %s did not start: no data in %s s", what, wait)
-                raise SessionError("playback_failed") from err
-            if isinstance(err, FileNotFoundError) or not isinstance(err, Exception):
-                raise
-            _LOGGER.debug("No download of %s: %s", what, detail(err))
-            # Only a refusal is lasting; a dropped connection may work next time.
-            raise _UseRtsp(
-                isinstance(err, (DeviceRejected, Unsupported, NoRecording)),
-                isinstance(err, DeviceRejected),
-            ) from err
+        for attempt in range(2):
+            session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
+            ready: asyncio.Future[None] = self.hass.loop.create_future()
+            session.pump = self.hass.async_create_background_task(
+                self._pump(session, source, uri, ready, skip, whole),
+                "hikvision_bridge playback download",
+            )
+            try:
+                await asyncio.wait_for(asyncio.shield(ready), wait)
+            except BaseException as err:
+                # Ends ffmpeg too, should the download have started it.
+                await self._end(session)
+                if isinstance(err, RecordingEncrypted):
+                    raise SessionError("playback_encrypted") from err
+                if isinstance(err, TimeoutError):
+                    _LOGGER.debug("Playback of %s did not start: no data in %s s", what, wait)
+                    raise SessionError("playback_failed") from err
+                if isinstance(err, FileNotFoundError) or not isinstance(err, Exception):
+                    raise
+                # A device still releasing the previous playback answers with an error 500.
+                busy = isinstance(err, DeviceRejected) and err.status == 500
+                if busy and not attempt:
+                    _LOGGER.debug("No download of %s yet: %s", what, detail(err))
+                    await asyncio.sleep(BUSY_PAUSE)
+                    continue
+                _LOGGER.debug("No download of %s: %s", what, detail(err))
+                # Only a refusal is lasting; a dropped connection or busy device may work
+                # next time.
+                raise _UseRtsp(
+                    isinstance(err, (DeviceRejected, Unsupported, NoRecording)) and not busy,
+                    isinstance(err, DeviceRejected),
+                ) from err
+            break
         reason = await self._first_segment(session, what)
         if reason is not None:
             await self._end(session)

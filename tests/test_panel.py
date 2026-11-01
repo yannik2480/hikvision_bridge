@@ -178,6 +178,7 @@ def test_played_seconds() -> None:
         ("Could not find codec parameters (dimensions not set)", False, "playback_unreadable"),
         ("pipe:0: Invalid data found when processing input", False, "playback_unreadable"),
         ("method PLAY failed: 453 Not Enough Bandwidth", False, "playback_busy"),
+        ("method SETUP failed: 500 (Internal Server Error)", False, "playback_busy"),
         ("method DESCRIBE failed: 401 Unauthorized", False, "playback_auth"),
         ("Connection refused", False, "playback_failed"),
     ],
@@ -247,6 +248,48 @@ async def test_cameras_and_timeline(hass: HomeAssistant, serve, hass_ws_client) 
         days | {"entry_id": entry.entry_id, "channel_id": "9", "month": 1}
     )
     assert (await client.receive_json())["error"]["code"] == "not_found"
+
+
+async def test_recorded_days_while_device_busy(hass: HomeAssistant, serve, hass_ws_client) -> None:
+    """An error 500 leaves the calendar out this time only; a refusal for good."""
+    device, entry = await _setup(hass, serve)
+    path = recordings.DAYS_PATH.format(track="101")
+    answers = [500, 200, 400, 200]
+
+    def days(_method: str, _body: str) -> web.Response:
+        if (status := answers.pop(0)) != 200:
+            return web.Response(
+                status=status, text="<ResponseStatus/>", content_type="application/xml"
+            )
+        return web.Response(
+            text="<trackDailyDistribution><dayList><day><dayOfMonth>3</dayOfMonth>"
+            "<record>true</record></day></dayList></trackDailyDistribution>",
+            content_type="application/xml",
+        )
+
+    device.responders[path] = days
+    client = await hass_ws_client(hass)
+
+    async def ask() -> list[int] | None:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/days",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "year": 2026,
+                "month": 1,
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        return answer["result"]["days"]
+
+    assert await ask() is None
+    assert await ask() == [3]
+    assert await ask() is None
+    assert await ask() is None
+    assert answers == [200]
 
 
 async def test_playback_session(
@@ -396,6 +439,7 @@ async def test_playback_session_from_recorded_file(
         )
 
     device.responders[recordings.DOWNLOAD_PATH] = download
+    monkeypatch.setattr(sessions, "BUSY_PAUSE", 0)
     _script(tmp_path, monkeypatch, HLS_PIPE)
     client = await hass_ws_client(hass)
 
@@ -423,22 +467,82 @@ async def test_playback_session_from_recorded_file(
     fed = await hass.async_add_executor_job((session.folder / "input").read_bytes)
     assert fed == data[:40] + data[40 + len(PACK) :]
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
-    # The span, the file's start to compare with, then the file asked from the time on:
-    # this device sent it from its start anyway.
-    assert len(downloads) == 3
+    # The span (asked twice: an error 500 may be a device still busy), the file's start to
+    # compare with, then the file asked from the time on: this device sent it from its
+    # start anyway.
+    assert len(downloads) == 4
     assert "name=" not in downloads[0]
-    assert "name=a" in downloads[1]
-    assert f"starttime={recordings.compact(START)}" in downloads[1]
+    assert "name=" not in downloads[1]
     assert "name=a" in downloads[2]
-    assert f"starttime={recordings.compact(START)}" not in downloads[2]
+    assert f"starttime={recordings.compact(START)}" in downloads[2]
+    assert "name=a" in downloads[3]
+    assert f"starttime={recordings.compact(START)}" not in downloads[3]
 
     # The device is known now: the next playback asks for the file straight away.
     started = await play(START + timedelta(minutes=30))
     assert started["end"] == (START + timedelta(minutes=31)).isoformat()
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
-    assert len(downloads) == 4
-    assert "name=b" in downloads[3]
+    assert len(downloads) == 5
+    assert "name=b" in downloads[4]
     await sessions.manager(hass).stop_all()
+
+
+async def test_playback_while_device_still_busy(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An error 500 right after the previous playback is asked again, not taken for good."""
+    device, entry = await _setup(hass, serve)
+    data = recording(encrypted=False)
+    busy = 1
+
+    def download(_method: str, _body: str) -> web.Response:
+        nonlocal busy
+        if busy > 0:
+            busy -= 1
+            return web.Response(
+                status=500,
+                text="<ResponseStatus><statusCode>6</statusCode><statusString>Device Error</statusString><subStatusCode>deviceError</subStatusCode></ResponseStatus>",
+                content_type="application/xml",
+            )
+        return web.Response(body=data, content_type="application/binary")
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    monkeypatch.setattr(sessions, "BUSY_PAUSE", 0)
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+
+    async def play() -> dict:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": (START + timedelta(minutes=5)).isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+        return await hass.async_add_executor_job((session.folder / "args").read_text)
+
+    # The span plays from the second try, and the device keeps its way of playing.
+    assert "pipe:0" in await play()
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert len(downloads) == 2
+    assert all("name=" not in d for d in downloads)
+    manager = sessions.manager(hass)
+    assert not manager._by_file
+    assert not manager._rtsp_only
+    busy = 1
+    assert "pipe:0" in await play()
+    assert len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]) == 4
+    assert not manager._by_file
+    await manager.stop_all()
 
 
 async def test_playback_session_from_later_in_recorded_file(

@@ -275,7 +275,8 @@ async def recorded_days(link: IsapiLink, track: str, year: int, month: int) -> l
     except Unsupported:
         return None
     except DeviceRejected as err:
-        if err.status in (400, 404, 500, 501):
+        # Not 500: devices busy with a playback answer it for a while.
+        if err.status in (400, 404, 501):
             link.unsupported.add(path)
             return None
         raise
