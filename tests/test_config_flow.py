@@ -8,10 +8,12 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.hikvision_bridge import panel
 from custom_components.hikvision_bridge.cloud.account import CaptchaRequired, CloudAuthFailed
+from custom_components.hikvision_bridge.config_flow import Address, split_address
 from custom_components.hikvision_bridge.const import (
     CONF_ACCOUNT,
     CONF_CONNECTION,
@@ -22,6 +24,7 @@ from custom_components.hikvision_bridge.const import (
     KIND_CLOUD,
     KIND_DEVICE,
     OPT_PANEL_ADMIN_ONLY,
+    OPT_RTSP_PORT,
     OPT_SIDEBAR_PANEL,
 )
 from tests.conftest import device_entry
@@ -77,6 +80,43 @@ async def test_auto_connection_falls_back_to_http(hass: HomeAssistant, serve) ->
         )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_SCHEME] == "http"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("192.0.2.10", Address("192.0.2.10")),
+        (" 192.0.2.10 ", Address("192.0.2.10")),
+        ("cam.local:8080", Address("cam.local", 8080)),
+        (
+            "rtsp://user:secret@192.0.2.10:8554/Streaming/Channels/102",
+            Address("192.0.2.10", rtsp_port=8554),
+        ),
+        ("rtsp://192.0.2.10/Streaming/Channels/101", Address("192.0.2.10")),
+        ("https://192.0.2.10:8443/doc/index.html", Address("192.0.2.10", 8443, "https")),
+        ("http://user@cam.local/", Address("cam.local", scheme="http")),
+        ("fe80::1", Address("fe80::1")),
+        ("[fe80::1]", Address("fe80::1")),
+        ("rtsp://[fe80::1]:554/", Address("fe80::1", rtsp_port=554)),
+    ],
+)
+def test_pasted_urls_are_reduced_to_the_host(text: str, expected: Address) -> None:
+    assert split_address(text) == expected
+
+
+async def test_pasted_rtsp_url_sets_up_the_device(hass: HomeAssistant, serve) -> None:
+    device = FakeDevice("camera_g3")
+    server = await serve(device)
+    form = await _device_form(hass)
+    url = f"rtsp://{device.username}:{device.password}@{server.host}:8554/Streaming/Channels/102"
+    with patch("custom_components.hikvision_bridge.async_setup_entry", return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            form["flow_id"], _form_input(server, device, connection="auto", host=url)
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_HOST] == server.host
+    assert result["data"][CONF_SCHEME] == "http"
+    assert result["result"].options[OPT_RTSP_PORT] == 8554
 
 
 async def test_wrong_password_reports_once_without_retry(hass: HomeAssistant, serve) -> None:

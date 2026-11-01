@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
+import ipaddress
 import secrets
 from types import MappingProxyType
 from typing import Any
@@ -21,6 +23,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import voluptuous as vol
+from yarl import URL
 
 from .const import (
     CONF_ACCOUNT,
@@ -60,6 +63,7 @@ from .const import (
     PLAYBACK_H264,
     PLAYBACK_MP4,
     PLAYBACK_STREAM,
+    RTSP_PORT_DEFAULT,
     RTSP_TCP,
     RTSP_UDP,
     SCHEME_HTTP,
@@ -76,6 +80,60 @@ from .wire.link import Endpoint, IsapiLink
 
 CONF_REUSE = "reuse_recorder_credentials"
 CONF_CAPTCHA = "captcha"
+
+
+@dataclass(frozen=True, slots=True)
+class Address:
+    """What a host field holds: a bare host or a pasted URL such as an RTSP link."""
+
+    host: str
+    port: int | None = None
+    scheme: str | None = None
+    rtsp_port: int | None = None
+
+
+def split_address(text: str) -> Address:
+    """Host, and what a pasted URL says about ports and scheme; its credentials are dropped."""
+    text = text.strip()
+    try:
+        ipaddress.ip_address(text.strip("[]"))
+    except ValueError:
+        pass
+    else:
+        return Address(text.strip("[]"))
+    if "://" not in text:
+        text = f"//{text}"
+    try:
+        url = URL(text)
+        port = url.explicit_port
+    except ValueError:
+        return Address(text.lstrip("/"))
+    host = url.raw_host or text.lstrip("/")
+    scheme = url.scheme.lower()
+    if scheme in ("rtsp", "rtsps"):
+        return Address(host, rtsp_port=port)
+    if scheme in (SCHEME_HTTP, SCHEME_HTTPS):
+        return Address(host, port, scheme)
+    return Address(host, port)
+
+
+def with_address(data: dict[str, Any]) -> tuple[dict[str, Any], int | None]:
+    """Form input with the host field reduced to the host, and an RTSP port it named.
+
+    Fields filled in by the user take precedence over what the URL says.
+    """
+    address = split_address(data[CONF_HOST])
+    resolved = {**data, CONF_HOST: address.host}
+    if address.port and not data.get(CONF_PORT):
+        resolved[CONF_PORT] = address.port
+    if address.scheme and data.get(CONF_CONNECTION, CONNECTION_AUTO) == CONNECTION_AUTO:
+        resolved[CONF_CONNECTION] = address.scheme
+    return resolved, address.rtsp_port
+
+
+def _rtsp_option(port: int | None) -> dict[str, int]:
+    """Options for an RTSP port taken from a pasted URL; the default port needs none."""
+    return {OPT_RTSP_PORT: port} if port and port != RTSP_PORT_DEFAULT else {}
 
 
 def _error_key(err: faults.BridgeFault) -> str:
@@ -185,6 +243,7 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         self._pending: dict[str, Any] = {}
         self._identity: Identity | None = None
         self._recorder_match: tuple[ConfigEntry, str] | None = None
+        self._rtsp_port: int | None = None
         self._cloud: Any = None
 
     @staticmethod
@@ -209,8 +268,9 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            candidate, self._rtsp_port = with_address(user_input)
             try:
-                resolved, identity = await probe_device(self.hass, user_input)
+                resolved, identity = await probe_device(self.hass, candidate)
             except faults.BridgeFault as err:
                 errors["base"] = _error_key(err)
             else:
@@ -287,6 +347,7 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SERIAL: self._identity.serial,
                 CONF_MAC: self._identity.mac,
             },
+            options=_rtsp_option(self._rtsp_port),
         )
 
     # --------------------------------------------------------------- reauth
@@ -340,14 +401,19 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         defaults = {**entry.data, CONF_CONNECTION: entry.data.get(CONF_SCHEME, CONNECTION_AUTO)}
         if user_input is not None:
+            candidate, rtsp_port = with_address(user_input)
             try:
-                resolved, identity = await probe_device(self.hass, user_input)
+                resolved, identity = await probe_device(self.hass, candidate)
             except faults.BridgeFault as err:
                 errors["base"] = _error_key(err)
             else:
                 await self.async_set_unique_id(identity.stable_id)
                 self._abort_if_unique_id_mismatch(reason="other_device")
-                return self.async_update_reload_and_abort(entry, data_updates=resolved)
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=resolved,
+                    options={**entry.options, **_rtsp_option(rtsp_port)},
+                )
             defaults = {**defaults, **user_input}
         return self.async_show_form(
             step_id="reconfigure",
@@ -579,7 +645,7 @@ class ChannelLinkFlow(ConfigSubentryFlow):
         defaults: dict[str, Any] = dict(existing.data) if existing else {}
         if user_input is not None:
             channel = profile.channels[user_input[CONF_CHANNEL_ID]]
-            data = dict(user_input)
+            data, rtsp_port = with_address(user_input)
             if data.pop(CONF_REUSE, False):
                 data[CONF_USERNAME] = entry.data[CONF_USERNAME]
                 data[CONF_PASSWORD] = entry.data[CONF_PASSWORD]
@@ -602,8 +668,9 @@ class ChannelLinkFlow(ConfigSubentryFlow):
                         CONF_EVENT_SOURCE: user_input[CONF_EVENT_SOURCE],
                         CONF_STREAM_SOURCE: user_input[CONF_STREAM_SOURCE],
                     }
-                    if user_input.get(CONF_RTSP_PORT):
-                        payload[CONF_RTSP_PORT] = int(user_input[CONF_RTSP_PORT])
+                    rtsp_port = user_input.get(CONF_RTSP_PORT) or rtsp_port
+                    if rtsp_port:
+                        payload[CONF_RTSP_PORT] = int(rtsp_port)
                     title = f"{channel.name} ({channel.channel_id})"
                     if existing is not None:
                         return self.async_update_and_abort(
