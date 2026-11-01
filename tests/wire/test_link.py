@@ -248,3 +248,17 @@ async def test_refusal_without_challenge_reprobes_and_recovers(rig) -> None:
     device.refuse_without_challenge = 1
     assert (await link.read_xml("/ISAPI/Event/triggers")) is not None
     assert link.blocked is None
+
+
+async def test_rejection_warning_says_what_was_offered_but_no_secrets(rig, caplog) -> None:
+    device = FakeDevice()
+    link = await rig(device, password="wrong")
+    with pytest.raises(faults.BadCredentials):
+        await link.read_xml("/ISAPI/System/deviceInfo")
+    message = next(
+        r.getMessage() for r in caplog.records if "rejected the credentials" in r.message
+    )
+    assert "it offers digest" in message
+    assert "qop=auth" in message
+    assert "nonce" not in message
+    assert "wrong" not in message

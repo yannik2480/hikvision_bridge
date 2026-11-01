@@ -116,6 +116,10 @@ class DigestSigner(Signer):
         return self._ever_proven
 
     @property
+    def algorithm(self) -> str | None:
+        return self._challenge.params.get("algorithm")
+
+    @property
     def nonce_proven(self) -> bool:
         return self._nonce_proven
 

@@ -19,6 +19,7 @@ from .faults import (
     BadCredentials,
     BridgeFault,
     DeviceRejected,
+    DeviceStatus,
     LockedOut,
     NameNotResolved,
     NotIsapi,
@@ -44,6 +45,44 @@ MAX_PARALLEL = 1
 # change costs at most three failed logins, below the device's login lock.
 HICCUPS_BEFORE_BLOCK = 2
 HICCUP_PAUSE = 20.0
+
+
+def _describe_challenges(headers: list[str]) -> str:
+    """The authentication a device offers, without nonces or other values."""
+    offered = [
+        " ".join(
+            part
+            for part in (
+                challenge.scheme,
+                challenge.params.get("algorithm"),
+                f"qop={challenge.params['qop']}" if "qop" in challenge.params else None,
+                "opaque" if "opaque" in challenge.params else None,
+                "stale" if challenge.stale else None,
+            )
+            if part
+        )
+        for challenge in parse_challenges(headers)
+    ]
+    return ", ".join(offered) or "no challenge"
+
+
+def _describe_signer(signer: Signer | None) -> str:
+    if isinstance(signer, DigestSigner):
+        return f"digest {signer.algorithm or 'without algorithm'}"
+    return signer.scheme if signer is not None else "an unsigned request"
+
+
+def _describe_status(status: DeviceStatus) -> str:
+    said = {
+        "status": status.status_string,
+        "sub status": status.sub_status,
+        "lock": status.lock_state,
+        "logins left": status.retries_left,
+        "unlock in": status.unlock_seconds,
+    }
+    return ", ".join(f"{key} {value}" for key, value in said.items() if value is not None) or (
+        "nothing more"
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -364,9 +403,14 @@ class IsapiLink:
             )
             return AuthHiccup("refused after a fresh challenge")
         self._blocked = BadCredentials("credentials rejected after a fresh challenge")
+        # The details stay in the warning: a failed setup leaves no time to enable debug logs.
         _LOGGER.warning(
-            "%s rejected the credentials; all requests stop until they are updated",
+            "%s rejected the credentials; all requests stop until they are updated "
+            "(sent %s; it offers %s and says %s)",
             self.endpoint.host,
+            _describe_signer(signer),
+            _describe_challenges(challenges),
+            _describe_status(status),
         )
         return self._blocked
 
