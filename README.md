@@ -295,6 +295,7 @@ restored. Deleted areas remove their panel.
 | RTSP transport | TCP | *TCP* is reliable; *UDP* can have less delay but shows artefacts on packet loss |
 | Separate sensors for people and vehicles | off | Adds person and vehicle binary sensors for detections with a target filter |
 | Playback in the media browser | MP4 as recorded | *MP4 as recorded*, *Convert to H.264* or *Stream from the device*, see [Recordings](#recordings) |
+| Recording times | Automatic | The clock the device gives its recording times on: most devices use their own clock, some older cameras real UTC. *Automatic* finds it out from recordings in progress and from the recordings events started |
 | Show the Hikvision panel in the sidebar | on | Removes the sidebar entry when off; the dashboard card keeps working. Applies to all entries of the integration |
 | Only administrators see the panel | off | Hides the sidebar entry from users without administrator rights. Applies to all entries of the integration |
 
@@ -432,6 +433,8 @@ Other ISAPI devices should work; please report models that do or do not.
 * **A recording does not play**: *“The recording is encrypted and the verification code does not fit”*
   means stream encryption with an unknown code; enter the code in the options (see [Recordings](#recordings)). A black or missing picture with H.265 means the browser cannot decode it;
   choose *Convert to H.264* in the options. Converting needs Home Assistant's ffmpeg.
+* **Recordings off by the time zone**: the timeline shows recordings hours away from when they were made,
+  or a click plays a different time. Set *Recording times* in the options to the other clock.
 * **Events late**: compare the *Event delay* sensor; large values usually mean a wrong device clock.
 * **A setting is unavailable**: it belongs to a mode that is not active (see image settings).
 * **Diagnostics**: *Download diagnostics* on the entry. Passwords, usernames, serial numbers, MAC

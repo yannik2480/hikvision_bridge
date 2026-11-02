@@ -58,6 +58,10 @@ OPT_PANEL_ADMIN_ONLY: Final = "panel_admin_only"
 PLAYBACK_MP4: Final = "mp4"
 PLAYBACK_H264: Final = "h264"
 PLAYBACK_STREAM: Final = "stream"
+OPT_RECORDING_CLOCK: Final = "recording_clock"
+RECORDING_CLOCK_AUTO: Final = "auto"
+RECORDING_CLOCK_DEVICE: Final = "device"
+RECORDING_CLOCK_UTC: Final = "utc"
 
 DEFAULT_HOLD_SECONDS: Final = 5
 RTSP_PORT_DEFAULT: Final = 554

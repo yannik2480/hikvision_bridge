@@ -9,8 +9,17 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, Co
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_ENTRY_KIND, CONF_SERIAL, DOMAIN, KIND_CLOUD
+from .const import (
+    CONF_ENTRY_KIND,
+    CONF_SERIAL,
+    DOMAIN,
+    KIND_CLOUD,
+    OPT_RECORDING_CLOCK,
+    RECORDING_CLOCK_DEVICE,
+    RECORDING_CLOCK_UTC,
+)
 from .model.discover import discover
+from .model.features import recordings
 from .panel import async_register_frontend
 from .runtime.bridge import DeviceBridge, build_link
 from .runtime.hookin import async_register_webhook, async_unregister_webhook
@@ -70,6 +79,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_setup_device(hass: HomeAssistant, entry: BridgeConfigEntry) -> bool:
     link = build_link(hass, dict(entry.data))
+    # Recording times on the device's clock or in real UTC, if set; learned otherwise.
+    recordings.fix_basis(
+        link,
+        {RECORDING_CLOCK_DEVICE: False, RECORDING_CLOCK_UTC: True}.get(
+            entry.options.get(OPT_RECORDING_CLOCK)
+        ),
+    )
     try:
         profile = await discover(link)
     except (BadCredentials, AuthHiccup) as err:

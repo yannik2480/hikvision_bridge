@@ -5,7 +5,8 @@ file name, size). The same URI is handed back to ``/ISAPI/ContentMgmt/download``
 answers with that whole file. Most devices give and take the times of searches and playback
 URIs on their wall clock, although marked as UTC; they are converted with the offset of that
 clock. Some (older cameras) use real UTC; which one a device uses is learned from where its
-newest recording ends and from the recordings its events started (``learn_basis``).
+newest recording ends and from the recordings its events started (``learn_basis``), unless
+the device's options fix it (``fix_basis``).
 Devices write their recordings as MPEG program stream, usually behind a 40 byte ``IMKH``
 header; the codec field of search results is not reliable and is therefore not used.
 """
@@ -28,7 +29,10 @@ from aiohttp import ClientResponse
 
 from ...wire.faults import BridgeFault, DeviceRejected, Unsupported
 from ...wire.link import IsapiLink
+from ...wire.scrub import scrubbed_logger
 from ...wire.xmlview import XmlNode
+
+_LOGGER = scrubbed_logger(__name__)
 
 SEARCH_PATH = "/ISAPI/ContentMgmt/search"
 TIME_PATH = "/ISAPI/System/time"
@@ -130,10 +134,20 @@ _offsets: WeakKeyDictionary[IsapiLink, tuple[float, timedelta]] = WeakKeyDiction
 
 # Whether a device's search times are real UTC (True) or its wall clock (False), once known.
 _utc_basis: WeakKeyDictionary[IsapiLink, bool] = WeakKeyDictionary()
+# The basis set in the device's options; it is not learned then.
+_fixed_basis: WeakKeyDictionary[IsapiLink, bool] = WeakKeyDictionary()
 # When the basis was last looked for.
 _basis_tried: WeakKeyDictionary[IsapiLink, datetime] = WeakKeyDictionary()
 # When the device's events arrived (UTC, own clock), newest last.
 _events: WeakKeyDictionary[IsapiLink, deque[datetime]] = WeakKeyDictionary()
+
+
+def fix_basis(link: IsapiLink, utc: bool | None) -> None:
+    """Set whether the device's search times are real UTC; None learns it again."""
+    if utc is None:
+        _fixed_basis.pop(link, None)
+    else:
+        _fixed_basis[link] = utc
 
 
 def note_event(link: IsapiLink, received: datetime) -> None:
@@ -163,7 +177,8 @@ async def wall_offset(link: IsapiLink) -> timedelta:
     The offset of the wall clock, unless the device turned out to use real UTC.
     """
     offset = await clock_offset(link)
-    return timedelta(0) if _utc_basis.get(link) else offset
+    utc = _fixed_basis.get(link, _utc_basis.get(link))
+    return timedelta(0) if utc else offset
 
 
 def basis_of(newest_end: datetime | None, now: datetime, wall: timedelta) -> bool | None:
@@ -191,8 +206,9 @@ def basis_from_events(
     """Whether a device's times are real UTC, from the recordings its events started.
 
     ``found`` holds recordings with their times taken literally as UTC. An event lies in a
-    recording either at its real time (UTC) or shifted by the wall clock offset; short
-    (event) recordings can only hold it one way. None when neither or both do.
+    recording either at its real time (UTC) or shifted by the wall clock offset. Only events
+    held one way count; with many short recordings some fit the wrong way by chance, so one
+    way has to hold clearly more of them. None when neither does.
     """
     if abs(wall) <= 2 * NOW_TOLERANCE:
         return None
@@ -200,11 +216,14 @@ def basis_from_events(
     def held(moment: datetime) -> bool:
         return any(r.start - EVENT_TOLERANCE <= moment <= r.end + EVENT_TOLERANCE for r in found)
 
-    in_utc = sum(held(moment) for moment in events)
-    on_wall = sum(held(moment + wall) for moment in events)
-    if in_utc and not on_wall:
+    in_utc = on_wall = 0
+    for moment in events:
+        utc, shifted = held(moment), held(moment + wall)
+        in_utc += utc and not shifted
+        on_wall += shifted and not utc
+    if in_utc > 2 * on_wall:
         return True
-    if on_wall and not in_utc:
+    if on_wall > 2 * in_utc:
         return False
     return None
 
@@ -216,6 +235,8 @@ async def learn_basis(link: IsapiLink, track: str) -> None:
     every OFFSET_TTL seconds or after new events; while neither a recording in progress nor
     the recordings of events tell, the last answer stays.
     """
+    if link in _fixed_basis:
+        return
     now = datetime.now(UTC)
     events = [moment for moment in _events.get(link, ()) if now - moment <= EVENTS_SPAN]
     tried = _basis_tried.get(link)
@@ -238,6 +259,22 @@ async def learn_basis(link: IsapiLink, track: str) -> None:
     utc = basis_of(max((r.end for r in found), default=None), now, wall)
     if utc is None:
         utc = basis_from_events(found, events, wall)
+    if utc is not None and _utc_basis.get(link) != utc:
+        _LOGGER.debug(
+            "Recording times of %s are %s (clock %s ahead of UTC, %d events)",
+            link.endpoint.host,
+            "real UTC" if utc else "on the device's clock",
+            wall,
+            len(events),
+        )
+    elif utc is None and link not in _utc_basis:
+        _LOGGER.debug(
+            "Recording times of %s: clock not found out yet, taken as the device's "
+            "(%s ahead of UTC, %d events)",
+            link.endpoint.host,
+            wall,
+            len(events),
+        )
     if utc is not None:
         _utc_basis[link] = utc
 

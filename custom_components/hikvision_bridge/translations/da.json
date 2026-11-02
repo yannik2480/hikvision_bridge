@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP-transport",
           "target_sensors": "Separate sensorer for personer og køretøjer",
           "playback": "Afspilning i mediebrowseren",
+          "recording_clock": "Optagelsestider",
           "stream_key": "Bekræftelseskode (krypterede optagelser)",
           "sidebar_panel": "Vis Hikvision-panelet i sidepanelet",
           "panel_admin_only": "Kun administratorer ser panelet",
@@ -129,6 +130,7 @@
           "event_path": "Hændelsesstrømmen kræver ingen ændring på enheden. Webhooken kræver, at enheden sender til Home Assistant.",
           "hold_seconds": "Enheder melder kun starten af mange registreringer; sensoren forbliver tændt så længe efter den seneste melding.",
           "playback": "Optagelser er H.265 eller H.264. 'MP4 som optaget' starter med det samme, men browsere afspiller kun H.265 med hardwareunderstøttelse. 'Konvertér til H.264' virker overalt og kræver meget CPU. 'Stream fra enheden' lader enheden afspille optagelsen via RTSP.",
+          "recording_clock": "Det ur, enheden angiver tiderne for sine optagelser efter. 'Automatisk' finder det selv. Hvis tidslinjen og den afspillede optagelse er forskudt med din tidszones forskydning, så vælg det andet ur.",
           "stream_key": "Optagelser lavet med streamkryptering dekrypteres med enhedens bekræftelseskode, som læses fra enheden. Angiv den kun her, hvis enheden ikke oplyser den, som mange kameraer ikke gør.",
           "sidebar_panel": "Gælder for alle enheder og konti i denne integration. Dashboard-kortet er stadig tilgængeligt.",
           "panel_admin_only": "Brugere uden administratorrettigheder ser ikke længere panelet. Gælder for alle enheder og konti.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 som optaget (anbefalet)",
         "h264": "Konvertér til H.264 (virker overalt, høj CPU-belastning)",
         "stream": "Stream fra enheden (RTSP til HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automatisk",
+        "device": "Enhedens ur (de fleste enheder)",
+        "utc": "UTC (nogle ældre kameraer)"
       }
     },
     "recording_source": {

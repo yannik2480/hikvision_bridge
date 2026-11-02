@@ -120,6 +120,7 @@
           "rtsp_transport": "Giao thức truyền RTSP",
           "target_sensors": "Cảm biến riêng cho người và phương tiện",
           "playback": "Phát trong trình duyệt phương tiện",
+          "recording_clock": "Thời gian ghi hình",
           "stream_key": "Mã xác minh (bản ghi được mã hóa)",
           "sidebar_panel": "Hiển thị bảng Hikvision trên thanh bên",
           "panel_admin_only": "Chỉ quản trị viên thấy bảng",
@@ -129,6 +130,7 @@
           "event_path": "Luồng sự kiện không cần thay đổi gì trên thiết bị. Webhook yêu cầu thiết bị gửi đến Home Assistant.",
           "hold_seconds": "Với nhiều loại phát hiện, thiết bị chỉ báo lúc bắt đầu; cảm biến giữ bật trong khoảng thời gian này sau lần báo cuối.",
           "playback": "Bản ghi là H.265 hoặc H.264. 'MP4 như khi ghi' bắt đầu ngay, nhưng trình duyệt chỉ phát H.265 khi có hỗ trợ phần cứng. 'Chuyển sang H.264' phát được ở mọi nơi và tốn nhiều CPU. 'Phát trực tiếp từ thiết bị' để thiết bị phát bản ghi qua RTSP.",
+          "recording_clock": "Đồng hồ mà thiết bị dùng để ghi thời gian các bản ghi. 'Tự động' sẽ tự xác định. Nếu dòng thời gian và bản ghi đang phát lệch nhau đúng bằng độ lệch múi giờ của bạn, hãy chọn đồng hồ còn lại.",
           "stream_key": "Bản ghi được tạo khi bật mã hóa luồng sẽ được giải mã bằng mã xác minh của thiết bị, được đọc từ thiết bị. Chỉ nhập ở đây nếu thiết bị không cung cấp, như nhiều camera.",
           "sidebar_panel": "Áp dụng cho mọi thiết bị và tài khoản của tích hợp này. Thẻ bảng điều khiển vẫn dùng được.",
           "panel_admin_only": "Người dùng không có quyền quản trị sẽ không còn thấy bảng. Áp dụng cho mọi thiết bị và tài khoản.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 như khi ghi (khuyên dùng)",
         "h264": "Chuyển sang H.264 (phát ở mọi nơi, tải CPU cao)",
         "stream": "Phát trực tiếp từ thiết bị (RTSP sang HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Tự động",
+        "device": "Đồng hồ của thiết bị (hầu hết thiết bị)",
+        "utc": "UTC (một số camera cũ)"
       }
     },
     "recording_source": {

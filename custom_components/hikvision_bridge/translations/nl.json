@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP-transport",
           "target_sensors": "Aparte sensoren voor personen en voertuigen",
           "playback": "Afspelen in de mediabrowser",
+          "recording_clock": "Opnametijden",
           "stream_key": "Verificatiecode (versleutelde opnamen)",
           "sidebar_panel": "Hikvision-paneel in de zijbalk tonen",
           "panel_admin_only": "Alleen beheerders zien het paneel",
@@ -129,6 +130,7 @@
           "event_path": "De gebeurtenisstream vereist geen wijziging op het apparaat. De webhook vereist dat het apparaat naar Home Assistant stuurt.",
           "hold_seconds": "Apparaten melden bij veel detecties alleen het begin; de sensor blijft zo lang aan na de laatste melding.",
           "playback": "Opnames zijn H.265 of H.264. 'MP4 zoals opgenomen' start meteen, maar browsers spelen H.265 alleen af met hardwareondersteuning. 'Omzetten naar H.264' werkt overal en vraagt veel CPU. 'Streamen vanaf het apparaat' laat het apparaat de opname via RTSP afspelen.",
+          "recording_clock": "De klok waarop het apparaat de tijden van zijn opnamen aangeeft. 'Automatisch' zoekt dit uit. Wijken de tijdlijn en de afgespeelde opname af met de verschuiving van je tijdzone, kies dan de andere klok.",
           "stream_key": "Opnamen die met streamversleuteling zijn gemaakt, worden ontsleuteld met de verificatiecode van het apparaat, die van het apparaat wordt gelezen. Vul hem hier alleen in als het apparaat hem niet doorgeeft, zoals bij veel camera's.",
           "sidebar_panel": "Geldt voor alle apparaten en accounts van deze integratie. De dashboardkaart blijft beschikbaar.",
           "panel_admin_only": "Gebruikers zonder beheerdersrechten zien het paneel niet meer. Geldt voor alle apparaten en accounts.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 zoals opgenomen (aanbevolen)",
         "h264": "Omzetten naar H.264 (werkt overal, hoge CPU-belasting)",
         "stream": "Streamen vanaf het apparaat (RTSP naar HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automatisch",
+        "device": "Klok van het apparaat (meeste apparaten)",
+        "utc": "UTC (sommige oudere camera's)"
       }
     },
     "recording_source": {

@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP transport",
           "target_sensors": "Separate sensors for people and vehicles",
           "playback": "Playback in the media browser",
+          "recording_clock": "Recording times",
           "stream_key": "Verification code (encrypted recordings)",
           "sidebar_panel": "Show the Hikvision panel in the sidebar",
           "panel_admin_only": "Only administrators see the panel",
@@ -129,6 +130,7 @@
           "event_path": "The event stream needs no device change. The webhook requires the device to send to Home Assistant.",
           "hold_seconds": "Devices only report the start of many detections; the sensor stays on this long after the last report.",
           "playback": "Recordings are H.265 or H.264. 'MP4 as recorded' starts at once, but browsers play H.265 only with hardware support. 'Convert to H.264' plays everywhere and needs a lot of CPU. 'Stream from the device' lets the device play the recording over RTSP.",
+          "recording_clock": "The clock the device gives its recording times on. 'Automatic' finds it out. If the timeline and the recording played are off by your time zone's offset, choose the other clock.",
           "stream_key": "Recordings made with stream encryption are decrypted with the device's verification code, which is read from the device. Enter it here only if the device does not report it (many cameras don't).",
           "sidebar_panel": "Applies to all devices and accounts of this integration. The dashboard card stays available.",
           "panel_admin_only": "Users without administrator rights no longer see the panel. Applies to all devices and accounts.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 as recorded (recommended)",
         "h264": "Convert to H.264 (works everywhere, high CPU load)",
         "stream": "Stream from the device (RTSP to HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automatic",
+        "device": "The device's clock (most devices)",
+        "utc": "UTC (some older cameras)"
       }
     },
     "recording_source": {

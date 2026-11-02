@@ -332,6 +332,49 @@ def test_basis_from_events() -> None:
     assert recordings.basis_from_events([clip(event)], [], wall) is None
 
 
+def test_basis_from_events_with_many_clips() -> None:
+    """Busy motion cameras: some events fit the wrong way by chance; the clear majority wins."""
+    wall = timedelta(hours=2)
+    events = [datetime(2026, 11, 1, 10, tzinfo=UTC) + timedelta(minutes=17 * i) for i in range(6)]
+
+    def clip(start: datetime) -> recordings.Recording:
+        return recordings.Recording("101", start, start + timedelta(seconds=20), "motion", "u")
+
+    real = [clip(moment - timedelta(seconds=5)) for moment in events]
+    # One clip happens to lie where the first event would be on the wall clock.
+    chance = clip(events[0] + wall - timedelta(seconds=5))
+    assert recordings.basis_from_events([*real, chance], events, wall)
+    shifted = [clip(moment + wall - timedelta(seconds=5)) for moment in events]
+    assert recordings.basis_from_events([*shifted, clip(events[1])], events, wall) is False
+    # Evenly split: no answer.
+    assert recordings.basis_from_events([*real[:3], *shifted[3:]], events, wall) is None
+
+
+async def test_fixed_basis_is_not_learned(serve) -> None:
+    """The clock set in the options wins over what the recordings suggest."""
+    device = FakeDevice("camera_g3")
+    now = datetime.now(UTC).replace(microsecond=0)
+    wall = timedelta(hours=2)
+    device.responders[recordings.SEARCH_PATH] = recording_now(now)
+    device.responders[recordings.TIME_PATH] = lambda _m, _b: web.Response(
+        text=f"<Time><localTime>{now + wall:%Y-%m-%dT%H:%M:%S}</localTime></Time>",
+        content_type="application/xml",
+    )
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        recordings.fix_basis(link, False)
+        await recordings.search(link, "101", now - timedelta(minutes=30), now)
+        assert await recordings.wall_offset(link) == wall
+        recordings.fix_basis(link, None)
+        await recordings.search(link, "101", now - timedelta(minutes=30), now)
+        assert await recordings.wall_offset(link) == timedelta(0)
+        recordings.fix_basis(link, False)
+        assert await recordings.wall_offset(link) == wall
+
+
 async def test_motion_recordings_in_real_utc(serve) -> None:
     """A camera recording only on motion, in real UTC, learns it from the motion events."""
     device = FakeDevice("camera_g3")

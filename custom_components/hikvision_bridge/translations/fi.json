@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP-siirto",
           "target_sensors": "Erilliset anturit ihmisille ja ajoneuvoille",
           "playback": "Toisto mediaselaimessa",
+          "recording_clock": "Tallenteiden ajat",
           "stream_key": "Vahvistuskoodi (salatut tallenteet)",
           "sidebar_panel": "Näytä Hikvision-paneeli sivupalkissa",
           "panel_admin_only": "Vain ylläpitäjät näkevät paneelin",
@@ -129,6 +130,7 @@
           "event_path": "Tapahtumavirta ei vaadi muutoksia laitteeseen. Webhook edellyttää, että laite lähettää Home Assistantiin.",
           "hold_seconds": "Laitteet ilmoittavat monista tunnistuksista vain alun; anturi pysyy päällä näin kauan viimeisen ilmoituksen jälkeen.",
           "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta.",
+          "recording_clock": "Kello, jonka mukaan laite ilmoittaa tallenteidensa ajat. 'Automaattinen' selvittää sen. Jos aikajana ja toistettu tallenne poikkeavat aikavyöhykkeesi siirtymän verran, valitse toinen kello.",
           "stream_key": "Virran salauksella tehdyt tallenteet puretaan laitteen vahvistuskoodilla, joka luetaan laitteesta. Syötä se tähän vain, jos laite ei ilmoita sitä, kuten moni kamera.",
           "sidebar_panel": "Koskee kaikkia tämän integraation laitteita ja tilejä. Kojelaudan kortti pysyy käytettävissä.",
           "panel_admin_only": "Käyttäjät ilman ylläpitäjän oikeuksia eivät enää näe paneelia. Koskee kaikkia laitteita ja tilejä.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 tallennettuna (suositus)",
         "h264": "Muunna H.264:ksi (toimii kaikkialla, suuri suoritinkuorma)",
         "stream": "Suoratoista laitteelta (RTSP:stä HLS:ksi)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automaattinen",
+        "device": "Laitteen kello (useimmat laitteet)",
+        "utc": "UTC (jotkin vanhemmat kamerat)"
       }
     },
     "recording_source": {

@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP-átvitel",
           "target_sensors": "Külön érzékelők személyekhez és járművekhez",
           "playback": "Lejátszás a médiaböngészőben",
+          "recording_clock": "Felvételek időpontja",
           "stream_key": "Ellenőrző kód (titkosított felvételek)",
           "sidebar_panel": "Hikvision panel megjelenítése az oldalsávban",
           "panel_admin_only": "A panelt csak a rendszergazdák látják",
@@ -129,6 +130,7 @@
           "event_path": "Az eseményfolyam nem igényel módosítást az eszközön. A webhookhoz az eszköznek a Home Assistantnak kell küldenie.",
           "hold_seconds": "Az eszközök sok észlelésnél csak a kezdetet jelentik; az érzékelő ennyi ideig bekapcsolva marad az utolsó jelzés után.",
           "playback": "A felvételek H.265 vagy H.264 formátumúak. Az „MP4 felvett formában” azonnal indul, de a böngészők a H.265-öt csak hardveres támogatással játsszák le. Az „Átalakítás H.264-re” mindenhol működik, és sok processzort igényel. A „Streamelés az eszközről” az eszközzel játszatja le a felvételt RTSP-n keresztül.",
+          "recording_clock": "Az óra, amely szerint az eszköz a felvételei időpontját megadja. Az „Automatikus” kideríti. Ha az idővonal és a lejátszott felvétel az időzónád eltolásával eltér, válaszd a másik órát.",
           "stream_key": "A streamtitkosítással készült felvételeket az eszköz ellenőrző kódjával fejtjük vissza, amelyet az eszközről olvasunk ki. Csak akkor add meg itt, ha az eszköz nem közli, ahogy sok kamera sem.",
           "sidebar_panel": "Az integráció összes eszközére és fiókjára vonatkozik. Az irányítópult-kártya továbbra is elérhető.",
           "panel_admin_only": "A rendszergazdai jogok nélküli felhasználók többé nem látják a panelt. Minden eszközre és fiókra vonatkozik.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 felvett formában (ajánlott)",
         "h264": "Átalakítás H.264-re (mindenhol működik, nagy CPU-terhelés)",
         "stream": "Streamelés az eszközről (RTSP-ből HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automatikus",
+        "device": "Az eszköz órája (a legtöbb eszköz)",
+        "utc": "UTC (néhány régebbi kamera)"
       }
     },
     "recording_source": {

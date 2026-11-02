@@ -120,6 +120,7 @@
           "rtsp_transport": "Trasporto RTSP",
           "target_sensors": "Sensori separati per persone e veicoli",
           "playback": "Riproduzione nel browser multimediale",
+          "recording_clock": "Orari delle registrazioni",
           "stream_key": "Codice di verifica (registrazioni cifrate)",
           "sidebar_panel": "Mostra il pannello Hikvision nella barra laterale",
           "panel_admin_only": "Solo gli amministratori vedono il pannello",
@@ -129,6 +130,7 @@
           "event_path": "Il flusso di eventi non richiede modifiche al dispositivo. Il webhook richiede che il dispositivo invii a Home Assistant.",
           "hold_seconds": "I dispositivi segnalano solo l'inizio di molte rilevazioni; il sensore resta attivo per questo tempo dopo l'ultima segnalazione.",
           "playback": "Le registrazioni sono H.265 o H.264. «MP4 come registrato» parte subito, ma i browser riproducono H.265 solo con supporto hardware. «Converti in H.264» funziona ovunque e richiede molta CPU. «Streaming dal dispositivo» lascia che il dispositivo riproduca la registrazione via RTSP.",
+          "recording_clock": "L'orologio con cui il dispositivo indica gli orari delle registrazioni. 'Automatico' lo determina. Se la timeline e la registrazione riprodotta differiscono dello scostamento del tuo fuso orario, scegli l'altro orologio.",
           "stream_key": "Le registrazioni effettuate con la crittografia del flusso vengono decifrate con il codice di verifica del dispositivo, letto dal dispositivo. Inseriscilo qui solo se il dispositivo non lo fornisce, come molte telecamere.",
           "sidebar_panel": "Vale per tutti i dispositivi e gli account di questa integrazione. La scheda della dashboard resta disponibile.",
           "panel_admin_only": "Gli utenti senza diritti di amministratore non vedono più il pannello. Vale per tutti i dispositivi e gli account.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 come registrato (consigliato)",
         "h264": "Converti in H.264 (funziona ovunque, carico CPU elevato)",
         "stream": "Streaming dal dispositivo (da RTSP a HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automatico",
+        "device": "Orologio del dispositivo (la maggior parte)",
+        "utc": "UTC (alcune telecamere più vecchie)"
       }
     },
     "recording_source": {

@@ -53,6 +53,7 @@ from .const import (
     OPT_HOLD_SECONDS,
     OPT_PANEL_ADMIN_ONLY,
     OPT_PLAYBACK,
+    OPT_RECORDING_CLOCK,
     OPT_RTSP_PORT,
     OPT_RTSP_TRANSPORT,
     OPT_SIDEBAR_PANEL,
@@ -63,6 +64,9 @@ from .const import (
     PLAYBACK_H264,
     PLAYBACK_MP4,
     PLAYBACK_STREAM,
+    RECORDING_CLOCK_AUTO,
+    RECORDING_CLOCK_DEVICE,
+    RECORDING_CLOCK_UTC,
     RTSP_PORT_DEFAULT,
     RTSP_TCP,
     RTSP_UDP,
@@ -586,6 +590,15 @@ class BridgeOptionsFlow(OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=[PLAYBACK_MP4, PLAYBACK_H264, PLAYBACK_STREAM],
                         translation_key="playback",
+                    )
+                ),
+                vol.Required(
+                    OPT_RECORDING_CLOCK,
+                    default=options.get(OPT_RECORDING_CLOCK, RECORDING_CLOCK_AUTO),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[RECORDING_CLOCK_AUTO, RECORDING_CLOCK_DEVICE, RECORDING_CLOCK_UTC],
+                        translation_key="recording_clock",
                     )
                 ),
                 vol.Optional(

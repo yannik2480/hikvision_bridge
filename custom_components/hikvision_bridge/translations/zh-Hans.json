@@ -120,6 +120,7 @@
           "rtsp_transport": "RTSP 传输",
           "target_sensors": "为人员和车辆使用单独的传感器",
           "playback": "在媒体浏览器中播放",
+          "recording_clock": "录像时间",
           "stream_key": "验证码(加密录像)",
           "sidebar_panel": "在侧边栏显示 Hikvision 面板",
           "panel_admin_only": "仅管理员可见面板",
@@ -129,6 +130,7 @@
           "event_path": "事件流无需更改设备。Webhook 需要设备向 Home Assistant 发送数据。",
           "hold_seconds": "许多检测设备只上报开始；传感器在最后一次上报后保持开启这么长时间。",
           "playback": "录像为 H.265 或 H.264。“按录制的 MP4”会立即开始，但浏览器只有在硬件支持时才能播放 H.265。“转换为 H.264”到处可用，但需要大量 CPU。“从设备串流”让设备通过 RTSP 播放录像。",
+          "recording_clock": "设备标注录像时间所用的时钟。“自动”会自行判断。如果时间轴与播放的录像相差正好是你所在时区的偏移，请选择另一种时钟。",
           "stream_key": "开启码流加密时录制的录像会用设备的验证码解密,验证码从设备读取。仅当设备不提供验证码时(许多摄像机如此)才在此填写。",
           "sidebar_panel": "适用于此集成的所有设备和账户。仪表盘卡片仍可使用。",
           "panel_admin_only": "没有管理员权限的用户将不再看到面板。适用于所有设备和账户。",
@@ -865,6 +867,13 @@
         "mp4": "按录制的 MP4（推荐）",
         "h264": "转换为 H.264（到处可用，CPU 负载高）",
         "stream": "从设备串流（RTSP 转 HLS）"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "自动",
+        "device": "设备时钟（大多数设备）",
+        "utc": "UTC（部分旧款摄像机）"
       }
     },
     "recording_source": {

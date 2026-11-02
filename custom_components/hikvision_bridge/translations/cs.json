@@ -120,6 +120,7 @@
           "rtsp_transport": "Přenos RTSP",
           "target_sensors": "Samostatné senzory pro osoby a vozidla",
           "playback": "Přehrávání v prohlížeči médií",
+          "recording_clock": "Časy záznamů",
           "stream_key": "Ověřovací kód (šifrované záznamy)",
           "sidebar_panel": "Zobrazit panel Hikvision v postranním panelu",
           "panel_admin_only": "Panel vidí jen správci",
@@ -129,6 +130,7 @@
           "event_path": "Stream událostí nevyžaduje žádnou změnu v zařízení. Webhook vyžaduje, aby zařízení odesílalo do Home Assistant.",
           "hold_seconds": "Zařízení u mnoha detekcí hlásí jen začátek; senzor zůstane zapnutý tak dlouho po posledním hlášení.",
           "playback": "Záznamy jsou v H.265 nebo H.264. „MP4 jak bylo nahráno“ začne hned, ale prohlížeče přehrávají H.265 jen s hardwarovou podporou. „Převést na H.264“ funguje všude a hodně zatěžuje procesor. „Streamovat ze zařízení“ nechá zařízení přehrát záznam přes RTSP.",
+          "recording_clock": "Hodiny, podle kterých zařízení udává časy svých záznamů. „Automaticky“ je zjistí samo. Pokud se časová osa a přehrávaný záznam liší o posun vašeho časového pásma, zvolte druhé hodiny.",
           "stream_key": "Záznamy pořízené se šifrováním streamu se dešifrují ověřovacím kódem zařízení, který se čte ze zařízení. Zadejte ho sem jen tehdy, když ho zařízení neuvádí, jako mnoho kamer.",
           "sidebar_panel": "Platí pro všechna zařízení a účty této integrace. Karta na nástěnce zůstává dostupná.",
           "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty.",
@@ -865,6 +867,13 @@
         "mp4": "MP4 jak bylo nahráno (doporučeno)",
         "h264": "Převést na H.264 (funguje všude, vysoká zátěž CPU)",
         "stream": "Streamovat ze zařízení (RTSP na HLS)"
+      }
+    },
+    "recording_clock": {
+      "options": {
+        "auto": "Automaticky",
+        "device": "Hodiny zařízení (většina zařízení)",
+        "utc": "UTC (některé starší kamery)"
       }
     },
     "recording_source": {
