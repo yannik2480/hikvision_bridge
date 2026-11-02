@@ -152,6 +152,40 @@ def _error_key(err: faults.BridgeFault) -> str:
     }.get(type(err), "unknown")
 
 
+PORT_RANGE = (1, 65535)
+HOLD_RANGE = (1, 300)
+
+
+def field_errors(
+    data: Mapping[str, Any],
+    required: tuple[str, ...] = (),
+    ranges: Mapping[str, tuple[tuple[int, int], str]] | None = None,
+) -> dict[str, str]:
+    """Errors shown under the fields themselves, instead of the browser's own form checks.
+
+    Text fields are optional in the schema, so the browser does not block the form with
+    "Please fill out this field"; an empty one is reported here, beside the field.
+    """
+    errors = {key: "required" for key in required if not str(data.get(key) or "").strip()}
+    for key, ((low, high), reason) in (ranges or {}).items():
+        value = data.get(key)
+        if value not in (None, "") and not low <= int(value) <= high:
+            errors[key] = reason
+    return errors
+
+
+def _port(key: str) -> dict[str, tuple[tuple[int, int], str]]:
+    return {key: (PORT_RANGE, "invalid_port")}
+
+
+def _required(key: str, defaults: Mapping[str, Any] | None = None) -> vol.Optional:
+    """A field that must be filled, checked by field_errors rather than by the browser."""
+    value = (defaults or {}).get(key)
+    if value in (None, ""):
+        return vol.Optional(key)
+    return vol.Optional(key, description={"suggested_value": value})
+
+
 async def probe_device(
     hass: HomeAssistant, data: dict[str, Any]
 ) -> tuple[dict[str, Any], Identity]:
@@ -196,10 +230,10 @@ async def probe_device(
 def _connection_schema(defaults: Mapping[str, Any], *, with_host: bool = True) -> vol.Schema:
     fields: dict[Any, Any] = {}
     if with_host:
-        fields[vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, ""))] = str
+        fields[_required(CONF_HOST, defaults)] = str
         fields[
             vol.Optional(CONF_PORT, description={"suggested_value": defaults.get(CONF_PORT)})
-        ] = vol.All(vol.Coerce(int), vol.Range(min=1, max=65535))
+        ] = vol.Coerce(int)
         fields[
             vol.Required(CONF_CONNECTION, default=defaults.get(CONF_CONNECTION, CONNECTION_AUTO))
         ] = selector.SelectSelector(
@@ -209,11 +243,15 @@ def _connection_schema(defaults: Mapping[str, Any], *, with_host: bool = True) -
             )
         )
         fields[vol.Required(CONF_VERIFY_TLS, default=defaults.get(CONF_VERIFY_TLS, True))] = bool
-    fields[vol.Required(CONF_USERNAME, default=defaults.get(CONF_USERNAME, ""))] = str
-    fields[vol.Required(CONF_PASSWORD)] = selector.TextSelector(
+    fields[_required(CONF_USERNAME, defaults)] = str
+    fields[_required(CONF_PASSWORD)] = selector.TextSelector(
         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
     )
     return vol.Schema(fields)
+
+
+_CONNECTION_FIELDS = (CONF_HOST, CONF_USERNAME, CONF_PASSWORD)
+_CREDENTIAL_FIELDS = (CONF_USERNAME, CONF_PASSWORD)
 
 
 def _recorder_entries_with_camera(
@@ -272,6 +310,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(user_input, _CONNECTION_FIELDS, _port(CONF_PORT))
+        if user_input is not None and not errors:
             candidate, self._rtsp_port = with_address(user_input)
             try:
                 resolved, identity = await probe_device(self.hass, candidate)
@@ -367,6 +407,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(user_input, _CREDENTIAL_FIELDS)
+        if user_input is not None and not errors:
             candidate = {
                 **entry.data,
                 CONF_CONNECTION: entry.data[CONF_SCHEME],
@@ -389,7 +431,9 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=_connection_schema(entry.data, with_host=False),
+            data_schema=_connection_schema(
+                {CONF_USERNAME: (user_input or entry.data).get(CONF_USERNAME)}, with_host=False
+            ),
             description_placeholders={"device": entry.title, "host": entry.data[CONF_HOST]},
             errors=errors,
         )
@@ -405,6 +449,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         defaults = {**entry.data, CONF_CONNECTION: entry.data.get(CONF_SCHEME, CONNECTION_AUTO)}
         if user_input is not None:
+            errors = field_errors(user_input, _CONNECTION_FIELDS, _port(CONF_PORT))
+        if user_input is not None and not errors:
             candidate, rtsp_port = with_address(user_input)
             try:
                 resolved, identity = await probe_device(self.hass, candidate)
@@ -418,6 +464,7 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
                     data_updates=resolved,
                     options={**entry.options, **_rtsp_option(rtsp_port)},
                 )
+        if user_input is not None:
             defaults = {**defaults, **user_input}
         return self.async_show_form(
             step_id="reconfigure",
@@ -432,6 +479,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(user_input, (CONF_ACCOUNT, CONF_PASSWORD))
+        if user_input is not None and not errors:
             account = CloudAccount(
                 async_get_clientsession(self.hass),
                 user_input[CONF_ACCOUNT],
@@ -450,8 +499,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="cloud",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_ACCOUNT): str,
-                    vol.Required(CONF_PASSWORD): selector.TextSelector(
+                    _required(CONF_ACCOUNT, user_input): str,
+                    _required(CONF_PASSWORD): selector.TextSelector(
                         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
                     ),
                 }
@@ -463,12 +512,16 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         stored, image = self._cloud
+        errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(user_input, (CONF_CAPTCHA,))
+        if user_input is not None and not errors:
             return await self.async_step_cloud({**stored, CONF_CAPTCHA: user_input[CONF_CAPTCHA]})
         return self.async_show_form(
             step_id="cloud_captcha",
-            data_schema=vol.Schema({vol.Required(CONF_CAPTCHA): str}),
+            data_schema=vol.Schema({_required(CONF_CAPTCHA): str}),
             description_placeholders={"image": image or ""},
+            errors=errors,
         )
 
     async def async_step_cloud_reauth(
@@ -481,6 +534,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(user_input, (CONF_PASSWORD,))
+        if user_input is not None and not errors:
             account = CloudAccount(
                 async_get_clientsession(self.hass),
                 entry.data[CONF_ACCOUNT],
@@ -504,7 +559,7 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="cloud_reauth",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_PASSWORD): selector.TextSelector(
+                    _required(CONF_PASSWORD): selector.TextSelector(
                         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
                     ),
                     vol.Optional(CONF_CAPTCHA): str,
@@ -540,7 +595,16 @@ def _panel_fields(hass: HomeAssistant) -> dict[Any, Any]:
 class BridgeOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
+        errors: dict[str, str] = {}
         if user_input is not None:
+            errors = field_errors(
+                user_input,
+                ranges={
+                    OPT_HOLD_SECONDS: (HOLD_RANGE, "invalid_hold_seconds"),
+                    **_port(OPT_RTSP_PORT),
+                },
+            )
+        if user_input is not None and not errors:
             user_input = dict(user_input)
             await async_set_panel_settings(
                 self.hass,
@@ -570,10 +634,10 @@ class BridgeOptionsFlow(OptionsFlow):
                 ),
                 vol.Required(
                     OPT_HOLD_SECONDS, default=options.get(OPT_HOLD_SECONDS, DEFAULT_HOLD_SECONDS)
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=300)),
+                ): vol.Coerce(int),
                 vol.Optional(
                     OPT_RTSP_PORT, description={"suggested_value": options.get(OPT_RTSP_PORT)}
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                ): vol.Coerce(int),
                 vol.Required(
                     OPT_RTSP_TRANSPORT, default=options.get(OPT_RTSP_TRANSPORT, RTSP_TCP)
                 ): selector.SelectSelector(
@@ -613,7 +677,9 @@ class BridgeOptionsFlow(OptionsFlow):
                 **_panel_fields(self.hass),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
 
     async def async_step_webhook(
         self, user_input: dict[str, Any] | None = None
@@ -657,6 +723,12 @@ class ChannelLinkFlow(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         defaults: dict[str, Any] = dict(existing.data) if existing else {}
         if user_input is not None:
+            errors = field_errors(
+                user_input,
+                (CONF_HOST,) if user_input.get(CONF_REUSE) else _CONNECTION_FIELDS,
+                {**_port(CONF_PORT), **_port(CONF_RTSP_PORT)},
+            )
+        if user_input is not None and not errors:
             channel = profile.channels[user_input[CONF_CHANNEL_ID]]
             data, rtsp_port = with_address(user_input)
             if data.pop(CONF_REUSE, False):
@@ -692,6 +764,7 @@ class ChannelLinkFlow(ConfigSubentryFlow):
                     return self.async_create_entry(
                         title=title, data=payload, unique_id=channel.channel_id
                     )
+        if user_input is not None:
             defaults = {**defaults, **user_input}
         first = choices[0]
         schema = vol.Schema(
@@ -708,15 +781,15 @@ class ChannelLinkFlow(ConfigSubentryFlow):
                         ]
                     )
                 ),
-                vol.Required(
-                    CONF_HOST, default=defaults.get(CONF_HOST, first.camera_address or "")
+                _required(
+                    CONF_HOST, {CONF_HOST: defaults.get(CONF_HOST, first.camera_address)}
                 ): str,
                 vol.Optional(
                     CONF_PORT, description={"suggested_value": defaults.get(CONF_PORT)}
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                ): vol.Coerce(int),
                 vol.Optional(
                     CONF_RTSP_PORT, description={"suggested_value": defaults.get(CONF_RTSP_PORT)}
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                ): vol.Coerce(int),
                 vol.Required(
                     CONF_CONNECTION, default=defaults.get(CONF_SCHEME, CONNECTION_AUTO)
                 ): selector.SelectSelector(

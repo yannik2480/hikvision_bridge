@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect একটি যাচাইকরণ কোড চাইছে।",
       "cloud_unavailable": "Hik-Connect এখন উপলব্ধ নয়।",
       "cloud_changed": "Hik-Connect অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে।",
-      "cloud_rejected": "Hik-Connect অনুরোধটি প্রত্যাখ্যান করেছে।"
+      "cloud_rejected": "Hik-Connect অনুরোধটি প্রত্যাখ্যান করেছে।",
+      "required": "এই ঘরটি পূরণ করা আবশ্যক।",
+      "invalid_port": "1 থেকে 65535 পর্যন্ত একটি পোর্ট লিখুন।"
     },
     "abort": {
       "already_configured": "এই ডিভাইস বা অ্যাকাউন্ট আগে থেকেই সেট আপ করা আছে।",
@@ -141,6 +143,10 @@
         "title": "ওয়েবহুক",
         "description": "বিজ্ঞপ্তি {path}-এ গ্রহণ করা হয় (শুধু লোকাল নেটওয়ার্ক)। ডিভাইসটিকে সেখানে পাঠাতে 'বিজ্ঞপ্তি হোস্ট সেট করুন' অ্যাকশন বা ডিভাইসের ওয়েব ইন্টারফেস ব্যবহার করুন।"
       }
+    },
+    "error": {
+      "invalid_port": "1 থেকে 65535 পর্যন্ত একটি পোর্ট লিখুন।",
+      "invalid_hold_seconds": "1 থেকে 300 সেকেন্ডের মধ্যে একটি মান লিখুন।"
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect একটি যাচাইকরণ কোড চাইছে।",
         "cloud_unavailable": "Hik-Connect এখন উপলব্ধ নয়।",
         "cloud_changed": "Hik-Connect অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে।",
-        "cloud_rejected": "Hik-Connect অনুরোধটি প্রত্যাখ্যান করেছে।"
+        "cloud_rejected": "Hik-Connect অনুরোধটি প্রত্যাখ্যান করেছে।",
+        "required": "এই ঘরটি পূরণ করা আবশ্যক।",
+        "invalid_port": "1 থেকে 65535 পর্যন্ত একটি পোর্ট লিখুন।"
       },
       "abort": {
         "not_loaded": "প্রথমে রেকর্ডার লোড করতে হবে।",

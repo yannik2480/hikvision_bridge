@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect에서 인증 코드를 요구합니다.",
       "cloud_unavailable": "Hik-Connect를 현재 사용할 수 없습니다.",
       "cloud_changed": "Hik-Connect가 예기치 않은 형식으로 응답했습니다.",
-      "cloud_rejected": "Hik-Connect가 요청을 거부했습니다."
+      "cloud_rejected": "Hik-Connect가 요청을 거부했습니다.",
+      "required": "필수 입력 항목입니다.",
+      "invalid_port": "1~65535 사이의 포트를 입력하세요."
     },
     "abort": {
       "already_configured": "이 장치 또는 계정은 이미 설정되어 있습니다.",
@@ -141,6 +143,10 @@
         "title": "웹훅",
         "description": "알림은 {path}에서 수신합니다(로컬 네트워크만). '알림 호스트 설정' 작업이나 장치 웹 인터페이스를 사용해 장치가 이곳으로 보내도록 설정하세요."
       }
+    },
+    "error": {
+      "invalid_port": "1~65535 사이의 포트를 입력하세요.",
+      "invalid_hold_seconds": "1~300초 사이의 값을 입력하세요."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect에서 인증 코드를 요구합니다.",
         "cloud_unavailable": "Hik-Connect를 현재 사용할 수 없습니다.",
         "cloud_changed": "Hik-Connect가 예기치 않은 형식으로 응답했습니다.",
-        "cloud_rejected": "Hik-Connect가 요청을 거부했습니다."
+        "cloud_rejected": "Hik-Connect가 요청을 거부했습니다.",
+        "required": "필수 입력 항목입니다.",
+        "invalid_port": "1~65535 사이의 포트를 입력하세요."
       },
       "abort": {
         "not_loaded": "먼저 녹화기를 불러와야 합니다.",

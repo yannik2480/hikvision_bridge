@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect 要求输入验证码。",
       "cloud_unavailable": "Hik-Connect 当前不可用。",
       "cloud_changed": "Hik-Connect 返回了意外格式的响应。",
-      "cloud_rejected": "Hik-Connect 拒绝了请求。"
+      "cloud_rejected": "Hik-Connect 拒绝了请求。",
+      "required": "此字段为必填项。",
+      "invalid_port": "请输入 1 到 65535 之间的端口。"
     },
     "abort": {
       "already_configured": "此设备或账户已设置。",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "通知在 {path} 接收（仅限局域网）。请使用“设置通知主机”操作或设备网页界面将设备指向此处。"
       }
+    },
+    "error": {
+      "invalid_port": "请输入 1 到 65535 之间的端口。",
+      "invalid_hold_seconds": "请输入 1 到 300 秒之间的值。"
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect 要求输入验证码。",
         "cloud_unavailable": "Hik-Connect 当前不可用。",
         "cloud_changed": "Hik-Connect 返回了意外格式的响应。",
-        "cloud_rejected": "Hik-Connect 拒绝了请求。"
+        "cloud_rejected": "Hik-Connect 拒绝了请求。",
+        "required": "此字段为必填项。",
+        "invalid_port": "请输入 1 到 65535 之间的端口。"
       },
       "abort": {
         "not_loaded": "必须先加载录像机。",

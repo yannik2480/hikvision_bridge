@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect beder om en bekræftelseskode.",
       "cloud_unavailable": "Hik-Connect er utilgængeligt i øjeblikket.",
       "cloud_changed": "Hik-Connect svarede i et uventet format.",
-      "cloud_rejected": "Hik-Connect afviste anmodningen."
+      "cloud_rejected": "Hik-Connect afviste anmodningen.",
+      "required": "Dette felt skal udfyldes.",
+      "invalid_port": "Angiv en port fra 1 til 65535."
     },
     "abort": {
       "already_configured": "Denne enhed eller konto er allerede sat op.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Notifikationer modtages på {path} (kun lokalt netværk). Brug handlingen 'Angiv notifikationsvært' eller enhedens webgrænseflade til at pege enheden derhen."
       }
+    },
+    "error": {
+      "invalid_port": "Angiv en port fra 1 til 65535.",
+      "invalid_hold_seconds": "Angiv en værdi fra 1 til 300 sekunder."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect beder om en bekræftelseskode.",
         "cloud_unavailable": "Hik-Connect er utilgængeligt i øjeblikket.",
         "cloud_changed": "Hik-Connect svarede i et uventet format.",
-        "cloud_rejected": "Hik-Connect afviste anmodningen."
+        "cloud_rejected": "Hik-Connect afviste anmodningen.",
+        "required": "Dette felt skal udfyldes.",
+        "invalid_port": "Angiv en port fra 1 til 65535."
       },
       "abort": {
         "not_loaded": "Optageren skal indlæses først.",

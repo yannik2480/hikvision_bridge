@@ -98,7 +98,9 @@
       "captcha_required": "Το Hik-Connect ζητά κωδικό επαλήθευσης.",
       "cloud_unavailable": "Το Hik-Connect δεν είναι διαθέσιμο αυτή τη στιγμή.",
       "cloud_changed": "Το Hik-Connect απάντησε σε απρόσμενη μορφή.",
-      "cloud_rejected": "Το Hik-Connect απέρριψε το αίτημα."
+      "cloud_rejected": "Το Hik-Connect απέρριψε το αίτημα.",
+      "required": "Αυτό το πεδίο είναι υποχρεωτικό.",
+      "invalid_port": "Εισαγάγετε θύρα από 1 έως 65535."
     },
     "abort": {
       "already_configured": "Αυτή η συσκευή ή ο λογαριασμός έχει ήδη ρυθμιστεί.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Οι ειδοποιήσεις γίνονται δεκτές στο {path} (μόνο τοπικό δίκτυο). Χρησιμοποιήστε την ενέργεια «Ορισμός κεντρικού υπολογιστή ειδοποιήσεων» ή τη διεπαφή web της συσκευής για να την κατευθύνετε εκεί."
       }
+    },
+    "error": {
+      "invalid_port": "Εισαγάγετε θύρα από 1 έως 65535.",
+      "invalid_hold_seconds": "Εισαγάγετε τιμή από 1 έως 300 δευτερόλεπτα."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Το Hik-Connect ζητά κωδικό επαλήθευσης.",
         "cloud_unavailable": "Το Hik-Connect δεν είναι διαθέσιμο αυτή τη στιγμή.",
         "cloud_changed": "Το Hik-Connect απάντησε σε απρόσμενη μορφή.",
-        "cloud_rejected": "Το Hik-Connect απέρριψε το αίτημα."
+        "cloud_rejected": "Το Hik-Connect απέρριψε το αίτημα.",
+        "required": "Αυτό το πεδίο είναι υποχρεωτικό.",
+        "invalid_port": "Εισαγάγετε θύρα από 1 έως 65535."
       },
       "abort": {
         "not_loaded": "Πρέπει πρώτα να φορτωθεί το καταγραφικό.",

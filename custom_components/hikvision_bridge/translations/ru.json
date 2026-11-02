@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect запрашивает код подтверждения.",
       "cloud_unavailable": "Hik-Connect сейчас недоступен.",
       "cloud_changed": "Hik-Connect ответил в неожиданном формате.",
-      "cloud_rejected": "Hik-Connect отклонил запрос."
+      "cloud_rejected": "Hik-Connect отклонил запрос.",
+      "required": "Это поле обязательно.",
+      "invalid_port": "Введите порт от 1 до 65535."
     },
     "abort": {
       "already_configured": "Это устройство или учётная запись уже настроены.",
@@ -141,6 +143,10 @@
         "title": "Вебхук",
         "description": "Уведомления принимаются по адресу {path} (только локальная сеть). Используйте действие «Задать хост уведомлений» или веб-интерфейс устройства, чтобы направить устройство туда."
       }
+    },
+    "error": {
+      "invalid_port": "Введите порт от 1 до 65535.",
+      "invalid_hold_seconds": "Введите значение от 1 до 300 секунд."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect запрашивает код подтверждения.",
         "cloud_unavailable": "Hik-Connect сейчас недоступен.",
         "cloud_changed": "Hik-Connect ответил в неожиданном формате.",
-        "cloud_rejected": "Hik-Connect отклонил запрос."
+        "cloud_rejected": "Hik-Connect отклонил запрос.",
+        "required": "Это поле обязательно.",
+        "invalid_port": "Введите порт от 1 до 65535."
       },
       "abort": {
         "not_loaded": "Сначала должен быть загружен регистратор.",

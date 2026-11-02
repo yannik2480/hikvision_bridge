@@ -98,7 +98,9 @@
       "captcha_required": "يطلب Hik-Connect رمز تحقق.",
       "cloud_unavailable": "Hik-Connect غير متاح حاليًا.",
       "cloud_changed": "أجاب Hik-Connect بتنسيق غير متوقع.",
-      "cloud_rejected": "رفض Hik-Connect الطلب."
+      "cloud_rejected": "رفض Hik-Connect الطلب.",
+      "required": "هذا الحقل مطلوب.",
+      "invalid_port": "أدخل منفذًا من 1 إلى 65535."
     },
     "abort": {
       "already_configured": "هذا الجهاز أو الحساب مُعد بالفعل.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "تُقبل الإشعارات على {path} (الشبكة المحلية فقط). استخدم الإجراء «تعيين مضيف الإشعارات» أو واجهة الويب للجهاز لتوجيهه إلى هناك."
       }
+    },
+    "error": {
+      "invalid_port": "أدخل منفذًا من 1 إلى 65535.",
+      "invalid_hold_seconds": "أدخل قيمة من 1 إلى 300 ثانية."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "يطلب Hik-Connect رمز تحقق.",
         "cloud_unavailable": "Hik-Connect غير متاح حاليًا.",
         "cloud_changed": "أجاب Hik-Connect بتنسيق غير متوقع.",
-        "cloud_rejected": "رفض Hik-Connect الطلب."
+        "cloud_rejected": "رفض Hik-Connect الطلب.",
+        "required": "هذا الحقل مطلوب.",
+        "invalid_port": "أدخل منفذًا من 1 إلى 65535."
       },
       "abort": {
         "not_loaded": "يجب تحميل المسجل أولًا.",

@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect yêu cầu mã xác minh.",
       "cloud_unavailable": "Hik-Connect hiện không khả dụng.",
       "cloud_changed": "Hik-Connect trả lời theo định dạng không mong muốn.",
-      "cloud_rejected": "Hik-Connect đã từ chối yêu cầu."
+      "cloud_rejected": "Hik-Connect đã từ chối yêu cầu.",
+      "required": "Trường này là bắt buộc.",
+      "invalid_port": "Nhập cổng từ 1 đến 65535."
     },
     "abort": {
       "already_configured": "Thiết bị hoặc tài khoản này đã được thiết lập.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Thông báo được nhận tại {path} (chỉ mạng nội bộ). Dùng hành động 'Đặt máy chủ thông báo' hoặc giao diện web của thiết bị để trỏ thiết bị đến đó."
       }
+    },
+    "error": {
+      "invalid_port": "Nhập cổng từ 1 đến 65535.",
+      "invalid_hold_seconds": "Nhập giá trị từ 1 đến 300 giây."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect yêu cầu mã xác minh.",
         "cloud_unavailable": "Hik-Connect hiện không khả dụng.",
         "cloud_changed": "Hik-Connect trả lời theo định dạng không mong muốn.",
-        "cloud_rejected": "Hik-Connect đã từ chối yêu cầu."
+        "cloud_rejected": "Hik-Connect đã từ chối yêu cầu.",
+        "required": "Trường này là bắt buộc.",
+        "invalid_port": "Nhập cổng từ 1 đến 65535."
       },
       "abort": {
         "not_loaded": "Phải tải đầu ghi trước.",

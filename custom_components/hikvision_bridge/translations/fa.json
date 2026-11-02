@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect کد تأیید درخواست می‌کند.",
       "cloud_unavailable": "Hik-Connect در حال حاضر در دسترس نیست.",
       "cloud_changed": "Hik-Connect در قالبی غیرمنتظره پاسخ داد.",
-      "cloud_rejected": "Hik-Connect درخواست را رد کرد."
+      "cloud_rejected": "Hik-Connect درخواست را رد کرد.",
+      "required": "این فیلد الزامی است.",
+      "invalid_port": "یک پورت بین 1 تا 65535 وارد کنید."
     },
     "abort": {
       "already_configured": "این دستگاه یا حساب قبلاً راه‌اندازی شده است.",
@@ -141,6 +143,10 @@
         "title": "وب‌هوک",
         "description": "اعلان‌ها در {path} پذیرفته می‌شوند (فقط شبکهٔ محلی). برای هدایت دستگاه به آنجا از عملیات «تنظیم میزبان اعلان» یا رابط وب دستگاه استفاده کنید."
       }
+    },
+    "error": {
+      "invalid_port": "یک پورت بین 1 تا 65535 وارد کنید.",
+      "invalid_hold_seconds": "مقداری بین 1 تا 300 ثانیه وارد کنید."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect کد تأیید درخواست می‌کند.",
         "cloud_unavailable": "Hik-Connect در حال حاضر در دسترس نیست.",
         "cloud_changed": "Hik-Connect در قالبی غیرمنتظره پاسخ داد.",
-        "cloud_rejected": "Hik-Connect درخواست را رد کرد."
+        "cloud_rejected": "Hik-Connect درخواست را رد کرد.",
+        "required": "این فیلد الزامی است.",
+        "invalid_port": "یک پورت بین 1 تا 65535 وارد کنید."
       },
       "abort": {
         "not_loaded": "ابتدا باید ضبط‌کننده بارگذاری شود.",

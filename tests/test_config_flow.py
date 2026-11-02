@@ -10,10 +10,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 
 from custom_components.hikvision_bridge import panel
 from custom_components.hikvision_bridge.cloud.account import CaptchaRequired, CloudAuthFailed
-from custom_components.hikvision_bridge.config_flow import Address, split_address
+from custom_components.hikvision_bridge.config_flow import Address, field_errors, split_address
 from custom_components.hikvision_bridge.const import (
     CONF_ACCOUNT,
     CONF_CONNECTION,
@@ -129,6 +130,45 @@ async def test_wrong_password_reports_once_without_retry(hass: HomeAssistant, se
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
     assert device.failed_logins == 1
+
+
+async def test_empty_and_out_of_range_fields_are_marked_beside_the_field(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("camera_g3")
+    server = await serve(device)
+    form = await _device_form(hass)
+    for key in (CONF_HOST, CONF_USERNAME, CONF_PASSWORD):
+        assert not isinstance(_schema_key(form, key), vol.Required), key
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"],
+        {CONF_HOST: "  ", CONF_PORT: 70000, CONF_CONNECTION: "http", "verify_tls": True},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {
+        CONF_HOST: "required",
+        CONF_PORT: "invalid_port",
+        CONF_USERNAME: "required",
+        CONF_PASSWORD: "required",
+    }
+    assert device.requests == []
+    with patch("custom_components.hikvision_bridge.async_setup_entry", return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], _form_input(server, device)
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+def test_field_errors_leave_filled_fields_alone() -> None:
+    assert field_errors({"a": "x", "p": 554}, ("a",), {"p": ((1, 65535), "invalid_port")}) == {}
+    assert field_errors({"p": 0}, ("a",), {"p": ((1, 65535), "invalid_port")}) == {
+        "a": "required",
+        "p": "invalid_port",
+    }
+
+
+def _schema_key(form, name: str):
+    return next(key for key in form["data_schema"].schema if key == name)
 
 
 async def test_same_device_twice_aborts(hass: HomeAssistant, serve) -> None:

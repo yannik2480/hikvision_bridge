@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect žádá ověřovací kód.",
       "cloud_unavailable": "Hik-Connect je momentálně nedostupný.",
       "cloud_changed": "Hik-Connect odpověděl v neočekávaném formátu.",
-      "cloud_rejected": "Hik-Connect požadavek odmítl."
+      "cloud_rejected": "Hik-Connect požadavek odmítl.",
+      "required": "Toto pole je povinné.",
+      "invalid_port": "Zadejte port od 1 do 65535."
     },
     "abort": {
       "already_configured": "Toto zařízení nebo účet je již nastaveno.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Oznámení jsou přijímána na {path} (pouze místní síť). Pomocí akce „Nastavit hostitele oznámení“ nebo webového rozhraní zařízení jej tam nasměrujte."
       }
+    },
+    "error": {
+      "invalid_port": "Zadejte port od 1 do 65535.",
+      "invalid_hold_seconds": "Zadejte hodnotu od 1 do 300 sekund."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect žádá ověřovací kód.",
         "cloud_unavailable": "Hik-Connect je momentálně nedostupný.",
         "cloud_changed": "Hik-Connect odpověděl v neočekávaném formátu.",
-        "cloud_rejected": "Hik-Connect požadavek odmítl."
+        "cloud_rejected": "Hik-Connect požadavek odmítl.",
+        "required": "Toto pole je povinné.",
+        "invalid_port": "Zadejte port od 1 do 65535."
       },
       "abort": {
         "not_loaded": "Nejprve musí být načten rekordér.",

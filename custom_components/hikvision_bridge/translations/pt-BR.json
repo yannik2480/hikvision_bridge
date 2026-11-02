@@ -98,7 +98,9 @@
       "captcha_required": "O Hik-Connect solicita um código de verificação.",
       "cloud_unavailable": "O Hik-Connect está indisponível no momento.",
       "cloud_changed": "O Hik-Connect respondeu em um formato inesperado.",
-      "cloud_rejected": "O Hik-Connect rejeitou a solicitação."
+      "cloud_rejected": "O Hik-Connect rejeitou a solicitação.",
+      "required": "Este campo é obrigatório.",
+      "invalid_port": "Informe uma porta de 1 a 65535."
     },
     "abort": {
       "already_configured": "Este dispositivo ou conta já está configurado.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "As notificações são aceitas em {path} (somente rede local). Use a ação \"Definir host de notificação\" ou a interface web do dispositivo para direcioná-lo para lá."
       }
+    },
+    "error": {
+      "invalid_port": "Informe uma porta de 1 a 65535.",
+      "invalid_hold_seconds": "Informe um valor de 1 a 300 segundos."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "O Hik-Connect solicita um código de verificação.",
         "cloud_unavailable": "O Hik-Connect está indisponível no momento.",
         "cloud_changed": "O Hik-Connect respondeu em um formato inesperado.",
-        "cloud_rejected": "O Hik-Connect rejeitou a solicitação."
+        "cloud_rejected": "O Hik-Connect rejeitou a solicitação.",
+        "required": "Este campo é obrigatório.",
+        "invalid_port": "Informe uma porta de 1 a 65535."
       },
       "abort": {
         "not_loaded": "O gravador precisa ser carregado primeiro.",

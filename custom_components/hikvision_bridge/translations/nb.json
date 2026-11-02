@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect ber om en bekreftelseskode.",
       "cloud_unavailable": "Hik-Connect er utilgjengelig for øyeblikket.",
       "cloud_changed": "Hik-Connect svarte i et uventet format.",
-      "cloud_rejected": "Hik-Connect avviste forespørselen."
+      "cloud_rejected": "Hik-Connect avviste forespørselen.",
+      "required": "Dette feltet må fylles ut.",
+      "invalid_port": "Angi en port fra 1 til 65535."
     },
     "abort": {
       "already_configured": "Denne enheten eller kontoen er allerede satt opp.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Varsler tas imot på {path} (bare lokalt nettverk). Bruk handlingen 'Angi varslingsvert' eller enhetens nettgrensesnitt for å peke enheten dit."
       }
+    },
+    "error": {
+      "invalid_port": "Angi en port fra 1 til 65535.",
+      "invalid_hold_seconds": "Angi en verdi fra 1 til 300 sekunder."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect ber om en bekreftelseskode.",
         "cloud_unavailable": "Hik-Connect er utilgjengelig for øyeblikket.",
         "cloud_changed": "Hik-Connect svarte i et uventet format.",
-        "cloud_rejected": "Hik-Connect avviste forespørselen."
+        "cloud_rejected": "Hik-Connect avviste forespørselen.",
+        "required": "Dette feltet må fylles ut.",
+        "invalid_port": "Angi en port fra 1 til 65535."
       },
       "abort": {
         "not_loaded": "Opptakeren må lastes først.",

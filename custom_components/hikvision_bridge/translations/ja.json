@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect が認証コードを求めています。",
       "cloud_unavailable": "Hik-Connect は現在利用できません。",
       "cloud_changed": "Hik-Connect が予期しない形式で応答しました。",
-      "cloud_rejected": "Hik-Connect がリクエストを拒否しました。"
+      "cloud_rejected": "Hik-Connect がリクエストを拒否しました。",
+      "required": "この項目は必須です。",
+      "invalid_port": "1～65535 のポートを入力してください。"
     },
     "abort": {
       "already_configured": "このデバイスまたはアカウントはすでに設定されています。",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "通知は {path} で受け付けます（ローカルネットワークのみ）。「通知ホストを設定」アクションまたはデバイスの Web インターフェースで、デバイスの送信先をここに設定してください。"
       }
+    },
+    "error": {
+      "invalid_port": "1～65535 のポートを入力してください。",
+      "invalid_hold_seconds": "1～300 秒の値を入力してください。"
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect が認証コードを求めています。",
         "cloud_unavailable": "Hik-Connect は現在利用できません。",
         "cloud_changed": "Hik-Connect が予期しない形式で応答しました。",
-        "cloud_rejected": "Hik-Connect がリクエストを拒否しました。"
+        "cloud_rejected": "Hik-Connect がリクエストを拒否しました。",
+        "required": "この項目は必須です。",
+        "invalid_port": "1～65535 のポートを入力してください。"
       },
       "abort": {
         "not_loaded": "先にレコーダーを読み込む必要があります。",

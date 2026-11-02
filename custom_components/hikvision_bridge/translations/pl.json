@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect wymaga kodu weryfikacyjnego.",
       "cloud_unavailable": "Hik-Connect jest obecnie niedostępny.",
       "cloud_changed": "Hik-Connect odpowiedział w nieoczekiwanym formacie.",
-      "cloud_rejected": "Hik-Connect odrzucił żądanie."
+      "cloud_rejected": "Hik-Connect odrzucił żądanie.",
+      "required": "To pole jest wymagane.",
+      "invalid_port": "Podaj port od 1 do 65535."
     },
     "abort": {
       "already_configured": "To urządzenie lub konto jest już skonfigurowane.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Powiadomienia są przyjmowane pod adresem {path} (tylko sieć lokalna). Użyj akcji „Ustaw host powiadomień” lub interfejsu WWW urządzenia, aby je tam skierować."
       }
+    },
+    "error": {
+      "invalid_port": "Podaj port od 1 do 65535.",
+      "invalid_hold_seconds": "Podaj wartość od 1 do 300 sekund."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect wymaga kodu weryfikacyjnego.",
         "cloud_unavailable": "Hik-Connect jest obecnie niedostępny.",
         "cloud_changed": "Hik-Connect odpowiedział w nieoczekiwanym formacie.",
-        "cloud_rejected": "Hik-Connect odrzucił żądanie."
+        "cloud_rejected": "Hik-Connect odrzucił żądanie.",
+        "required": "To pole jest wymagane.",
+        "invalid_port": "Podaj port od 1 do 65535."
       },
       "abort": {
         "not_loaded": "Najpierw musi zostać załadowany rejestrator.",

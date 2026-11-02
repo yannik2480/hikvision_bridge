@@ -98,7 +98,9 @@
       "captcha_required": "A Hik-Connect ellenőrző kódot kér.",
       "cloud_unavailable": "A Hik-Connect jelenleg nem érhető el.",
       "cloud_changed": "A Hik-Connect váratlan formátumban válaszolt.",
-      "cloud_rejected": "A Hik-Connect elutasította a kérést."
+      "cloud_rejected": "A Hik-Connect elutasította a kérést.",
+      "required": "Ez a mező kötelező.",
+      "invalid_port": "Adjon meg egy portot 1 és 65535 között."
     },
     "abort": {
       "already_configured": "Ez az eszköz vagy fiók már be van állítva.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Az értesítések fogadása itt történik: {path} (csak helyi hálózat). Az eszközt a „Értesítési gazdagép beállítása” művelettel vagy az eszköz webes felületén irányíthatja ide."
       }
+    },
+    "error": {
+      "invalid_port": "Adjon meg egy portot 1 és 65535 között.",
+      "invalid_hold_seconds": "Adjon meg egy értéket 1 és 300 másodperc között."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "A Hik-Connect ellenőrző kódot kér.",
         "cloud_unavailable": "A Hik-Connect jelenleg nem érhető el.",
         "cloud_changed": "A Hik-Connect váratlan formátumban válaszolt.",
-        "cloud_rejected": "A Hik-Connect elutasította a kérést."
+        "cloud_rejected": "A Hik-Connect elutasította a kérést.",
+        "required": "Ez a mező kötelező.",
+        "invalid_port": "Adjon meg egy portot 1 és 65535 között."
       },
       "abort": {
         "not_loaded": "Először a rögzítőt kell betölteni.",

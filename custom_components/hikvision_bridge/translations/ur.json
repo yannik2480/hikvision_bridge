@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect تصدیقی کوڈ مانگ رہا ہے۔",
       "cloud_unavailable": "Hik-Connect اس وقت دستیاب نہیں ہے۔",
       "cloud_changed": "Hik-Connect نے غیر متوقع فارمیٹ میں جواب دیا۔",
-      "cloud_rejected": "Hik-Connect نے درخواست مسترد کر دی۔"
+      "cloud_rejected": "Hik-Connect نے درخواست مسترد کر دی۔",
+      "required": "یہ خانہ لازمی ہے۔",
+      "invalid_port": "1 سے 65535 تک کا پورٹ درج کریں۔"
     },
     "abort": {
       "already_configured": "یہ آلہ یا اکاؤنٹ پہلے سے سیٹ اپ ہے۔",
@@ -141,6 +143,10 @@
         "title": "ویب ہک",
         "description": "اطلاعات {path} پر قبول کی جاتی ہیں (صرف مقامی نیٹ ورک)۔ آلے کو وہاں بھیجنے کے لیے 'اطلاعی ہوسٹ مقرر کریں' کارروائی یا آلے کا ویب انٹرفیس استعمال کریں۔"
       }
+    },
+    "error": {
+      "invalid_port": "1 سے 65535 تک کا پورٹ درج کریں۔",
+      "invalid_hold_seconds": "1 سے 300 سیکنڈ تک کی قدر درج کریں۔"
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect تصدیقی کوڈ مانگ رہا ہے۔",
         "cloud_unavailable": "Hik-Connect اس وقت دستیاب نہیں ہے۔",
         "cloud_changed": "Hik-Connect نے غیر متوقع فارمیٹ میں جواب دیا۔",
-        "cloud_rejected": "Hik-Connect نے درخواست مسترد کر دی۔"
+        "cloud_rejected": "Hik-Connect نے درخواست مسترد کر دی۔",
+        "required": "یہ خانہ لازمی ہے۔",
+        "invalid_port": "1 سے 65535 تک کا پورٹ درج کریں۔"
       },
       "abort": {
         "not_loaded": "پہلے ریکارڈر لوڈ ہونا چاہیے۔",

@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect meminta kode verifikasi.",
       "cloud_unavailable": "Hik-Connect saat ini tidak tersedia.",
       "cloud_changed": "Hik-Connect menjawab dalam format yang tidak terduga.",
-      "cloud_rejected": "Hik-Connect menolak permintaan."
+      "cloud_rejected": "Hik-Connect menolak permintaan.",
+      "required": "Kolom ini wajib diisi.",
+      "invalid_port": "Masukkan port dari 1 hingga 65535."
     },
     "abort": {
       "already_configured": "Perangkat atau akun ini sudah disiapkan.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Notifikasi diterima di {path} (hanya jaringan lokal). Gunakan aksi 'Atur host notifikasi' atau antarmuka web perangkat untuk mengarahkan perangkat ke sana."
       }
+    },
+    "error": {
+      "invalid_port": "Masukkan port dari 1 hingga 65535.",
+      "invalid_hold_seconds": "Masukkan nilai dari 1 hingga 300 detik."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect meminta kode verifikasi.",
         "cloud_unavailable": "Hik-Connect saat ini tidak tersedia.",
         "cloud_changed": "Hik-Connect menjawab dalam format yang tidak terduga.",
-        "cloud_rejected": "Hik-Connect menolak permintaan."
+        "cloud_rejected": "Hik-Connect menolak permintaan.",
+        "required": "Kolom ini wajib diisi.",
+        "invalid_port": "Masukkan port dari 1 hingga 65535."
       },
       "abort": {
         "not_loaded": "Perekam harus dimuat terlebih dahulu.",

@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect verlangt einen Bestätigungscode.",
       "cloud_unavailable": "Hik-Connect ist derzeit nicht erreichbar.",
       "cloud_changed": "Hik-Connect hat in einem unerwarteten Format geantwortet.",
-      "cloud_rejected": "Hik-Connect hat die Anfrage abgelehnt."
+      "cloud_rejected": "Hik-Connect hat die Anfrage abgelehnt.",
+      "required": "Dieses Feld ist erforderlich.",
+      "invalid_port": "Gib einen Port von 1 bis 65535 ein."
     },
     "abort": {
       "already_configured": "Dieses Gerät bzw. Konto ist bereits eingerichtet.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Meldungen werden unter {path} angenommen (nur lokales Netz). Das Gerät per Aktion „Benachrichtigungsziel setzen“ oder über seine Weboberfläche dorthin zeigen lassen."
       }
+    },
+    "error": {
+      "invalid_port": "Gib einen Port von 1 bis 65535 ein.",
+      "invalid_hold_seconds": "Gib einen Wert von 1 bis 300 Sekunden ein."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect verlangt einen Bestätigungscode.",
         "cloud_unavailable": "Hik-Connect ist derzeit nicht erreichbar.",
         "cloud_changed": "Hik-Connect hat in einem unerwarteten Format geantwortet.",
-        "cloud_rejected": "Hik-Connect hat die Anfrage abgelehnt."
+        "cloud_rejected": "Hik-Connect hat die Anfrage abgelehnt.",
+        "required": "Dieses Feld ist erforderlich.",
+        "invalid_port": "Gib einen Port von 1 bis 65535 ein."
       },
       "abort": {
         "not_loaded": "Der Rekorder muss zuerst geladen sein.",

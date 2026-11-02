@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect vraagt om een verificatiecode.",
       "cloud_unavailable": "Hik-Connect is momenteel niet beschikbaar.",
       "cloud_changed": "Hik-Connect antwoordde in een onverwacht formaat.",
-      "cloud_rejected": "Hik-Connect heeft het verzoek geweigerd."
+      "cloud_rejected": "Hik-Connect heeft het verzoek geweigerd.",
+      "required": "Dit veld is verplicht.",
+      "invalid_port": "Voer een poort van 1 tot 65535 in."
     },
     "abort": {
       "already_configured": "Dit apparaat of account is al ingesteld.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Meldingen worden geaccepteerd op {path} (alleen lokaal netwerk). Gebruik de actie 'Meldingshost instellen' of de webinterface van het apparaat om het apparaat daarheen te sturen."
       }
+    },
+    "error": {
+      "invalid_port": "Voer een poort van 1 tot 65535 in.",
+      "invalid_hold_seconds": "Voer een waarde van 1 tot 300 seconden in."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect vraagt om een verificatiecode.",
         "cloud_unavailable": "Hik-Connect is momenteel niet beschikbaar.",
         "cloud_changed": "Hik-Connect antwoordde in een onverwacht formaat.",
-        "cloud_rejected": "Hik-Connect heeft het verzoek geweigerd."
+        "cloud_rejected": "Hik-Connect heeft het verzoek geweigerd.",
+        "required": "Dit veld is verplicht.",
+        "invalid_port": "Voer een poort van 1 tot 65535 in."
       },
       "abort": {
         "not_loaded": "De recorder moet eerst geladen zijn.",

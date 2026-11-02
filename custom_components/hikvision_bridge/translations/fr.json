@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect demande un code de vérification.",
       "cloud_unavailable": "Hik-Connect est actuellement indisponible.",
       "cloud_changed": "Hik-Connect a répondu dans un format inattendu.",
-      "cloud_rejected": "Hik-Connect a refusé la requête."
+      "cloud_rejected": "Hik-Connect a refusé la requête.",
+      "required": "Ce champ est obligatoire.",
+      "invalid_port": "Saisissez un port entre 1 et 65535."
     },
     "abort": {
       "already_configured": "Cet appareil ou ce compte est déjà configuré.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Les notifications sont acceptées sur {path} (réseau local uniquement). Utilisez l'action « Définir l'hôte de notification » ou l'interface web de l'appareil pour y diriger l'appareil."
       }
+    },
+    "error": {
+      "invalid_port": "Saisissez un port entre 1 et 65535.",
+      "invalid_hold_seconds": "Saisissez une valeur entre 1 et 300 secondes."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect demande un code de vérification.",
         "cloud_unavailable": "Hik-Connect est actuellement indisponible.",
         "cloud_changed": "Hik-Connect a répondu dans un format inattendu.",
-        "cloud_rejected": "Hik-Connect a refusé la requête."
+        "cloud_rejected": "Hik-Connect a refusé la requête.",
+        "required": "Ce champ est obligatoire.",
+        "invalid_port": "Saisissez un port entre 1 et 65535."
       },
       "abort": {
         "not_loaded": "L'enregistreur doit d'abord être chargé.",

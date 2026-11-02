@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect cere un cod de verificare.",
       "cloud_unavailable": "Hik-Connect nu este disponibil momentan.",
       "cloud_changed": "Hik-Connect a răspuns într-un format neașteptat.",
-      "cloud_rejected": "Hik-Connect a respins solicitarea."
+      "cloud_rejected": "Hik-Connect a respins solicitarea.",
+      "required": "Acest câmp este obligatoriu.",
+      "invalid_port": "Introduceți un port între 1 și 65535."
     },
     "abort": {
       "already_configured": "Acest dispozitiv sau cont este deja configurat.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Notificările sunt acceptate la {path} (doar rețea locală). Folosește acțiunea „Setează gazda de notificare” sau interfața web a dispozitivului pentru a-l direcționa acolo."
       }
+    },
+    "error": {
+      "invalid_port": "Introduceți un port între 1 și 65535.",
+      "invalid_hold_seconds": "Introduceți o valoare între 1 și 300 de secunde."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect cere un cod de verificare.",
         "cloud_unavailable": "Hik-Connect nu este disponibil momentan.",
         "cloud_changed": "Hik-Connect a răspuns într-un format neașteptat.",
-        "cloud_rejected": "Hik-Connect a respins solicitarea."
+        "cloud_rejected": "Hik-Connect a respins solicitarea.",
+        "required": "Acest câmp este obligatoriu.",
+        "invalid_port": "Introduceți un port între 1 și 65535."
       },
       "abort": {
         "not_loaded": "Înregistratorul trebuie încărcat mai întâi.",

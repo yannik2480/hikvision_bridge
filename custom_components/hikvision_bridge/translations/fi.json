@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect pyytää vahvistuskoodia.",
       "cloud_unavailable": "Hik-Connect ei ole tällä hetkellä käytettävissä.",
       "cloud_changed": "Hik-Connect vastasi odottamattomassa muodossa.",
-      "cloud_rejected": "Hik-Connect hylkäsi pyynnön."
+      "cloud_rejected": "Hik-Connect hylkäsi pyynnön.",
+      "required": "Tämä kenttä on pakollinen.",
+      "invalid_port": "Anna portti väliltä 1–65535."
     },
     "abort": {
       "already_configured": "Tämä laite tai tili on jo määritetty.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Ilmoitukset vastaanotetaan osoitteessa {path} (vain lähiverkko). Ohjaa laite sinne toiminnolla 'Aseta ilmoitusisäntä' tai laitteen verkkokäyttöliittymässä."
       }
+    },
+    "error": {
+      "invalid_port": "Anna portti väliltä 1–65535.",
+      "invalid_hold_seconds": "Anna arvo väliltä 1–300 sekuntia."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect pyytää vahvistuskoodia.",
         "cloud_unavailable": "Hik-Connect ei ole tällä hetkellä käytettävissä.",
         "cloud_changed": "Hik-Connect vastasi odottamattomassa muodossa.",
-        "cloud_rejected": "Hik-Connect hylkäsi pyynnön."
+        "cloud_rejected": "Hik-Connect hylkäsi pyynnön.",
+        "required": "Tämä kenttä on pakollinen.",
+        "invalid_port": "Anna portti väliltä 1–65535."
       },
       "abort": {
         "not_loaded": "Tallennin on ladattava ensin.",

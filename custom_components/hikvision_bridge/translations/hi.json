@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect सत्यापन कोड माँग रहा है।",
       "cloud_unavailable": "Hik-Connect अभी उपलब्ध नहीं है।",
       "cloud_changed": "Hik-Connect ने अप्रत्याशित प्रारूप में उत्तर दिया।",
-      "cloud_rejected": "Hik-Connect ने अनुरोध अस्वीकार कर दिया।"
+      "cloud_rejected": "Hik-Connect ने अनुरोध अस्वीकार कर दिया।",
+      "required": "यह फ़ील्ड आवश्यक है।",
+      "invalid_port": "1 से 65535 तक का पोर्ट दर्ज करें।"
     },
     "abort": {
       "already_configured": "यह डिवाइस या खाता पहले से सेट है।",
@@ -141,6 +143,10 @@
         "title": "वेबहुक",
         "description": "सूचनाएँ {path} पर स्वीकार की जाती हैं (केवल लोकल नेटवर्क)। डिवाइस को वहाँ भेजने के लिए 'सूचना होस्ट सेट करें' क्रिया या डिवाइस के वेब इंटरफ़ेस का उपयोग करें।"
       }
+    },
+    "error": {
+      "invalid_port": "1 से 65535 तक का पोर्ट दर्ज करें।",
+      "invalid_hold_seconds": "1 से 300 सेकंड तक का मान दर्ज करें।"
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect सत्यापन कोड माँग रहा है।",
         "cloud_unavailable": "Hik-Connect अभी उपलब्ध नहीं है।",
         "cloud_changed": "Hik-Connect ने अप्रत्याशित प्रारूप में उत्तर दिया।",
-        "cloud_rejected": "Hik-Connect ने अनुरोध अस्वीकार कर दिया।"
+        "cloud_rejected": "Hik-Connect ने अनुरोध अस्वीकार कर दिया।",
+        "required": "यह फ़ील्ड आवश्यक है।",
+        "invalid_port": "1 से 65535 तक का पोर्ट दर्ज करें।"
       },
       "abort": {
         "not_loaded": "पहले रिकॉर्डर लोड होना चाहिए।",

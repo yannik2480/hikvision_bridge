@@ -98,7 +98,9 @@
       "captcha_required": "Hik-Connect bir doğrulama kodu istiyor.",
       "cloud_unavailable": "Hik-Connect şu anda kullanılamıyor.",
       "cloud_changed": "Hik-Connect beklenmeyen bir biçimde yanıt verdi.",
-      "cloud_rejected": "Hik-Connect isteği reddetti."
+      "cloud_rejected": "Hik-Connect isteği reddetti.",
+      "required": "Bu alan zorunludur.",
+      "invalid_port": "1 ile 65535 arasında bir port girin."
     },
     "abort": {
       "already_configured": "Bu cihaz veya hesap zaten kurulu.",
@@ -141,6 +143,10 @@
         "title": "Webhook",
         "description": "Bildirimler {path} adresinde kabul edilir (yalnızca yerel ağ). Cihazı oraya yönlendirmek için 'Bildirim ana bilgisayarını ayarla' eylemini veya cihazın web arayüzünü kullanın."
       }
+    },
+    "error": {
+      "invalid_port": "1 ile 65535 arasında bir port girin.",
+      "invalid_hold_seconds": "1 ile 300 saniye arasında bir değer girin."
     }
   },
   "config_subentries": {
@@ -210,7 +216,9 @@
         "captcha_required": "Hik-Connect bir doğrulama kodu istiyor.",
         "cloud_unavailable": "Hik-Connect şu anda kullanılamıyor.",
         "cloud_changed": "Hik-Connect beklenmeyen bir biçimde yanıt verdi.",
-        "cloud_rejected": "Hik-Connect isteği reddetti."
+        "cloud_rejected": "Hik-Connect isteği reddetti.",
+        "required": "Bu alan zorunludur.",
+        "invalid_port": "1 ile 65535 arasında bir port girin."
       },
       "abort": {
         "not_loaded": "Önce kayıt cihazı yüklenmelidir.",
