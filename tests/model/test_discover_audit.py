@@ -122,3 +122,45 @@ async def test_add_center_linkage(link_to) -> None:
     assert "<notificationMethod>record</notificationMethod>" in written
     # Already present: nothing to do.
     assert await linkage.ensure_center(link, "VMD-4", dry_run=False) is False
+
+
+async def test_recorder_streams_listed_only_through_the_proxy(link_to) -> None:
+    """Older recorder firmware lists the IP channel streams only under StreamingProxy."""
+    proxy = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<StreamingChannelList version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+        "<StreamingChannel><id>101</id><enabled>true</enabled>"
+        "<Video><videoCodecType>H.264</videoCodecType></Video></StreamingChannel>"
+        "<StreamingChannel><id>102</id><enabled>true</enabled>"
+        "<Video><videoCodecType>H.264</videoCodecType></Video></StreamingChannel>"
+        "<StreamingChannel><id>103</id><enabled>false</enabled></StreamingChannel>"
+        "</StreamingChannelList>"
+    )
+    empty = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<StreamingChannelList version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+        "</StreamingChannelList>"
+    )
+    device = FakeDevice(
+        profile="nvr",
+        overrides={
+            "/ISAPI/Streaming/channels": (200, empty),
+            "/ISAPI/ContentMgmt/StreamingProxy/channels": (200, proxy),
+        },
+    )
+    profile = await discover.discover(await link_to(device))
+    assert [s.stream_id for s in profile.channels["1"].streams] == ["101", "102"]
+
+
+async def test_proxy_streams_do_not_add_to_a_full_listing(link_to) -> None:
+    extra = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<StreamingChannelList version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+        "<StreamingChannel><id>103</id><enabled>true</enabled></StreamingChannel>"
+        "</StreamingChannelList>"
+    )
+    device = FakeDevice(
+        profile="nvr", overrides={"/ISAPI/ContentMgmt/StreamingProxy/channels": (200, extra)}
+    )
+    profile = await discover.discover(await link_to(device))
+    assert "103" not in [s.stream_id for s in profile.channels["1"].streams]

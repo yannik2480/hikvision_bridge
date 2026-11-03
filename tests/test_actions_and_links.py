@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from homeassistant import config_entries
@@ -273,3 +274,21 @@ async def test_direct_link_can_leave_live_stream_on_recorder(
     assert bridge.route("1")[0] is bridge.routes["1"].link
     (link,) = [s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_CHANNEL_LINK]
     assert link.data["stream_source"] == "recorder"
+
+
+async def test_channel_link_changes_reload_without_update_listener(
+    hass: HomeAssistant, recorder, serve
+) -> None:
+    _, entry = recorder
+    assert not entry.update_listeners
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        hass.config_entries.async_update_entry(entry, title="renamed")
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+        await _stream_source_of_direct_link(hass, entry, serve, {})
+    reload.assert_called_with(entry.entry_id)
+    (link,) = [s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_CHANNEL_LINK]
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        hass.config_entries.async_remove_subentry(entry, link.subentry_id)
+        await hass.async_block_till_done()
+    reload.assert_called_with(entry.entry_id)

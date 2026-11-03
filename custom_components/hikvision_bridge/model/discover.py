@@ -167,6 +167,7 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         proxy_status,
         video_inputs,
         stream_list,
+        proxy_streams,
         event_caps,
         trigger_list,
         inputs,
@@ -179,6 +180,7 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         link.read_xml("/ISAPI/ContentMgmt/InputProxy/channels/status", optional=True),
         link.read_xml("/ISAPI/System/Video/inputs/channels", optional=True),
         link.read_xml("/ISAPI/Streaming/channels", optional=True),
+        link.read_xml("/ISAPI/ContentMgmt/StreamingProxy/channels", optional=True),
         link.read_xml("/ISAPI/Event/channels/capabilities", optional=True),
         link.read_xml(linkage.LIST_PATH, optional=True),
         link.read_xml("/ISAPI/System/IO/inputs", optional=True),
@@ -191,6 +193,14 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
     channels = _proxy_channels(proxy_list, proxy_status)
     local = _local_channels(video_inputs)
     streams = _streams(stream_list)
+    # Older recorder firmware lists the streams of IP channels only through the proxy.
+    for channel_id, proxied in _streams(proxy_streams).items():
+        known = {s.stream_id for s in streams.get(channel_id, [])}
+        if len(known) < 2:
+            streams[channel_id] = [
+                *streams.get(channel_id, []),
+                *(s for s in proxied if s.stream_id not in known),
+            ]
     if not channels and not local and not streams:
         # Some cameras only answer for individual streams.
         single = await link.read_xml("/ISAPI/Streaming/channels/101", optional=True)

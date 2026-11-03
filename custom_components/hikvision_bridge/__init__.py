@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import (
+    SIGNAL_CONFIG_ENTRY_CHANGED,
+    ConfigEntry,
+    ConfigEntryChange,
+)
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -140,12 +145,28 @@ async def _async_setup_device(hass: HomeAssistant, entry: BridgeConfigEntry) -> 
     async_register_webhook(hass, entry)
     bridge.schedule_audit()
     bridge.schedule_intercom_poll()
-    entry.async_on_unload(entry.add_update_listener(_async_reload_on_change))
+    _reload_on_subentry_change(hass, entry)
     return True
 
 
-async def _async_reload_on_change(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    hass.config_entries.async_schedule_reload(entry.entry_id)
+def _reload_on_subentry_change(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload when a channel link is added, changed or removed.
+
+    Options changes reload through OptionsFlowWithReload; an update listener is not
+    used, because Home Assistant no longer accepts one next to its own reload.
+    """
+    seen = dict(entry.subentries)
+
+    @callback
+    def _changed(change: ConfigEntryChange, changed: ConfigEntry) -> None:
+        if (
+            change is ConfigEntryChange.UPDATED
+            and changed.entry_id == entry.entry_id
+            and dict(changed.subentries) != seen
+        ):
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    entry.async_on_unload(async_dispatcher_connect(hass, SIGNAL_CONFIG_ENTRY_CHANGED, _changed))
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

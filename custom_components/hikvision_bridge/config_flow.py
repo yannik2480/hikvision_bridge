@@ -16,6 +16,7 @@ from homeassistant.config_entries import (
     ConfigSubentry,
     ConfigSubentryFlow,
     OptionsFlow,
+    OptionsFlowWithReload,
     SubentryFlowResult,
 )
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
@@ -592,7 +593,7 @@ def _panel_fields(hass: HomeAssistant) -> dict[Any, Any]:
     }
 
 
-class BridgeOptionsFlow(OptionsFlow):
+class BridgeOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
         errors: dict[str, str] = {}
