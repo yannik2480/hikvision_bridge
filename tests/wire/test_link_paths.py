@@ -87,6 +87,21 @@ async def test_optional_reads_remember_unsupported_paths(open_link) -> None:
         await link.read_text(path)
 
 
+async def test_optional_reads_skip_forbidden_paths(open_link) -> None:
+    # DS-7116HGHI-M1 answers a bare 403 for the event capabilities (issue #22).
+    path, text = "/ISAPI/Event/channels/capabilities", "/ISAPI/Thing/text"
+    device = FakeDevice(overrides={path: (403, ""), text: (403, "")})
+    link = await open_link(device.app(), device.username, device.password)
+    assert await link.read_xml(path, optional=True) is None
+    assert path in link.unsupported
+    before = len(device.requests)
+    assert await link.read_xml(path, optional=True) is None
+    assert len(device.requests) == before  # not asked again
+    assert await link.read_json(text, optional=True) is None
+    with pytest.raises(faults.Forbidden):
+        await link.read_text(text)
+
+
 async def test_optional_read_of_rejected_and_broken_documents(open_link) -> None:
     rejected, broken, js = "/ISAPI/Thing/bad", "/ISAPI/Thing/broken", "/ISAPI/Thing/json"
     device = FakeDevice(
