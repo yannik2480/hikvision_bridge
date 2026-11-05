@@ -10,6 +10,8 @@ const HOUR = 3600e3;
 const DAY = 24 * HOUR;
 const ZOOMS = [DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 15 * 60e3];
 const HEVC = 'video/mp4; codecs="hvc1.1.6.L153.B0"';
+// Playback speeds of recordings, as the Hik-Connect app offers them.
+const SPEEDS = [1, 2, 4, 8];
 // Live WebRTC gives up after this long and the view falls back to HLS.
 const RTC_START_MS = 6000;
 
@@ -18,6 +20,7 @@ const TEXT = {
   live: "Live",
   playback: "Playback",
   quality: "Quality",
+  speed: "Speed",
   auto: "Auto",
   low: "Low (fast)",
   high: "High",
@@ -582,6 +585,7 @@ class Player {
     this.session = null;
     this.mode = "live";
     this.quality = "auto";
+    this.speed = 1; // playback speed of recordings; live always runs at 1x
     this.level = null; // quality actually playing: low/high (live), original/compatible (recordings)
     this.stalls = [];
     this.token = 0;
@@ -652,6 +656,20 @@ class Player {
     this.video.srcObject = null;
     this.video.removeAttribute("src");
     this.video.load();
+    // Loading resets the rate to the default one: set the speed again for the next source.
+    this._applySpeed();
+  }
+
+  // Recordings play at the chosen speed (muted, so no pitch to keep); live always at 1x.
+  _applySpeed() {
+    const rate = this.mode === "playback" ? this.speed : 1;
+    this.video.defaultPlaybackRate = rate;
+    this.video.playbackRate = rate;
+  }
+
+  setSpeed(speed) {
+    this.speed = speed;
+    this._applySpeed();
   }
 
   _closeRtc() {
@@ -679,6 +697,7 @@ class Player {
   async live(camera, quality) {
     this.mode = "live";
     this.quality = quality;
+    this.speed = 1;
     const level = quality === "auto" ? (camera.live.low ? "low" : "high") : quality;
     await this._live(camera, level);
   }
@@ -843,6 +862,7 @@ class Player {
     this.source = source;
     let level = quality === "auto" ? "original" : quality;
     if (quality === "auto" && camera.codec && camera.codec.includes("265") && !this.canHevc) level = "compatible";
+    this._applySpeed();
     await this._play(time, level);
   }
 
@@ -1123,6 +1143,7 @@ class Viewer {
           <div class="group end">
             <select class="source" hidden></select>
             <select class="quality"></select>
+            <select class="speed" hidden></select>
             <button class="icon-button" data-action="download">${ICONS.download}</button>
             <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
           </div>
@@ -1149,6 +1170,7 @@ class Viewer {
     root.querySelector(".controls").addEventListener("click", (e) => this._click(e));
     root.querySelector(".day-bar").addEventListener("click", (e) => this._click(e));
     root.querySelector(".quality").addEventListener("change", (e) => this.setQuality(e.target.value));
+    root.querySelector(".speed").addEventListener("change", (e) => this.setSpeed(Number(e.target.value)));
     root.querySelector(".source").addEventListener("change", (e) => {
       this.source = e.target.value;
       this.loadTimeline();
@@ -1236,7 +1258,19 @@ class Viewer {
     this.timeline.kindName = (k) => this.t.kind(k);
     this.timeline.eventName = (k) => this.t.event(k);
     this._qualityOptions();
+    this._speedOptions();
     this._legend();
+  }
+
+  _speedOptions() {
+    const select = this.root.querySelector(".speed");
+    select.innerHTML = SPEEDS.map((s) => `<option value="${s}">${this.t.ui("speed")}: ${s}x</option>`).join("");
+    select.value = String(this.player.speed);
+  }
+
+  setSpeed(speed) {
+    this.player.setSpeed(speed);
+    this.update();
   }
 
   _qualityOptions() {
@@ -1544,6 +1578,9 @@ class Viewer {
       this.root.querySelector(`[data-action="${action}"]`).disabled = !recorded;
     }
     this.root.querySelector('[data-action="forward"]').disabled = !recorded || live;
+    const speed = this.root.querySelector(".speed");
+    speed.hidden = live || !recorded;
+    speed.value = String(this.player.speed);
     const badges = [];
     if (live) badges.push(`<span class="badge live">${t("live")}</span>`);
     if (this.player.level) {

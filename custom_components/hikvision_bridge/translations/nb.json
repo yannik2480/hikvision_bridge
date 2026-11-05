@@ -915,6 +915,7 @@
         "live": "Direkte",
         "playback": "Avspilling",
         "quality": "Kvalitet",
+        "speed": "Hastighet",
         "auto": "Auto",
         "low": "Lav (rask)",
         "high": "Høy",

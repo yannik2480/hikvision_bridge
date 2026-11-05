@@ -915,6 +915,7 @@
         "live": "En direct",
         "playback": "Lecture",
         "quality": "Qualité",
+        "speed": "Vitesse",
         "auto": "Auto",
         "low": "Basse (rapide)",
         "high": "Élevée",

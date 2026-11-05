@@ -915,6 +915,7 @@
         "live": "실시간",
         "playback": "재생",
         "quality": "화질",
+        "speed": "재생 속도",
         "auto": "자동",
         "low": "낮음(빠름)",
         "high": "높음",

@@ -915,6 +915,7 @@
         "live": "实时",
         "playback": "回放",
         "quality": "画质",
+        "speed": "速度",
         "auto": "自动",
         "low": "低（快速）",
         "high": "高",

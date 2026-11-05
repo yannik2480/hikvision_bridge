@@ -915,6 +915,7 @@
         "live": "Live",
         "playback": "Playback",
         "quality": "Quality",
+        "speed": "Speed",
         "auto": "Auto",
         "low": "Low (fast)",
         "high": "High",
