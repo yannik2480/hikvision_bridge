@@ -373,7 +373,15 @@ async def search(link: IsapiLink, track: str, start: datetime, end: datetime) ->
     MORE; paging stops as soon as a page brings nothing new.
     """
     await learn_basis(link, track)
-    return await _search(link, track, start, end, await wall_offset(link))
+    began = time.monotonic()
+    found = await _search(link, track, start, end, await wall_offset(link))
+    _LOGGER.debug(
+        "Recordings of %s: %d found in %.1f s",
+        link.endpoint.host,
+        len(found),
+        time.monotonic() - began,
+    )
+    return found
 
 
 async def _search(

@@ -672,6 +672,113 @@ async def test_playback_beyond_reach_of_recorded_file(
     await sessions.manager(hass).stop_all()
 
 
+class _Clock:
+    """Stands in for ``time`` in the sessions: each reading of the clock is ``step`` s later."""
+
+    def __init__(self, step: float = 0.5) -> None:
+        self.now = 0.0
+        self.step = step
+
+    def monotonic(self) -> float:
+        self.now += self.step
+        return self.now
+
+
+async def test_skipped_gives_up_on_a_slow_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A file sent too slowly to reach the time stops early when asked to give up."""
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    monkeypatch.setattr(sessions, "time", _Clock())
+    stream = ProgramStream(codec="h264")
+    with pytest.raises(sessions._TooSlow) as caught:
+        await sessions.skipped(stream, _fed(stream, data), 600, give_up=True)
+    assert 0 < caught.value.reach < 600
+    assert stream.key_frames is None
+
+    # Without giving up the same read goes on until its time.
+    stream = ProgramStream(codec="h264")
+    first, cut = await sessions.skipped(stream, _fed(stream, data), 600)
+    assert cut == 12
+
+
+async def test_skipped_keeps_a_read_that_reaches_the_time() -> None:
+    """A file that reaches the time quickly is read through, also when giving up is allowed."""
+    data, keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    stream = ProgramStream(codec="h264")
+    first, cut = await sessions.skipped(stream, _fed(stream, data), 10, give_up=True)
+    assert cut == 8
+    assert stream.key_frames is None
+
+
+async def test_slow_recorded_file_plays_over_rtsp_from_the_first_seek(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A recorder that sends files only from their start, slowly, is not read up to the time.
+
+    The first seek plays over RTSP at the time asked for. Where RTSP fails, the file is read
+    up to the time after all, as before.
+    """
+    device, entry = await _setup(hass, serve)
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+
+    def download(_method: str, body: str) -> web.Response:
+        if "name=" not in body:
+            return web.Response(
+                status=400,
+                text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
+                content_type="application/xml",
+            )
+        # Every request gets the file from its start: the recorder ignores the asked time.
+        return web.Response(body=data, content_type="application/binary")
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    # The recorder reads of this file are slow: a few seconds of clock per reading.
+    monkeypatch.setattr(sessions, "time", _Clock(step=3.0))
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+
+    async def play(moment) -> tuple[dict, str]:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": moment.isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+        args = await hass.async_add_executor_job((session.folder / "args").read_text)
+        return answer["result"], args
+
+    manager = sessions.manager(hass)
+    started, args = await play(START + timedelta(minutes=5))
+    assert started["start"] == (START + timedelta(minutes=5)).isoformat()
+    assert "/Streaming/tracks/101/?starttime=" in args
+    # The span, the head of the file and the file asked from the time; the rest is not read.
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert len(downloads) == 3
+    assert manager._reach
+    await manager.stop_all()
+
+    # The RTSP playback fails: the file is read up to the time, as far as the device gets.
+    _script(
+        tmp_path,
+        monkeypatch,
+        '#!/bin/sh\ncase "$*" in *rtsp://*) echo "Connection refused" >&2; exit 1;; esac\n'
+        + HLS_PIPE.removeprefix("#!/bin/sh\n"),
+    )
+    started, args = await play(START + timedelta(minutes=6))
+    assert "pipe:0" in args
+    assert started["start"] == (START + timedelta(seconds=12)).isoformat()
+    await manager.stop_all()
+
+
 async def test_playback_start_replaced_while_starting(
     hass: HomeAssistant,
     serve,

@@ -29,6 +29,7 @@ const TEXT = {
   cameras: "Cameras",
   no_cameras: "No cameras found.",
   no_recordings: "No recordings on this day.",
+  loading: "Loading recordings...",
   no_recording: "No recording from this time on.",
   playback_encrypted: "The recording is encrypted and the verification code does not fit. Enter it in the integration options.",
   playback_unreadable: "The video from the camera could not be read, often because of a weak connection (for example Wi-Fi). Try again or choose a lower quality. If the recordings are encrypted, check the verification code in the integration options.",
@@ -347,6 +348,9 @@ class Timeline {
     this.span = DAY;
     this.recordings = [];
     this.events = [];
+    // While the day's recordings are searched, the band says so instead of looking empty.
+    this.loading = false;
+    this.loadingText = "Loading recordings...";
     this.playhead = null;
     this.colors = {};
     this.kindName = (k) => k;
@@ -492,6 +496,13 @@ class Timeline {
       if (b < 0 || a > width) continue;
       ctx.fillStyle = KIND_COLORS[rec.kind] || KIND_COLORS.other;
       ctx.fillRect(a, recY, Math.max(2, b - a), recH);
+    }
+
+    if (this.loading) {
+      ctx.fillStyle = muted;
+      ctx.font = "13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(this.loadingText, width / 2, recY + recH / 2 + 4);
     }
 
     // Detections colour their part of the recordings, people and vehicles on top.
@@ -1360,6 +1371,19 @@ class Viewer {
     const day = this.day;
     if (this.timeline.dayStart !== day.getTime()) this.timeline.setDay(day);
     this._dateLabel();
+    const key = `${camera.entry_id}/${camera.channel_id}/${this.source}/${day.getTime()}`;
+    // A day not shown yet is loading until its search answers; the minute refresh of today
+    // keeps the recordings on screen meanwhile.
+    if (key !== this._timelineKey) {
+      this._timelineKey = key;
+      this.data = { recordings: [], events: [] };
+      this.timeline.recordings = [];
+      this.timeline.events = [];
+      this.timeline.loadingText = this.t.ui("loading");
+      this.timeline.loading = this.loading = true;
+      this.timeline.draw();
+      this._hint();
+    }
     try {
       const result = await this.hass.callWS({
         type: `${DOMAIN}/timeline`,
@@ -1369,12 +1393,14 @@ class Viewer {
         start: day.toISOString(),
         end: new Date(day.getTime() + DAY).toISOString(),
       });
-      if (camera !== this.camera || day !== this.day) return;
+      if (key !== this._timelineKey) return;
       const parse = (list) => list.map((i) => ({ ...i, start: new Date(i.start).getTime(), end: new Date(i.end).getTime() }));
       this.data = { recordings: parse(result.recordings), events: parse(result.events) };
     } catch (_err) {
+      if (key !== this._timelineKey) return;
       this.data = { recordings: [], events: [] };
     }
+    this.timeline.loading = this.loading = false;
     this.timeline.recordings = this.data.recordings;
     this.timeline.events = this.data.events;
     this.timeline.draw();
@@ -1386,6 +1412,7 @@ class Viewer {
     const hint = this.root.querySelector(".hint");
     let text = "";
     if (this.camera && !this.camera.sources.length) text = "";
+    else if (this.loading) text = this.t.ui("loading");
     else if (this.camera && !this.data.recordings.length) text = this.t.ui("no_recordings");
     else if (this.mode === "playback" && this.player.level === "original" && this.camera?.codec?.includes("265") && !this.player.canHevc)
       text = this.t.ui("hevc_hint");
