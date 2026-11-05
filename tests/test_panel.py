@@ -696,15 +696,15 @@ async def test_skipped_gives_up_on_a_slow_file(monkeypatch: pytest.MonkeyPatch) 
 
     # Without giving up the same read goes on until its time.
     stream = ProgramStream(codec="h264")
-    first, cut = await sessions.skipped(stream, _fed(stream, data), 600)
+    _first, cut = await sessions.skipped(stream, _fed(stream, data), 600)
     assert cut == 12
 
 
 async def test_skipped_keeps_a_read_that_reaches_the_time() -> None:
     """A file that reaches the time quickly is read through, also when giving up is allowed."""
-    data, keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
     stream = ProgramStream(codec="h264")
-    first, cut = await sessions.skipped(stream, _fed(stream, data), 10, give_up=True)
+    _first, cut = await sessions.skipped(stream, _fed(stream, data), 10, give_up=True)
     assert cut == 8
     assert stream.key_frames is None
 
