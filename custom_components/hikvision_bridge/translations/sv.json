@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Aktivera rapportering",
             "description": "Enheten detekterar {kind} men skickar det inte till händelseströmmen, eftersom kopplingen 'Meddela övervakningscentral' är avstängd. Bekräfta för att bara slå på den kopplingen (utlösare {trigger}); inget annat ändras. {reason}"
+          },
+          "init": {
+            "title": "Aktivera rapportering",
+            "description": "Enheten detekterar {kind} men skickar det inte till händelseströmmen, eftersom kopplingen 'Meddela övervakningscentral' är avstängd. Bekräfta för att bara slå på den kopplingen (utlösare {trigger}); inget annat ändras. {reason}",
+            "menu_options": {
+              "confirm": "Aktivera rapportering",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Enheten accepterade inte ändringen."
         },
         "abort": {
-          "not_loaded": "Enheten är inte laddad."
+          "not_loaded": "Enheten är inte laddad.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

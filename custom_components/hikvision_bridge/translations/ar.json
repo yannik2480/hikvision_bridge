@@ -721,13 +721,22 @@
           "confirm": {
             "title": "تفعيل الإبلاغ",
             "description": "يكتشف الجهاز {kind} لكنه لا يرسله إلى تدفق الأحداث، لأن الربط «إخطار مركز المراقبة» معطّل. أكّد لتفعيل هذا الربط فقط (المشغّل {trigger})؛ ولن يتغير شيء آخر. {reason}"
+          },
+          "init": {
+            "title": "تفعيل الإبلاغ",
+            "description": "يكتشف الجهاز {kind} لكنه لا يرسله إلى تدفق الأحداث، لأن الربط «إخطار مركز المراقبة» معطّل. أكّد لتفعيل هذا الربط فقط (المشغّل {trigger})؛ ولن يتغير شيء آخر. {reason}",
+            "menu_options": {
+              "confirm": "تفعيل الإبلاغ",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "لم يقبل الجهاز التغيير."
         },
         "abort": {
-          "not_loaded": "الجهاز غير محمّل."
+          "not_loaded": "الجهاز غير محمّل.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

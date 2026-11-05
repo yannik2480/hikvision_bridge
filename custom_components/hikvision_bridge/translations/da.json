@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Aktivér melding",
             "description": "Enheden registrerer {kind}, men sender det ikke til hændelsesstrømmen, fordi koblingen 'Underret overvågningscentral' er slået fra. Bekræft for kun at slå den kobling til (udløser {trigger}); intet andet ændres. {reason}"
+          },
+          "init": {
+            "title": "Aktivér melding",
+            "description": "Enheden registrerer {kind}, men sender det ikke til hændelsesstrømmen, fordi koblingen 'Underret overvågningscentral' er slået fra. Bekræft for kun at slå den kobling til (udløser {trigger}); intet andet ændres. {reason}",
+            "menu_options": {
+              "confirm": "Aktivér melding",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Enheden accepterede ikke ændringen."
         },
         "abort": {
-          "not_loaded": "Enheden er ikke indlæst."
+          "not_loaded": "Enheden er ikke indlæst.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

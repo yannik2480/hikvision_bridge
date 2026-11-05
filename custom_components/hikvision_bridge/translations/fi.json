@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Ota ilmoitus käyttöön",
             "description": "Laite tunnistaa kohteen {kind}, mutta ei lähetä sitä tapahtumavirtaan, koska linkitys 'Ilmoita valvontakeskukselle' on pois päältä. Vahvista, niin vain tämä linkitys kytketään päälle (laukaisin {trigger}); mikään muu ei muutu. {reason}"
+          },
+          "init": {
+            "title": "Ota ilmoitus käyttöön",
+            "description": "Laite tunnistaa kohteen {kind}, mutta ei lähetä sitä tapahtumavirtaan, koska linkitys 'Ilmoita valvontakeskukselle' on pois päältä. Vahvista, niin vain tämä linkitys kytketään päälle (laukaisin {trigger}); mikään muu ei muutu. {reason}",
+            "menu_options": {
+              "confirm": "Ota ilmoitus käyttöön",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Laite ei hyväksynyt muutosta."
         },
         "abort": {
-          "not_loaded": "Laitetta ei ole ladattu."
+          "not_loaded": "Laitetta ei ole ladattu.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

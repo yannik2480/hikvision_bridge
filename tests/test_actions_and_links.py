@@ -132,10 +132,22 @@ async def test_center_link_repair_writes_only_after_confirmation(
     assert issue.is_fixable
     flow = await repairs.async_create_fix_flow(hass, issue_id, issue.data)
     flow.hass = hass
-    form = await flow.async_step_init()
-    assert form["type"] is FlowResultType.FORM
+    menu = await flow.async_step_init()
+    assert menu["type"] is FlowResultType.MENU
+    assert menu["menu_options"] == ["confirm", "ignore"]
     assert device.writes == []
-    done = await flow.async_step_confirm({})
+
+    # Ignore flow marks the issue dismissed in Home Assistant
+    ignore_flow = await repairs.async_create_fix_flow(hass, issue_id, issue.data)
+    ignore_flow.hass = hass
+    ignored = await ignore_flow.async_step_ignore()
+    assert ignored["type"] is FlowResultType.ABORT
+    assert ignored["reason"] == "issue_ignored"
+    issue_entry = ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
+    assert issue_entry.dismissed_version is not None
+
+    # Confirm flow writes the linkage change and reloads the entry
+    done = await flow.async_step_confirm()
     assert done["type"] is FlowResultType.CREATE_ENTRY
     assert len(device.writes) == 1
 

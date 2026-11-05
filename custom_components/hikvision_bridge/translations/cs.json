@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Zapnout hlášení",
             "description": "Zařízení detekuje {kind}, ale neposílá to do streamu událostí, protože propojení „Upozornit dohledové centrum“ je vypnuté. Potvrďte pro zapnutí pouze tohoto propojení (spouštěč {trigger}); nic jiného se nezmění. {reason}"
+          },
+          "init": {
+            "title": "Zapnout hlášení",
+            "description": "Zařízení detekuje {kind}, ale neposílá to do streamu událostí, protože propojení „Upozornit dohledové centrum“ je vypnuté. Potvrďte pro zapnutí pouze tohoto propojení (spouštěč {trigger}); nic jiného se nezmění. {reason}",
+            "menu_options": {
+              "confirm": "Zapnout hlášení",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Zařízení změnu nepřijalo."
         },
         "abort": {
-          "not_loaded": "Zařízení není načteno."
+          "not_loaded": "Zařízení není načteno.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

@@ -721,13 +721,22 @@
           "confirm": {
             "title": "보고 활성화",
             "description": "장치가 {kind}을(를) 감지하지만 연동 '감시 센터에 알림'이 꺼져 있어 이벤트 스트림으로 보내지 않습니다. 확인하면 이 연동만 켭니다(트리거 {trigger}). 다른 것은 바뀌지 않습니다. {reason}"
+          },
+          "init": {
+            "title": "보고 활성화",
+            "description": "장치가 {kind}을(를) 감지하지만 연동 '감시 센터에 알림'이 꺼져 있어 이벤트 스트림으로 보내지 않습니다. 확인하면 이 연동만 켭니다(트리거 {trigger}). 다른 것은 바뀌지 않습니다. {reason}",
+            "menu_options": {
+              "confirm": "보고 활성화",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "장치가 변경을 수락하지 않았습니다."
         },
         "abort": {
-          "not_loaded": "장치가 로드되지 않았습니다."
+          "not_loaded": "장치가 로드되지 않았습니다.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },
