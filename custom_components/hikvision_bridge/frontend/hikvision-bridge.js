@@ -10,6 +10,8 @@ const HOUR = 3600e3;
 const DAY = 24 * HOUR;
 const ZOOMS = [DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 15 * 60e3];
 const HEVC = 'video/mp4; codecs="hvc1.1.6.L153.B0"';
+// Live WebRTC gives up after this long and the view falls back to HLS.
+const RTC_START_MS = 6000;
 
 // English texts; translations come from the integration (selector "ui").
 const TEXT = {
@@ -613,8 +615,8 @@ class Player {
       } else {
         this.hls = new Hls({
           lowLatencyMode: this.mode === "live",
-          // Recordings: load the first segment while the video element is still being set up.
-          startFragPrefetch: this.mode === "playback",
+          // Load the first segment while the video element is still being set up.
+          startFragPrefetch: true,
           backBufferLength: 120,
           manifestLoadingMaxRetry: 6,
           levelLoadingMaxRetry: 6,
@@ -642,12 +644,19 @@ class Player {
 
   _detach() {
     clearTimeout(this._upgradeTimer);
+    this._closeRtc();
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
     }
+    this.video.srcObject = null;
     this.video.removeAttribute("src");
     this.video.load();
+  }
+
+  _closeRtc() {
+    if (this.rtc) this.rtc.close();
+    this.rtc = null;
   }
 
   async stop() {
@@ -674,12 +683,15 @@ class Player {
     await this._live(camera, level);
   }
 
-  async _live(camera, level) {
+  // WebRTC first when Home Assistant offers it for the camera (the same signalling its own
+  // viewer uses), HLS otherwise or when WebRTC fails.
+  async _live(camera, level, hlsOnly = false) {
     const entity = camera.live[level] || camera.live.high || camera.live.low;
     const token = ++this.token;
     clearInterval(this._keepAlive);
     if (this.session) this.stop();
     this.token = token;
+    this._closeRtc();
     if (!entity) {
       this._detach();
       this.host.showError("live_unavailable");
@@ -687,15 +699,139 @@ class Player {
     }
     this.host.busy(true);
     try {
+      const shown = camera.live[level] ? level : camera.live.high ? "high" : "low";
+      if (!hlsOnly && (await this._webrtc(camera, level, entity, token))) {
+        if (token === this.token) {
+          this.level = shown;
+          this.camera = camera;
+          this.host.update();
+        }
+        return;
+      }
+      if (token !== this.token) return;
       const { url } = await this.host.hass.callWS({ type: "camera/stream", entity_id: entity, format: "hls" });
       if (token !== this.token) return;
-      this.level = camera.live[level] ? level : camera.live.high ? "high" : "low";
+      this.level = shown;
       this.camera = camera;
       await this._attach(url, token);
       this.host.update();
     } catch (err) {
       if (token === this.token) this.host.showError(err.code === "start_stream_failed" ? "live_encrypted" : "live_unavailable");
     }
+  }
+
+  /*
+   * Live picture over WebRTC through Home Assistant's camera signalling (the same messages
+   * its own player uses). Resolves true once the picture plays; false means use HLS: the
+   * camera has no WebRTC provider, the connection failed or it took too long.
+   */
+  async _webrtc(camera, level, entity, token) {
+    const hass = this.host.hass;
+    if (!window.RTCPeerConnection || !hass.connection) return false;
+    let types = [];
+    try {
+      ({ frontend_stream_types: types = [] } = await hass.callWS({ type: "camera/capabilities", entity_id: entity }));
+    } catch (_err) {
+      return false;
+    }
+    if (token !== this.token || !types.includes("web_rtc")) return false;
+    let configuration = {};
+    try {
+      ({ configuration = {} } = await hass.callWS({ type: "camera/webrtc/get_client_config", entity_id: entity }));
+    } catch (_err) {
+      /* no extra servers: the local network needs none */
+    }
+    if (token !== this.token) return false;
+
+    this._detach();
+    const video = this.video;
+    const pc = new RTCPeerConnection(configuration);
+    const stream = new MediaStream();
+    video.srcObject = stream;
+    video.muted = true;
+    let done = false;
+    let closed = false;
+    let session = null;
+    let unsubscribe = null;
+    const queued = [];
+
+    const send = (candidate) =>
+      hass.callWS({ type: "camera/webrtc/candidate", entity_id: entity, session_id: session, candidate }).catch(() => {});
+    const teardown = () => {
+      if (closed) return;
+      closed = true;
+      pc.close();
+      if (unsubscribe) unsubscribe();
+    };
+
+    return new Promise((resolve) => {
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        video.removeEventListener("playing", onPlaying);
+        if (!ok) teardown();
+        resolve(ok);
+      };
+      const onPlaying = () => finish(true);
+      const timer = setTimeout(() => finish(false), RTC_START_MS);
+      const rtc = {
+        close: () => {
+          finish(false);
+          teardown();
+        },
+      };
+      this.rtc = rtc;
+
+      const onMessage = (message) => {
+        if (closed) return;
+        if (message.type === "session") {
+          session = message.session_id;
+          queued.splice(0).forEach(send);
+        } else if (message.type === "answer") {
+          pc.setRemoteDescription({ type: "answer", sdp: message.answer }).catch(() => finish(false));
+        } else if (message.type === "candidate") {
+          pc.addIceCandidate(message.candidate).catch(() => {});
+        } else if (message.type === "error") {
+          finish(false);
+        }
+      };
+
+      pc.addTransceiver("video", { direction: "recvonly" });
+      pc.addTransceiver("audio", { direction: "recvonly" });
+      pc.ontrack = (event) => {
+        stream.addTrack(event.track);
+        video.play().catch(() => {});
+      };
+      pc.onicecandidate = (event) => {
+        if (!event.candidate) return;
+        const candidate = event.candidate.toJSON();
+        if (session) send(candidate);
+        else queued.push(candidate);
+      };
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState !== "failed") return;
+        if (!done) finish(false);
+        // Lost after it played: continue with HLS.
+        else if (this.rtc === rtc && token === this.token) this._live(camera, level, true);
+      };
+      video.addEventListener("playing", onPlaying);
+
+      pc.createOffer()
+        .then((offer) => pc.setLocalDescription(offer))
+        .then(() =>
+          hass.connection.subscribeMessage(onMessage, {
+            type: "camera/webrtc/offer",
+            entity_id: entity,
+            offer: pc.localDescription.sdp,
+          }),
+        )
+        .then((stop) => {
+          if (closed) stop();
+          else unsubscribe = stop;
+        })
+        .catch(() => finish(false));
+    });
   }
 
   // ---- recordings
