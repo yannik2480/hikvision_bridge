@@ -21,8 +21,15 @@ class CenterLinkFlow(RepairsFlow):
     def __init__(self, entry_id: str, trigger_id: str, issue_id: str | None = None) -> None:
         self._entry_id = entry_id
         self._trigger_id = trigger_id
-        if issue_id:
-            self._issue_id = issue_id
+        self._issue_id = issue_id or ""
+
+    @property
+    def issue_id(self) -> str:
+        return self._issue_id or self.context.get("issue_id", "")
+
+    @issue_id.setter
+    def issue_id(self, value: str) -> None:
+        self._issue_id = value
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
