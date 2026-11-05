@@ -58,6 +58,9 @@ MAX_RESULTS = 2000
 PAST_SEARCH_SECONDS = 600
 RECENT_SEARCH_SECONDS = 90
 SEARCHES_KEPT = 8
+# A fresh search of a span up to the present asks only for its last minutes while the whole
+# span was searched less than this long ago.
+FULL_SEARCH_SECONDS = 600
 HEADER_MAGIC = b"IMKH"
 PACK_START = b"\x00\x00\x01\xba"
 
@@ -392,7 +395,10 @@ async def search(link: IsapiLink, track: str, start: datetime, end: datetime) ->
 
 @dataclass(slots=True)
 class _Searched:
-    """A search of the panel, running or done; ``at`` is when it began (UTC)."""
+    """A search of the panel, running or done; ``at`` is when it began (UTC).
+
+    ``full`` is when the whole span was last searched (monotonic), ``began`` for one that was.
+    """
 
     track: str
     start: datetime
@@ -400,7 +406,13 @@ class _Searched:
     wall: timedelta
     at: datetime
     began: float
+    full: float
     task: asyncio.Task[list[Recording]]
+
+    @property
+    def recent(self) -> bool:
+        """Whether the span reaches up to the present of the search."""
+        return self.end >= self.at - NOW_TOLERANCE
 
     def covers(self, track: str, start: datetime, end: datetime, wall: timedelta) -> bool:
         # A span reaching past the time of the search holds nothing newer than its results.
@@ -419,7 +431,9 @@ async def recent_search(
     The panel searches the day for its timeline and, on every seek, the hours around the
     time; over a slow link each search takes seconds. Results of spans long past are kept
     for PAST_SEARCH_SECONDS, of spans up to the present for RECENT_SEARCH_SECONDS. ``fresh``
-    always asks the device, and its results serve the searches after it.
+    always asks the device, and its results serve the searches after it. The timeline of today
+    is searched fresh every minute: while the whole day was searched less than
+    FULL_SEARCH_SECONDS ago, only its last minutes are asked for and added.
     """
     await learn_basis(link, track)
     wall = await wall_offset(link)
@@ -428,17 +442,55 @@ async def recent_search(
         s
         for s in _searched.get(link, [])
         if not (s.task.done() and (s.task.cancelled() or s.task.exception()))
-        and now - s.began
-        < (PAST_SEARCH_SECONDS if s.end < s.at - NOW_TOLERANCE else RECENT_SEARCH_SECONDS)
+        and now - s.began < PAST_SEARCH_SECONDS
     ]
     for searched in [] if fresh else reversed(kept):
-        if searched.covers(track, start, end, wall):
+        reuse = RECENT_SEARCH_SECONDS if searched.recent else PAST_SEARCH_SECONDS
+        if now - searched.began < reuse and searched.covers(track, start, end, wall):
             found = await asyncio.shield(searched.task)
             return [r for r in found if r.end > start and r.start < end]
-    task = asyncio.ensure_future(search(link, track, start, end))
-    kept.append(_Searched(track, start, end, wall, datetime.now(UTC), now, task))
+    at = datetime.now(UTC)
+    base = next(
+        (
+            s
+            for s in reversed(kept)
+            if s.task.done()
+            and s.recent
+            and (s.track, s.start, s.end, s.wall) == (track, start, end, wall)
+            and now - s.full < FULL_SEARCH_SECONDS
+        ),
+        None,
+    )
+    if fresh and base is not None and end >= at - NOW_TOLERANCE:
+        since = max(start, base.at - NOW_TOLERANCE)
+        task = asyncio.ensure_future(_added(link, track, start, end, base.task.result(), since))
+        full = base.full
+    else:
+        task = asyncio.ensure_future(search(link, track, start, end))
+        full = now
+    kept.append(_Searched(track, start, end, wall, at, now, full, task))
     _searched[link] = kept[-SEARCHES_KEPT:]
     return await asyncio.shield(task)
+
+
+async def _added(
+    link: IsapiLink,
+    track: str,
+    start: datetime,
+    end: datetime,
+    known: list[Recording],
+    since: datetime,
+) -> list[Recording]:
+    """``known`` with the recordings from ``since`` on searched again (also those in progress)."""
+
+    def key(item: Recording) -> tuple[str, datetime, str]:
+        return item.track, item.start, item.name or item.playback_uri
+
+    merged = {key(r): r for r in known}
+    merged.update((key(r), r) for r in await search(link, track, since, end))
+    return sorted(
+        (r for r in merged.values() if r.end > start and r.start < end), key=lambda r: r.start
+    )
 
 
 async def _search(

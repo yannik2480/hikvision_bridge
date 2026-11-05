@@ -487,3 +487,40 @@ async def test_recent_search_forgets_a_failed_search(serve) -> None:
             await recordings.recent_search(link, "101", T0, T0 + timedelta(hours=1))
         found = await recordings.recent_search(link, "101", T0, T0 + timedelta(hours=1))
     assert len(found) == 3
+
+
+async def test_recent_search_of_today_asks_only_for_its_last_minutes(
+    serve, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The minute refresh of today's timeline adds the newest recordings to the day's."""
+    now = datetime.now(UTC).replace(microsecond=0)
+    day_start, day_end = now - timedelta(hours=2), now + timedelta(hours=22)
+    clips = [
+        match(now - timedelta(minutes=90), 10, "motion", "a"),
+        match(now - timedelta(minutes=3), 5, "motion", "b"),
+    ]
+    device = FakeDevice("camera_g3")
+    device.responders[recordings.SEARCH_PATH] = searcher(clips, 10)
+    server = await serve(device)
+
+    def asked() -> list[str]:
+        return [w[2] for w in device.writes if w[1] == recordings.SEARCH_PATH]
+
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        first = await recordings.recent_search(link, "101", day_start, day_end, fresh=True)
+        assert [r.name for r in first] == ["a", "b"]
+        # A new recording, and the one in progress got longer.
+        clips[1] = match(now - timedelta(minutes=3), 7, "motion", "b")
+        clips.append(match(now + timedelta(minutes=1), 1, "motion", "c"))
+        updated = await recordings.recent_search(link, "101", day_start, day_end, fresh=True)
+        assert [r.name for r in updated] == ["a", "b", "c"]
+        assert updated[1].end == now + timedelta(minutes=4)
+        # Only the last minutes were asked for.
+        assert f"<startTime>{now - timedelta(minutes=5):%Y-%m-%dT%H:%M:%SZ}" in asked()[-1]
+        # After a while the whole day is searched again.
+        monkeypatch.setattr(recordings, "FULL_SEARCH_SECONDS", 0)
+        await recordings.recent_search(link, "101", day_start, day_end, fresh=True)
+        assert f"<startTime>{day_start:%Y-%m-%dT%H:%M:%SZ}" in asked()[-1]
