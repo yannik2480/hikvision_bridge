@@ -13,6 +13,7 @@ header; the codec field of search results is not reliable and is therefore not u
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -52,6 +53,11 @@ DAYS_PATH = "/ISAPI/ContentMgmt/record/tracks/{track}/dailyDistribution"
 PAGE_SIZE = 50
 # A day of ten-minute files on one track stays far below this; it only stops runaway paging.
 MAX_RESULTS = 2000
+# How long the results of a search are reused by ``recent_search``: spans long past change
+# no more, spans up to the present get new recordings.
+PAST_SEARCH_SECONDS = 600
+RECENT_SEARCH_SECONDS = 90
+SEARCHES_KEPT = 8
 HEADER_MAGIC = b"IMKH"
 PACK_START = b"\x00\x00\x01\xba"
 
@@ -382,6 +388,57 @@ async def search(link: IsapiLink, track: str, start: datetime, end: datetime) ->
         time.monotonic() - began,
     )
     return found
+
+
+@dataclass(slots=True)
+class _Searched:
+    """A search of the panel, running or done; ``at`` is when it began (UTC)."""
+
+    track: str
+    start: datetime
+    end: datetime
+    wall: timedelta
+    at: datetime
+    began: float
+    task: asyncio.Task[list[Recording]]
+
+    def covers(self, track: str, start: datetime, end: datetime, wall: timedelta) -> bool:
+        # A span reaching past the time of the search holds nothing newer than its results.
+        until = self.end if self.end < self.at else datetime.max.replace(tzinfo=UTC)
+        return self.track == track and self.wall == wall and self.start <= start and end <= until
+
+
+_searched: WeakKeyDictionary[IsapiLink, list[_Searched]] = WeakKeyDictionary()
+
+
+async def recent_search(
+    link: IsapiLink, track: str, start: datetime, end: datetime, fresh: bool = False
+) -> list[Recording]:
+    """``search``, answered from a search of the span still running or done shortly before.
+
+    The panel searches the day for its timeline and, on every seek, the hours around the
+    time; over a slow link each search takes seconds. Results of spans long past are kept
+    for PAST_SEARCH_SECONDS, of spans up to the present for RECENT_SEARCH_SECONDS. ``fresh``
+    always asks the device, and its results serve the searches after it.
+    """
+    await learn_basis(link, track)
+    wall = await wall_offset(link)
+    now = time.monotonic()
+    kept = [
+        s
+        for s in _searched.get(link, [])
+        if not (s.task.done() and (s.task.cancelled() or s.task.exception()))
+        and now - s.began
+        < (PAST_SEARCH_SECONDS if s.end < s.at - NOW_TOLERANCE else RECENT_SEARCH_SECONDS)
+    ]
+    for searched in [] if fresh else reversed(kept):
+        if searched.covers(track, start, end, wall):
+            found = await asyncio.shield(searched.task)
+            return [r for r in found if r.end > start and r.start < end]
+    task = asyncio.ensure_future(search(link, track, start, end))
+    kept.append(_Searched(track, start, end, wall, datetime.now(UTC), now, task))
+    _searched[link] = kept[-SEARCHES_KEPT:]
+    return await asyncio.shield(task)
 
 
 async def _search(

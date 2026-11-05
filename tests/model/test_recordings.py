@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 import re
 
@@ -11,6 +12,7 @@ import pytest
 
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import playback
+from custom_components.hikvision_bridge.wire.faults import BridgeFault
 from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.fakedevice import FakeDevice
@@ -404,3 +406,84 @@ async def test_motion_recordings_in_real_utc(serve) -> None:
         found = await recordings.search(link, "101", now - timedelta(hours=2), now)
         assert await recordings.wall_offset(link) == timedelta(0)
     assert [r.start for r in found] == [event - timedelta(seconds=5)]
+
+
+async def test_recent_search_reuses_a_search_of_the_span(serve) -> None:
+    """A seek after the timeline search of its day asks the device no more."""
+    device = FakeDevice("camera_g3")
+    device.responders[recordings.SEARCH_PATH] = searcher(CLIPS, len(CLIPS))
+    server = await serve(device)
+
+    def searches() -> int:
+        return len([w for w in device.writes if w[1] == recordings.SEARCH_PATH])
+
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        day = await recordings.recent_search(
+            link, "101", T0 - timedelta(hours=8), T0 + timedelta(hours=16), fresh=True
+        )
+        asked = searches()
+        within = await recordings.recent_search(
+            link, "101", T0 + timedelta(minutes=15), T0 + timedelta(minutes=20)
+        )
+        assert searches() == asked
+        # Only the recordings of the span, as the device would have answered.
+        assert [r.name for r in within] == ["b"]
+        assert [r.name for r in day] == ["a", "b", "c"]
+        # A span reaching beyond the one searched, and a fresh search, ask the device.
+        await recordings.recent_search(link, "101", T0, T0 + timedelta(days=2))
+        assert searches() == asked + 1
+        await recordings.recent_search(
+            link, "101", T0 + timedelta(minutes=15), T0 + timedelta(minutes=20), fresh=True
+        )
+        assert searches() == asked + 2
+        # Another track is searched on its own.
+        await recordings.recent_search(link, "201", T0, T0 + timedelta(minutes=5))
+        assert searches() == asked + 3
+
+
+async def test_recent_search_shares_a_running_search(serve) -> None:
+    device = FakeDevice("camera_g3")
+    device.responders[recordings.SEARCH_PATH] = searcher(CLIPS, len(CLIPS))
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        await recordings.learn_basis(link, "101")
+        asked = len([w for w in device.writes if w[1] == recordings.SEARCH_PATH])
+        day, within = await asyncio.gather(
+            recordings.recent_search(link, "101", T0, T0 + timedelta(hours=2), fresh=True),
+            recordings.recent_search(
+                link, "101", T0 + timedelta(minutes=15), T0 + timedelta(minutes=20)
+            ),
+        )
+    assert len([w for w in device.writes if w[1] == recordings.SEARCH_PATH]) == asked + 1
+    assert [r.name for r in within] == ["b"]
+    assert len(day) == 3
+
+
+async def test_recent_search_forgets_a_failed_search(serve) -> None:
+    device = FakeDevice("camera_g3")
+    calls = 0
+
+    def flaky(method: str, body: str) -> web.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return web.Response(status=500, text="busy")
+        return searcher(CLIPS, len(CLIPS))(method, body)
+
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        await recordings.learn_basis(link, "101")
+        device.responders[recordings.SEARCH_PATH] = flaky
+        with pytest.raises(BridgeFault):
+            await recordings.recent_search(link, "101", T0, T0 + timedelta(hours=1))
+        found = await recordings.recent_search(link, "101", T0, T0 + timedelta(hours=1))
+    assert len(found) == 3
