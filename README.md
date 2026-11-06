@@ -134,6 +134,12 @@ with the device's verification code, which it reads from the device. Many camera
 code; enter it in the integration options (*Verification code*) then. If no code fits, playback says so
 instead of returning a broken file. The media browser mode *Stream from the device* cannot decrypt.
 
+When the sidebar player cannot download efficiently from the selected time, it falls
+back to recorded RTSP playback. With a verification code configured on the local device
+entry, that fallback also uses the H.264 decryption relay, so DVR stream encryption can
+stay enabled. The relay closes when playback stops, is replaced, or fails to start.
+The media browser's separate *Stream from the device* mode is unchanged.
+
 ### Recordings panel and card
 
 The sidebar entry **Hikvision** opens a viewer for all cameras: the camera list on the left, the

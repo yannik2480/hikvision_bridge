@@ -108,8 +108,10 @@ class H264Decryptor:
             if not padding or padding > end - offset:
                 raise LiveError("Invalid RTP padding")
             end -= padding
-        if offset >= end:
-            raise LiveError("Empty RTP payload")
+        if offset > end:
+            raise LiveError("Invalid RTP payload offset")
+        if offset == end:
+            return [frame]  # Some DVRs send empty RTP packets during recorded playback.
         kind = packet[offset] & 31
         if kind != 28:
             self.parts.clear()
@@ -191,10 +193,15 @@ class LiveRelay:
         username: str,
         password: str,
         code: str,
+        *,
+        resource_path: str | None = None,
     ) -> None:
         self.host, self.port = host, port
         address = f"[{host}]" if ":" in host else host
-        self.upstream = f"rtsp://{address}:{port}/Streaming/Channels/{stream_id}"
+        resource = (
+            resource_path if resource_path is not None else f"/Streaming/Channels/{stream_id}"
+        )
+        self.upstream = f"rtsp://{address}:{port}{resource}"
         self.username, self.password, self.code = username, password, code
         self.token = secrets.token_urlsafe(32)
         LOG_SCRUBBER.remember(code, self.token)

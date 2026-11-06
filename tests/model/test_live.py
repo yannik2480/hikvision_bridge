@@ -100,3 +100,8 @@ def test_incomplete_fragments_are_discarded() -> None:
 def test_malformed_rtp_is_rejected(packet: bytes) -> None:
     with pytest.raises(LiveError):
         H264Decryptor(CODE).feed(b"$\0" + len(packet).to_bytes(2, "big") + packet)
+
+
+def test_empty_rtp_keepalive_passes_unchanged() -> None:
+    packet = frame(b"", flagged=False)
+    assert H264Decryptor(CODE).feed(packet) == [packet]

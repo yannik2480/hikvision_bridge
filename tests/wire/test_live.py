@@ -12,7 +12,7 @@ from tests.model.test_live import CODE, encrypt, frame, payload
 
 
 @asynccontextmanager
-async def fake_recorder(*, reject: bool = False, codec: str = "H264"):
+async def fake_recorder(*, reject: bool = False, codec: str = "H264", resource_path=None):
     requests = []
     writers = []
     tasks = set()
@@ -64,7 +64,15 @@ async def fake_recorder(*, reject: bool = False, codec: str = "H264"):
             tasks.discard(task)
 
     server = await asyncio.start_server(handle, "127.0.0.1", 0)
-    relay = LiveRelay("127.0.0.1", server.sockets[0].getsockname()[1], "101", "user", "pass", CODE)
+    relay = LiveRelay(
+        "127.0.0.1",
+        server.sockets[0].getsockname()[1],
+        "101",
+        "user",
+        "pass",
+        CODE,
+        resource_path=resource_path,
+    )
     try:
         url = await relay.start()
         yield relay, url, requests
@@ -97,8 +105,12 @@ async def test_token_is_checked_before_upstream_connection(socket_enabled) -> No
         await writer.wait_closed()
 
 
-async def test_digest_sdp_and_encrypted_video(socket_enabled) -> None:
-    async with fake_recorder() as (relay, url, requests):
+@pytest.mark.parametrize(
+    "resource_path",
+    [None, "/Streaming/tracks/101/?starttime=20260101T120000Z&endtime=20260101T121000Z"],
+)
+async def test_digest_sdp_and_encrypted_video(socket_enabled, resource_path) -> None:
+    async with fake_recorder(resource_path=resource_path) as (relay, url, requests):
         reader, writer = await connect(relay)
         try:
             for number, method, suffix, headers in [
