@@ -465,6 +465,58 @@ async def test_recent_search_shares_a_running_search(serve) -> None:
     assert len(day) == 3
 
 
+async def test_recent_search_shares_a_fresh_search_still_running(serve) -> None:
+    """The minute refresh while the day is still searched waits for that search (issue 18)."""
+    device = FakeDevice("camera_g3")
+    device.responders[recordings.SEARCH_PATH] = searcher(CLIPS, len(CLIPS))
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        await recordings.learn_basis(link, "101")
+        asked = len([w for w in device.writes if w[1] == recordings.SEARCH_PATH])
+        first, second = await asyncio.gather(
+            recordings.recent_search(link, "101", T0, T0 + timedelta(hours=2), fresh=True),
+            recordings.recent_search(link, "101", T0, T0 + timedelta(hours=2), fresh=True),
+        )
+    assert len([w for w in device.writes if w[1] == recordings.SEARCH_PATH]) == asked + 1
+    assert first == second
+    assert len(first) == 3
+
+
+async def test_recent_search_while_the_clock_is_looked_for(serve) -> None:
+    """A seek during the first timeline search joins it, on the clock found (issue 18).
+
+    It searched on its own before, and on the wall clock not yet ruled out.
+    """
+    device = FakeDevice("camera_g3")
+    now = datetime.now(UTC).replace(microsecond=0)
+    device.responders[recordings.SEARCH_PATH] = recording_now(now)
+    device.responders[recordings.TIME_PATH] = lambda _m, _b: web.Response(
+        text=f"<Time><localTime>{now + timedelta(hours=2):%Y-%m-%dT%H:%M:%S}</localTime></Time>",
+        content_type="application/xml",
+    )
+    server = await serve(device)
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(
+            session, Endpoint(server.host, server.port), device.username, device.password
+        )
+        day, seek = await asyncio.gather(
+            recordings.recent_search(
+                link, "101", now - timedelta(hours=2), now + timedelta(hours=22), fresh=True
+            ),
+            recordings.recent_search(
+                link, "101", now - timedelta(minutes=25), now - timedelta(minutes=15)
+            ),
+        )
+        assert await recordings.wall_offset(link) == timedelta(0)
+    # One search to find the clock, one of the day.
+    assert len([w for w in device.writes if w[1] == recordings.SEARCH_PATH]) == 2
+    assert len(day) == 6
+    assert [r.name for r in seek] == ["r2", "r1"]
+
+
 async def test_recent_search_forgets_a_failed_search(serve) -> None:
     device = FakeDevice("camera_g3")
     calls = 0
