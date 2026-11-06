@@ -700,6 +700,34 @@ async def test_skipped_gives_up_on_a_slow_file(monkeypatch: pytest.MonkeyPatch) 
     assert cut == 12
 
 
+async def test_skipped_reads_on_while_rtsp_would_take_as_long(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A read that may take as long as RTSP needs to start does not give up as early."""
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    monkeypatch.setattr(sessions, "time", _Clock())
+    stream = ProgramStream(codec="h264")
+    _first, cut = await sessions.skipped(stream, _fed(stream, data), 600, True, 10_000)
+    assert cut == 12
+
+
+async def test_read_budget_follows_the_rtsp_start(hass: HomeAssistant) -> None:
+    """Reading may take as long as RTSP takes to start, within SKIP_SECONDS."""
+
+    class _Link:
+        pass
+
+    manager = sessions.SessionManager(hass)
+    link = _Link()
+    assert manager._read_budget(link) == sessions.READ_SECONDS
+    manager._rtsp_seconds[link] = 4
+    assert manager._read_budget(link) == sessions.READ_SECONDS
+    manager._rtsp_seconds[link] = 16
+    assert manager._read_budget(link) == 16
+    manager._rtsp_seconds[link] = 100
+    assert manager._read_budget(link) == sessions.SKIP_SECONDS
+
+
 async def test_skipped_keeps_a_read_that_reaches_the_time() -> None:
     """A file that reaches the time quickly is read through, also when giving up is allowed."""
     data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
@@ -764,6 +792,26 @@ async def test_slow_recorded_file_plays_over_rtsp_from_the_first_seek(
     downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
     assert len(downloads) == 3
     assert manager._reach
+    await manager.stop_all()
+
+    def download_count() -> int:
+        return len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH])
+
+    # Beyond the reach in READ_SECONDS: straight to RTSP, the file is not asked for.
+    link = next(iter(manager._reach))
+    manager._reach[link] = 150
+    manager._rtsp_seconds[link] = 1
+    before = download_count()
+    _started, args = await play(START + timedelta(minutes=6))
+    assert "/Streaming/tracks/101/?starttime=" in args
+    assert download_count() == before
+    await manager.stop_all()
+    # RTSP that takes 30 s to start reaches no sooner than reading 150 s * 3: the file is read.
+    manager._reach[link] = 150
+    manager._rtsp_seconds[link] = 30
+    before = download_count()
+    _started, args = await play(START + timedelta(minutes=6))
+    assert download_count() > before
     await manager.stop_all()
 
     # The RTSP playback fails: the file is read up to the time, as far as the device gets.

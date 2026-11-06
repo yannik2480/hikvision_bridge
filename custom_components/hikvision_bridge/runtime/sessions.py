@@ -10,6 +10,7 @@ device sends it, without ffmpeg. Devices that refuse both play the span over RTS
 real time and without decryption. Devices that send recorded files only from their start
 play a time further into a file than they reach in READ_SECONDS over RTSP as well, if they can;
 a read that its pace shows will not reach the time in READ_SECONDS gives up after PACE_SECONDS.
+Where RTSP takes longer than READ_SECONDS to start on a device, the read may take that long.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -231,15 +232,22 @@ def played_seconds(playlist: str, fetched: int) -> float:
 
 
 async def skipped(
-    stream: ProgramStream, chunks: AsyncIterator[bytes], skip: float, give_up: bool = False
+    stream: ProgramStream,
+    chunks: AsyncIterator[bytes],
+    skip: float,
+    give_up: bool = False,
+    within: float | None = None,
 ) -> tuple[bytes, float]:
     """Read ``chunks`` up to ``skip`` seconds and drop what lies before the last key frame.
 
     Returns the bytes from that key frame on and its playing time. Stops at the latest key
     frame reached after SKIP_SECONDS; without any key frame the file plays from its start.
-    With ``give_up``, a read whose pace shows it cannot reach ``skip`` in READ_SECONDS raises
-    _TooSlow once PACE_SECONDS have passed, instead of waiting out SKIP_SECONDS.
+    With ``give_up``, a read whose pace shows it cannot reach ``skip`` in ``within`` seconds
+    (READ_SECONDS if not given) raises _TooSlow once PACE_SECONDS have passed, instead of
+    waiting out SKIP_SECONDS.
     """
+    if within is None:
+        within = READ_SECONDS
     began = time.monotonic()
     stream.key_frames = []
     kept = bytearray()
@@ -263,7 +271,7 @@ async def skipped(
             elapsed = time.monotonic() - began
             if elapsed >= PACE_SECONDS:
                 pace = stream.seconds / elapsed
-                if elapsed + (skip - stream.seconds) / pace > READ_SECONDS:
+                if elapsed + (skip - stream.seconds) / pace > within:
                     stream.key_frames = None
                     raise _TooSlow(pace * READ_SECONDS)
     stream.key_frames = None
@@ -359,6 +367,8 @@ class SessionManager:
         self._reach: WeakKeyDictionary[IsapiLink, float] = WeakKeyDictionary()
         # Devices whose RTSP playback failed for a time beyond that reach.
         self._no_far_rtsp: WeakSet[IsapiLink] = WeakSet()
+        # Seconds RTSP playback of a device took to start, averaged with the times before.
+        self._rtsp_seconds: WeakKeyDictionary[IsapiLink, float] = WeakKeyDictionary()
         # Starts still running, by camera; a newer one for the camera cancels them.
         self._starting: dict[tuple[str, str, str], asyncio.Task[Session]] = {}
         # Latest start asked for, by camera.
@@ -375,6 +385,10 @@ class SessionManager:
         if (pending := self._starting.get(key)) is not None:
             pending.cancel()
         return ticket
+
+    def _read_budget(self, link: IsapiLink) -> float:
+        """Seconds a read up to the time may take: READ_SECONDS, or as long as RTSP takes."""
+        return min(max(READ_SECONDS, self._rtsp_seconds.get(link, 0.0)), SKIP_SECONDS)
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
@@ -528,14 +542,19 @@ class SessionManager:
             not far
             and source.link in self._whole_files
             and source.link not in self._no_far_rtsp
-            and skip > self._reach.get(source.link, skip)
+            and source.link in self._reach
         ):
-            _LOGGER.debug(
-                "Recorded file reaches %.0f s in time, not %.0f s: playing over RTSP",
-                self._reach[source.link],
-                skip,
-            )
-            raise _UseRtsp(False, far=True)
+            # The reach is for READ_SECONDS; on a device slow to start RTSP a read may take longer.
+            budget = self._read_budget(source.link)
+            reach = self._reach[source.link] * budget / READ_SECONDS
+            if skip > reach:
+                _LOGGER.debug(
+                    "Recorded file reaches %.1f s in %.1f s, not %.1f s: playing over RTSP",
+                    reach,
+                    budget,
+                    skip,
+                )
+                raise _UseRtsp(False, far=True)
         # A read that is too slow to reach the time gives up for RTSP, unless RTSP was tried
         # already for this device (then reading on is the only way left).
         give_up = not far and source.link not in self._no_far_rtsp
@@ -668,15 +687,16 @@ class SessionManager:
                 cut = 0.0
                 if rest > 0:
                     began = time.monotonic()
+                    budget = self._read_budget(source.link)
                     try:
-                        first, cut = await skipped(stream, chunks, rest, give_up)
+                        first, cut = await skipped(stream, chunks, rest, give_up, budget)
                     except _TooSlow as slow:
                         self._reach[source.link] = device + slow.reach
                         _LOGGER.debug(
-                            "Recorded file is sent too slowly to reach %.0f s in %s s: "
+                            "Recorded file is sent too slowly to reach %.1f s in %.1f s: "
                             "playing it over RTSP if it can",
                             rest,
-                            READ_SECONDS,
+                            budget,
                         )
                         raise
                     if cut < rest - 1 and time.monotonic() - began >= SKIP_SECONDS:
@@ -743,6 +763,7 @@ class SessionManager:
         reason = "playback_failed"
         for attempt in range(2):
             session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
+            began = time.monotonic()
             try:
                 await self._spawn(session, hls_args(url, quality, codec, folder), False)
             except asyncio.CancelledError:
@@ -751,7 +772,10 @@ class SessionManager:
                 raise
             reason = await self._first_segment(session, "RTSP")
             if reason is None:
-                _LOGGER.debug("Playing over RTSP")
+                took = time.monotonic() - began
+                last = self._rtsp_seconds.get(source.link)
+                self._rtsp_seconds[source.link] = took if last is None else (last + took) / 2
+                _LOGGER.debug("Playing over RTSP, started in %.1f s", took)
                 return session
             if reason not in ("playback_busy", "playback_unreadable") or attempt:
                 break
