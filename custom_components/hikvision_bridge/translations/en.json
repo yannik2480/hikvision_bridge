@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "The device is not loaded.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignored. To show it again, open Repairs and choose 'Show ignored'."
         }
       }
     },

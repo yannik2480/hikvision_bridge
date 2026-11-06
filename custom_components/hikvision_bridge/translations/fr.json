@@ -727,7 +727,7 @@
             "description": "L'appareil détecte {kind} mais ne l'envoie pas au flux d'événements, car la liaison « Notifier le centre de surveillance » est désactivée. Confirmez pour activer uniquement cette liaison (déclencheur {trigger}) ; rien d'autre ne change. {reason}",
             "menu_options": {
               "confirm": "Activer le signalement",
-              "ignore": "Ignore"
+              "ignore": "Ignorer"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "L'appareil n'est pas chargé.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignoré. Pour l'afficher à nouveau, ouvrez Réparations et choisissez « Afficher les éléments ignorés »."
         }
       }
     },

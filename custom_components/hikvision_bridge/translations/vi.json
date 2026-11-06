@@ -727,7 +727,7 @@
             "description": "Thiết bị phát hiện {kind} nhưng không gửi vào luồng sự kiện, vì liên kết 'Thông báo trung tâm giám sát' đang tắt. Xác nhận để chỉ bật liên kết đó (kích hoạt {trigger}); không có gì khác thay đổi. {reason}",
             "menu_options": {
               "confirm": "Bật báo cáo",
-              "ignore": "Ignore"
+              "ignore": "Bỏ qua"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Thiết bị chưa được tải.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Đã bỏ qua. Để hiển thị lại, mở Sửa chữa và chọn 'Hiển thị mục đã bỏ qua'."
         }
       }
     },

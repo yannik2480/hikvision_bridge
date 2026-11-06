@@ -727,7 +727,7 @@
             "description": "Il dispositivo rileva {kind} ma non lo invia al flusso di eventi, perché il collegamento «Notifica centro di sorveglianza» è disattivato. Conferma per attivare solo quel collegamento (trigger {trigger}); nient'altro cambia. {reason}",
             "menu_options": {
               "confirm": "Attiva la segnalazione",
-              "ignore": "Ignore"
+              "ignore": "Ignora"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Il dispositivo non è caricato.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignorato. Per mostrarlo di nuovo, apri Riparazioni e scegli «Mostra ignorati»."
         }
       }
     },

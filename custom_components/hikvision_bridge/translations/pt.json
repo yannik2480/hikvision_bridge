@@ -727,7 +727,7 @@
             "description": "O dispositivo deteta {kind} mas não o envia para o fluxo de eventos, porque a ligação «Notificar centro de vigilância» está desativada. Confirme para ativar apenas essa ligação (acionador {trigger}); nada mais muda. {reason}",
             "menu_options": {
               "confirm": "Ativar a comunicação",
-              "ignore": "Ignore"
+              "ignore": "Ignorar"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "O dispositivo não está carregado.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignorado. Para voltar a mostrar, abra Reparações e escolha 'Mostrar ignorados'."
         }
       }
     },

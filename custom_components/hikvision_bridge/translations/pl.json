@@ -727,7 +727,7 @@
             "description": "Urządzenie wykrywa {kind}, ale nie wysyła tego do strumienia zdarzeń, ponieważ powiązanie „Powiadom centrum monitorowania” jest wyłączone. Potwierdź, aby włączyć tylko to powiązanie (wyzwalacz {trigger}); nic innego się nie zmienia. {reason}",
             "menu_options": {
               "confirm": "Włącz zgłaszanie",
-              "ignore": "Ignore"
+              "ignore": "Ignoruj"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Urządzenie nie jest załadowane.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Zignorowano. Aby ponownie wyświetlić, otwórz Naprawy i wybierz „Pokaż zignorowane”."
         }
       }
     },

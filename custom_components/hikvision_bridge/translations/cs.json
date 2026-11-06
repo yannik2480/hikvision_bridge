@@ -727,7 +727,7 @@
             "description": "Zařízení detekuje {kind}, ale neposílá to do streamu událostí, protože propojení „Upozornit dohledové centrum“ je vypnuté. Potvrďte pro zapnutí pouze tohoto propojení (spouštěč {trigger}); nic jiného se nezmění. {reason}",
             "menu_options": {
               "confirm": "Zapnout hlášení",
-              "ignore": "Ignore"
+              "ignore": "Ignorovat"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Zařízení není načteno.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignorováno. Pro opětovné zobrazení otevřete Opravy a zvolte „Zobrazit ignorované“."
         }
       }
     },

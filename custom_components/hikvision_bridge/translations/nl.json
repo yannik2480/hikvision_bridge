@@ -727,7 +727,7 @@
             "description": "Het apparaat detecteert {kind} maar stuurt het niet naar de gebeurtenisstream, omdat de koppeling 'Meldkamer waarschuwen' uit staat. Bevestig om alleen die koppeling in te schakelen (trigger {trigger}); verder verandert er niets. {reason}",
             "menu_options": {
               "confirm": "Melden inschakelen",
-              "ignore": "Ignore"
+              "ignore": "Negeren"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Het apparaat is niet geladen.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Genegeerd. Open Reparaties en kies 'Genegeerde tonen' om het weer te tonen."
         }
       }
     },

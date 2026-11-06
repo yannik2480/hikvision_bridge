@@ -727,7 +727,7 @@
             "description": "设备检测到 {kind}，但由于联动“上传中心”已关闭，未将其发送到事件流。确认后仅开启该联动（触发器 {trigger}）；其他不变。{reason}",
             "menu_options": {
               "confirm": "启用上报",
-              "ignore": "Ignore"
+              "ignore": "忽略"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "设备未加载。",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "已忽略。如需重新显示，请打开“修复”并选择“显示已忽略”。"
         }
       }
     },

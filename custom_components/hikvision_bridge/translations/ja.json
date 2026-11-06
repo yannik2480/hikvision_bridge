@@ -727,7 +727,7 @@
             "description": "デバイスは {kind} を検知していますが、連動「監視センターに通知」がオフのため、イベントストリームに送信していません。確認すると、この連動のみをオンにします（トリガー {trigger}）。その他は変更されません。{reason}",
             "menu_options": {
               "confirm": "通知を有効化",
-              "ignore": "Ignore"
+              "ignore": "無視"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "デバイスが読み込まれていません。",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "無視しました。再表示するには、修復を開いて「無視した項目を表示」を選択してください。"
         }
       }
     },

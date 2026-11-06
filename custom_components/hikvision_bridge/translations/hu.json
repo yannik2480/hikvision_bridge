@@ -727,7 +727,7 @@
             "description": "Az eszköz észleli ezt: {kind}, de nem küldi az eseményfolyamba, mert a „Felügyeleti központ értesítése” kapcsolat ki van kapcsolva. Erősítse meg, hogy csak ez a kapcsolat legyen bekapcsolva ({trigger} eseményindító); más nem változik. {reason}",
             "menu_options": {
               "confirm": "Jelentés bekapcsolása",
-              "ignore": "Ignore"
+              "ignore": "Figyelmen kívül hagyás"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Az eszköz nincs betöltve.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Figyelmen kívül hagyva. Az újbóli megjelenítéshez nyissa meg a Javításokat, és válassza a „Figyelmen kívül hagyottak megjelenítése” lehetőséget."
         }
       }
     },

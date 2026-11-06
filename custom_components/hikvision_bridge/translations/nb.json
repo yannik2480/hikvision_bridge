@@ -727,7 +727,7 @@
             "description": "Enheten detekterer {kind}, men sender det ikke til hendelsesstrømmen, fordi koblingen 'Varsle overvåkingssentral' er av. Bekreft for å slå på bare den koblingen (utløser {trigger}); ingenting annet endres. {reason}",
             "menu_options": {
               "confirm": "Aktiver melding",
-              "ignore": "Ignore"
+              "ignore": "Ignorer"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Enheten er ikke lastet.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignorert. For å vise den igjen, åpne Reparasjoner og velg «Vis ignorerte»."
         }
       }
     },

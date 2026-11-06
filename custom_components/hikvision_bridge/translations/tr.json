@@ -727,7 +727,7 @@
             "description": "Cihaz {kind} algılıyor ancak 'Gözetim merkezini bildir' bağlantısı kapalı olduğu için olay akışına göndermiyor. Yalnızca bu bağlantıyı açmak için onaylayın (tetikleyici {trigger}); başka hiçbir şey değişmez. {reason}",
             "menu_options": {
               "confirm": "Bildirimi etkinleştir",
-              "ignore": "Ignore"
+              "ignore": "Yoksay"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Cihaz yüklenmedi.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Yoksayıldı. Yeniden göstermek için Onarımlar'ı açın ve 'Yoksayılanları göster'i seçin."
         }
       }
     },

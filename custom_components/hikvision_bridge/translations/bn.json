@@ -727,7 +727,7 @@
             "description": "ডিভাইস {kind} শনাক্ত করে কিন্তু ইভেন্ট স্ট্রিমে পাঠায় না, কারণ লিংকেজ 'নজরদারি কেন্দ্রকে জানান' বন্ধ। শুধু সেই লিংকেজ চালু করতে নিশ্চিত করুন (ট্রিগার {trigger}); আর কিছু বদলাবে না। {reason}",
             "menu_options": {
               "confirm": "রিপোর্টিং চালু করুন",
-              "ignore": "Ignore"
+              "ignore": "উপেক্ষা করুন"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "ডিভাইস লোড করা নেই।",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "উপেক্ষা করা হয়েছে। আবার দেখাতে মেরামত খুলে 'উপেক্ষিত দেখান' বেছে নিন।"
         }
       }
     },

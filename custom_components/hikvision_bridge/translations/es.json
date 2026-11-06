@@ -727,7 +727,7 @@
             "description": "El dispositivo detecta {kind} pero no lo envía al flujo de eventos, porque la vinculación «Notificar al centro de vigilancia» está desactivada. Confirma para activar solo esa vinculación (disparador {trigger}); nada más cambia. {reason}",
             "menu_options": {
               "confirm": "Activar la notificación",
-              "ignore": "Ignore"
+              "ignore": "Ignorar"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "El dispositivo no está cargado.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignorado. Para mostrarlo de nuevo, abre Reparaciones y elige «Mostrar ignorados»."
         }
       }
     },

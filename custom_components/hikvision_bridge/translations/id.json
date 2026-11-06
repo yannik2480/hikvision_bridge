@@ -727,7 +727,7 @@
             "description": "Perangkat mendeteksi {kind} tetapi tidak mengirimkannya ke aliran peristiwa, karena tautan 'Beri tahu pusat pengawasan' nonaktif. Konfirmasi untuk mengaktifkan hanya tautan itu (pemicu {trigger}); tidak ada yang lain berubah. {reason}",
             "menu_options": {
               "confirm": "Aktifkan pelaporan",
-              "ignore": "Ignore"
+              "ignore": "Abaikan"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Perangkat tidak dimuat.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Diabaikan. Untuk menampilkannya lagi, buka Perbaikan dan pilih 'Tampilkan yang diabaikan'."
         }
       }
     },

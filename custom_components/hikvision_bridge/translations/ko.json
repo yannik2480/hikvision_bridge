@@ -727,7 +727,7 @@
             "description": "장치가 {kind}을(를) 감지하지만 연동 '감시 센터에 알림'이 꺼져 있어 이벤트 스트림으로 보내지 않습니다. 확인하면 이 연동만 켭니다(트리거 {trigger}). 다른 것은 바뀌지 않습니다. {reason}",
             "menu_options": {
               "confirm": "보고 활성화",
-              "ignore": "Ignore"
+              "ignore": "무시"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "장치가 로드되지 않았습니다.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "무시했습니다. 다시 표시하려면 수리를 열고 '무시된 항목 표시'를 선택하세요."
         }
       }
     },

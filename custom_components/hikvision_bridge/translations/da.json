@@ -727,7 +727,7 @@
             "description": "Enheden registrerer {kind}, men sender det ikke til hændelsesstrømmen, fordi koblingen 'Underret overvågningscentral' er slået fra. Bekræft for kun at slå den kobling til (udløser {trigger}); intet andet ændres. {reason}",
             "menu_options": {
               "confirm": "Aktivér melding",
-              "ignore": "Ignore"
+              "ignore": "Ignorer"
             }
           }
         },
@@ -736,7 +736,7 @@
         },
         "abort": {
           "not_loaded": "Enheden er ikke indlæst.",
-          "issue_ignored": "The issue has been ignored and will not be reported again."
+          "issue_ignored": "Ignoreret. For at vise det igen skal du åbne Reparationer og vælge 'Vis ignorerede'."
         }
       }
     },
