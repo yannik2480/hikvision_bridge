@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Tárolási probléma"
       },
+      "illegal_login": {
+        "name": "Jogosulatlan bejelentkezés"
+      },
       "event_link": {
         "name": "Eseménykapcsolat"
       },

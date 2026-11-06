@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Lagringsproblem"
       },
+      "illegal_login": {
+        "name": "Ulovlig pålogging"
+      },
       "event_link": {
         "name": "Hendelsestilkobling"
       },

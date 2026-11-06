@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "مشكلة في التخزين"
       },
+      "illegal_login": {
+        "name": "تسجيل دخول غير مصرح به"
+      },
       "event_link": {
         "name": "اتصال الأحداث"
       },

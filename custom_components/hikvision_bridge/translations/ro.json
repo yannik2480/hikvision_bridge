@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Problemă de stocare"
       },
+      "illegal_login": {
+        "name": "Autentificare ilegală"
+      },
       "event_link": {
         "name": "Conexiune evenimente"
       },

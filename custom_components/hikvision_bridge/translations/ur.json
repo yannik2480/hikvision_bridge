@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "اسٹوریج مسئلہ"
       },
+      "illegal_login": {
+        "name": "غیر قانونی لاگ ان"
+      },
       "event_link": {
         "name": "واقعات کا کنکشن"
       },

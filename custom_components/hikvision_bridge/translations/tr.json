@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Depolama sorunu"
       },
+      "illegal_login": {
+        "name": "Yetkisiz oturum açma"
+      },
       "event_link": {
         "name": "Olay bağlantısı"
       },

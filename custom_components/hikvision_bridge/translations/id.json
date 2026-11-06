@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Masalah penyimpanan"
       },
+      "illegal_login": {
+        "name": "Login ilegal"
+      },
       "event_link": {
         "name": "Koneksi peristiwa"
       },

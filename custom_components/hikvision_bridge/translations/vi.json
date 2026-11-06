@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Sự cố lưu trữ"
       },
+      "illegal_login": {
+        "name": "Đăng nhập trái phép"
+      },
       "event_link": {
         "name": "Kết nối sự kiện"
       },

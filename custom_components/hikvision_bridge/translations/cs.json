@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Problém s úložištěm"
       },
+      "illegal_login": {
+        "name": "Neoprávněné přihlášení"
+      },
       "event_link": {
         "name": "Připojení událostí"
       },

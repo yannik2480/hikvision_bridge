@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Speicherproblem"
       },
+      "illegal_login": {
+        "name": "Unerlaubte Anmeldung"
+      },
       "event_link": {
         "name": "Ereignisverbindung"
       },

@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Problema de almacenamiento"
       },
+      "illegal_login": {
+        "name": "Inicio de sesión ilegal"
+      },
       "event_link": {
         "name": "Conexión de eventos"
       },

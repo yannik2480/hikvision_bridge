@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "স্টোরেজ সমস্যা"
       },
+      "illegal_login": {
+        "name": "অবৈধ লগইন"
+      },
       "event_link": {
         "name": "ইভেন্ট সংযোগ"
       },

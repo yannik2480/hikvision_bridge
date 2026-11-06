@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "ストレージの問題"
       },
+      "illegal_login": {
+        "name": "不正ログイン"
+      },
       "event_link": {
         "name": "イベント接続"
       },

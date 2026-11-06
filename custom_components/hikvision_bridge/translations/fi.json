@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Tallennusongelma"
       },
+      "illegal_login": {
+        "name": "Luvaton kirjautuminen"
+      },
       "event_link": {
         "name": "Tapahtumayhteys"
       },

@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "Opslagprobleem"
       },
+      "illegal_login": {
+        "name": "Ongeoorloofde aanmelding"
+      },
       "event_link": {
         "name": "Gebeurtenisverbinding"
       },

@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "مشکل ذخیره‌سازی"
       },
+      "illegal_login": {
+        "name": "ورود غیرمجاز"
+      },
       "event_link": {
         "name": "اتصال رویداد"
       },

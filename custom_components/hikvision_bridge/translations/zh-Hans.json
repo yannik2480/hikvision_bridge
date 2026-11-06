@@ -278,6 +278,9 @@
       "storage_problem": {
         "name": "存储故障"
       },
+      "illegal_login": {
+        "name": "非法登录"
+      },
       "event_link": {
         "name": "事件连接"
       },
