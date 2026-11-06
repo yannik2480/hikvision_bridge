@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Aktifkan pelaporan",
             "description": "Perangkat mendeteksi {kind} tetapi tidak mengirimkannya ke aliran peristiwa, karena tautan 'Beri tahu pusat pengawasan' nonaktif. Konfirmasi untuk mengaktifkan hanya tautan itu (pemicu {trigger}); tidak ada yang lain berubah. {reason}"
+          },
+          "init": {
+            "title": "Aktifkan pelaporan",
+            "description": "Perangkat mendeteksi {kind} tetapi tidak mengirimkannya ke aliran peristiwa, karena tautan 'Beri tahu pusat pengawasan' nonaktif. Konfirmasi untuk mengaktifkan hanya tautan itu (pemicu {trigger}); tidak ada yang lain berubah. {reason}",
+            "menu_options": {
+              "confirm": "Aktifkan pelaporan",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Perangkat tidak menerima perubahan."
         },
         "abort": {
-          "not_loaded": "Perangkat tidak dimuat."
+          "not_loaded": "Perangkat tidak dimuat.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

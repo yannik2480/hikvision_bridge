@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Meldung einschalten",
             "description": "Das Gerät erkennt {kind}, sendet es aber nicht in den Ereignis-Stream, weil die Verknüpfung „Überwachungszentrum benachrichtigen“ aus ist. Bestätigen schaltet nur diese Verknüpfung ein (Auslöser {trigger}); sonst ändert sich nichts. {reason}"
+          },
+          "init": {
+            "title": "Meldung einschalten",
+            "description": "Das Gerät erkennt {kind}, sendet es aber nicht in den Ereignis-Stream, weil die Verknüpfung „Überwachungszentrum benachrichtigen“ aus ist. Bestätigen schaltet nur diese Verknüpfung ein (Auslöser {trigger}); sonst ändert sich nichts. {reason}",
+            "menu_options": {
+              "confirm": "Meldung einschalten",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Das Gerät hat die Änderung nicht übernommen."
         },
         "abort": {
-          "not_loaded": "Das Gerät ist nicht geladen."
+          "not_loaded": "Das Gerät ist nicht geladen.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

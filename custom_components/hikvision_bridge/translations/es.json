@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Activar la notificación",
             "description": "El dispositivo detecta {kind} pero no lo envía al flujo de eventos, porque la vinculación «Notificar al centro de vigilancia» está desactivada. Confirma para activar solo esa vinculación (disparador {trigger}); nada más cambia. {reason}"
+          },
+          "init": {
+            "title": "Activar la notificación",
+            "description": "El dispositivo detecta {kind} pero no lo envía al flujo de eventos, porque la vinculación «Notificar al centro de vigilancia» está desactivada. Confirma para activar solo esa vinculación (disparador {trigger}); nada más cambia. {reason}",
+            "menu_options": {
+              "confirm": "Activar la notificación",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "El dispositivo no aceptó el cambio."
         },
         "abort": {
-          "not_loaded": "El dispositivo no está cargado."
+          "not_loaded": "El dispositivo no está cargado.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

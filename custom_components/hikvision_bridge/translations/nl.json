@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Melden inschakelen",
             "description": "Het apparaat detecteert {kind} maar stuurt het niet naar de gebeurtenisstream, omdat de koppeling 'Meldkamer waarschuwen' uit staat. Bevestig om alleen die koppeling in te schakelen (trigger {trigger}); verder verandert er niets. {reason}"
+          },
+          "init": {
+            "title": "Melden inschakelen",
+            "description": "Het apparaat detecteert {kind} maar stuurt het niet naar de gebeurtenisstream, omdat de koppeling 'Meldkamer waarschuwen' uit staat. Bevestig om alleen die koppeling in te schakelen (trigger {trigger}); verder verandert er niets. {reason}",
+            "menu_options": {
+              "confirm": "Melden inschakelen",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Het apparaat heeft de wijziging niet geaccepteerd."
         },
         "abort": {
-          "not_loaded": "Het apparaat is niet geladen."
+          "not_loaded": "Het apparaat is niet geladen.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

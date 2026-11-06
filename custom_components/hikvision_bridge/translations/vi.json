@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Bật báo cáo",
             "description": "Thiết bị phát hiện {kind} nhưng không gửi vào luồng sự kiện, vì liên kết 'Thông báo trung tâm giám sát' đang tắt. Xác nhận để chỉ bật liên kết đó (kích hoạt {trigger}); không có gì khác thay đổi. {reason}"
+          },
+          "init": {
+            "title": "Bật báo cáo",
+            "description": "Thiết bị phát hiện {kind} nhưng không gửi vào luồng sự kiện, vì liên kết 'Thông báo trung tâm giám sát' đang tắt. Xác nhận để chỉ bật liên kết đó (kích hoạt {trigger}); không có gì khác thay đổi. {reason}",
+            "menu_options": {
+              "confirm": "Bật báo cáo",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Thiết bị không chấp nhận thay đổi."
         },
         "abort": {
-          "not_loaded": "Thiết bị chưa được tải."
+          "not_loaded": "Thiết bị chưa được tải.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

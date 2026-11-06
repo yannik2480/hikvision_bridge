@@ -721,13 +721,22 @@
           "confirm": {
             "title": "通知を有効化",
             "description": "デバイスは {kind} を検知していますが、連動「監視センターに通知」がオフのため、イベントストリームに送信していません。確認すると、この連動のみをオンにします（トリガー {trigger}）。その他は変更されません。{reason}"
+          },
+          "init": {
+            "title": "通知を有効化",
+            "description": "デバイスは {kind} を検知していますが、連動「監視センターに通知」がオフのため、イベントストリームに送信していません。確認すると、この連動のみをオンにします（トリガー {trigger}）。その他は変更されません。{reason}",
+            "menu_options": {
+              "confirm": "通知を有効化",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "デバイスが変更を受け付けませんでした。"
         },
         "abort": {
-          "not_loaded": "デバイスが読み込まれていません。"
+          "not_loaded": "デバイスが読み込まれていません。",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },

@@ -721,13 +721,22 @@
           "confirm": {
             "title": "Activează raportarea",
             "description": "Dispozitivul detectează {kind}, dar nu îl trimite în fluxul de evenimente, deoarece legătura „Notifică centrul de supraveghere” este dezactivată. Confirmă pentru a activa doar acea legătură (declanșator {trigger}); nimic altceva nu se schimbă. {reason}"
+          },
+          "init": {
+            "title": "Activează raportarea",
+            "description": "Dispozitivul detectează {kind}, dar nu îl trimite în fluxul de evenimente, deoarece legătura „Notifică centrul de supraveghere” este dezactivată. Confirmă pentru a activa doar acea legătură (declanșator {trigger}); nimic altceva nu se schimbă. {reason}",
+            "menu_options": {
+              "confirm": "Activează raportarea",
+              "ignore": "Ignore"
+            }
           }
         },
         "error": {
           "write_failed": "Dispozitivul nu a acceptat modificarea."
         },
         "abort": {
-          "not_loaded": "Dispozitivul nu este încărcat."
+          "not_loaded": "Dispozitivul nu este încărcat.",
+          "issue_ignored": "The issue has been ignored and will not be reported again."
         }
       }
     },
