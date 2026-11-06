@@ -13,6 +13,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 import re
 import secrets
+from urllib.parse import urlsplit, urlunsplit
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
@@ -24,6 +25,7 @@ _LOGGER = scrubbed_logger(__name__)
 TIMEOUT = 20
 MAX_NAL = 4 * 1024 * 1024
 MAX_BODY = 64 * 1024
+_STREAM_URL = re.compile(r'(?:rtsp://[^\s/;,"<>]+)?/Streaming/[^\s;,"<>]*', re.IGNORECASE)
 
 
 class LiveError(Exception):
@@ -284,6 +286,30 @@ class LiveRelay:
                         await connection.wait_closed()
             self.tasks.discard(task)
 
+    def rewrite_urls(self, text: str) -> str:
+        """Map only this stream's path, independent of the device's advertised authority."""
+        scope = urlsplit(self.upstream).path.rstrip("/")
+
+        def local(match: re.Match[str]) -> str:
+            parts = urlsplit(match[0])
+            if parts.path.lower() != scope.lower() and not parts.path.lower().startswith(
+                scope.lower() + "/"
+            ):
+                return match[0]
+            suffix = parts.path[len(scope) :]
+            return self.url + suffix + (f"?{parts.query}" if parts.query else "")
+
+        return _STREAM_URL.sub(local, text)
+
+    def target(self, uri: str) -> str:
+        """Keep configured host/port and append track paths before the time query."""
+        upstream, local = urlsplit(self.upstream), urlsplit(uri)
+        suffix = local.path[len(urlsplit(self.url).path) :]
+        path = upstream.path.rstrip("/") + suffix if suffix else upstream.path
+        return urlunsplit(
+            (upstream.scheme, upstream.netloc, path, local.query or upstream.query, "")
+        )
+
     def _valid_uri(self, uri: str) -> bool:
         return uri == self.url or uri.startswith((self.url + "/", self.url + "?"))
 
@@ -297,11 +323,11 @@ class _Session:
     ) -> None:
         self.relay, self.local, self.remote = relay, local, remote
         self.signer: Signer | None = None
-        self.pending: dict[str, tuple[Message, bool]] = {}
+        self.pending: dict[str, tuple[Message, bool, bool]] = {}
         self.video_channel: int | None = None
-        self.decryptor = H264Decryptor(relay.code)
+        self.decryptor: H264Decryptor | None = None
 
-    async def request(self, msg: Message) -> None:
+    async def request(self, msg: Message, *, stale_retry: bool = False) -> None:
         method, uri, version = msg.line.split()
         if version != "RTSP/1.0" or not self.relay._valid_uri(uri):
             raise LiveError("Invalid local RTSP request")
@@ -317,11 +343,11 @@ class _Session:
             raise LiveError("Unsupported RTSP method")
         if method == "SETUP" and "RTP/AVP/TCP" not in msg.get("Transport").upper():
             raise LiveError("Encrypted live streaming requires RTSP over TCP")
-        target = self.relay.upstream + uri[len(self.relay.url) :]
+        target = self.relay.target(uri)
         headers = [(k, v) for k, v in msg.headers if k.lower() not in {"authorization", "host"}]
         if self.signer:
             headers.append(("Authorization", self.signer.authorization(method, target)))
-        self.pending[msg.get("CSeq")] = (msg, self.signer is not None)
+        self.pending[msg.get("CSeq")] = (msg, self.signer is not None, stale_retry)
         if len(self.pending) > 8:
             raise LiveError("Too many pending RTSP requests")
         self.remote.write(Message(f"{method} {target} RTSP/1.0", headers, msg.body).encode())
@@ -340,47 +366,58 @@ class _Session:
         while True:
             msg = await read_message(reader)
             if isinstance(msg, bytes):
-                frames = self.decryptor.feed(msg) if msg[1] == self.video_channel else [msg]
+                frames = (
+                    self.decryptor.feed(msg)
+                    if self.decryptor is not None and msg[1] == self.video_channel
+                    else [msg]
+                )
                 for frame in frames:
                     self.local.write(frame)
                 await self.local.drain()
                 continue
-            request, signed = self.pending.pop(msg.get("CSeq"), (None, False))
+            request, signed, stale_retry = self.pending.pop(msg.get("CSeq"), (None, False, False))
             status = msg.line.split()[1]
             if status == "401":
-                if signed:
-                    raise LiveError(
-                        "DVR rejected live-stream credentials; reload after correcting them"
-                    )
                 challenge = pick(
                     parse_challenges([v for k, v in msg.headers if k.lower() == "www-authenticate"])
                 )
+                if signed and not (
+                    challenge
+                    and challenge.scheme == "digest"
+                    and challenge.stale
+                    and not stale_retry
+                ):
+                    raise LiveError(
+                        "DVR rejected live-stream credentials; reload after correcting them"
+                    )
                 if challenge is None or request is None:
                     raise LiveError("Unsupported RTSP authentication challenge")
                 self.signer = build_signer(self.relay.username, self.relay.password, challenge)
-                await self.request(request)
+                await self.request(request, stale_retry=signed)
                 continue
             if status.startswith("3"):
                 raise LiveError("RTSP redirects are not supported")
             if request and request.line.startswith("DESCRIBE ") and status == "200":
                 sdp = msg.body.decode()
-                if "H264/90000" not in sdp.upper():
-                    raise LiveError("Encrypted live streaming currently requires H.264 video")
-                # Only keep video media: encrypted audio is outside this implementation.
+                # Only H.264 is decrypted. Other codecs retain their original RTP/SDP,
+                # so clear H.265 still plays if metadata described the codec incorrectly.
                 session, *tracks = sdp.split("m=")
                 video = next((t for t in tracks if t.startswith("video ")), None)
                 if video is None:
                     raise LiveError("No live video track")
-                msg.body = (session + "m=" + video).encode()
+                if "H264/90000" in video.upper():
+                    self.decryptor = H264Decryptor(self.relay.code)
+                    # Encrypted audio is outside this implementation.
+                    msg.body = (session + "m=" + video).encode()
+                else:
+                    self.decryptor = None
             if request and request.line.startswith("SETUP ") and status == "200":
                 match = re.search(r"interleaved=(\d+)-(\d+)", msg.get("Transport"))
                 if not match:
                     raise LiveError("DVR did not accept interleaved TCP transport")
                 self.video_channel = int(match[1])
             # Absolute track URLs, Content-Base and RTP-Info must point back at this relay.
-            msg.headers = [
-                (k, v.replace(self.relay.upstream, self.relay.url)) for k, v in msg.headers
-            ]
-            msg.body = msg.body.replace(self.relay.upstream.encode(), self.relay.url.encode())
+            msg.headers = [(k, self.relay.rewrite_urls(v)) for k, v in msg.headers]
+            msg.body = self.relay.rewrite_urls(msg.body.decode()).encode()
             self.local.write(msg.encode())
             await self.local.drain()

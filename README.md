@@ -136,7 +136,7 @@ instead of returning a broken file. The media browser mode *Stream from the devi
 
 When the sidebar player cannot download efficiently from the selected time, it falls
 back to recorded RTSP playback. With a verification code configured on the local device
-entry, that fallback also uses the H.264 decryption relay, so DVR stream encryption can
+entry and a known H.264 codec, that fallback also uses the decryption relay, so DVR encryption can
 stay enabled. The relay closes when playback stops, is replaced, or fails to start.
 The media browser's separate *Stream from the device* mode is unchanged.
 
@@ -325,8 +325,9 @@ that keep events from arriving; fixes that change the device always ask first.
    RTSP relay on loopback, decrypts marked video units and preserves their timestamps;
    Home Assistant's normal player handles playback without transcoding. The relay uses TCP
    and supports video only; encrypted H.265 and audio are not supported. Direct camera
-   connections keep their existing stream path. With *Try the live stream even with encryption
-   on* enabled, the relay can also use a verification code read from the device.
+   connections keep their existing stream path. Only an explicitly configured verification
+   code and a known H.264 codec select the relay. *Try the live stream even with encryption
+   on* alone keeps the normal source URL; H.265 and unknown codecs do too.
 4. **Recorder motion target filter**: some recorders report motion only for people/vehicles. The repair names the filter.
 5. **Time**: configure NTP; event times are corrected, recordings are not.
 6. **Digest authentication** (*System → Security → Authentication*) or HTTPS, so passwords are not sent in clear text.
@@ -488,7 +489,10 @@ Other processes sharing that namespace are not isolated by loopback alone.
 
 RTSP messages and fragmented video units have size limits. Incomplete fragmented units
 are dropped, and rejected credentials stop further login attempts for that relay until
-reload. The decryption sanity check is not cryptographic authentication of the footage.
+reload. A Digest challenge marked `stale=true` is retried once with the fresh nonce per
+request before it is treated as a rejection. Advertised stream URLs are matched by the
+configured stream path, so an internal address or omitted port does not bypass the relay.
+If SDP reports another codec, its SDP and RTP pass through without decryption. The decryption sanity check is not cryptographic authentication of the footage.
 No cloud service, vendor SDK or additional runtime dependency is required.
 
 The H.264 RTP encryption format was informed by the MIT-licensed protocol notes in

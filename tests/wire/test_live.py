@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager, suppress
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -12,7 +13,15 @@ from tests.model.test_live import CODE, encrypt, frame, payload
 
 
 @asynccontextmanager
-async def fake_recorder(*, reject: bool = False, codec: str = "H264", resource_path=None):
+async def fake_recorder(
+    *,
+    reject: bool = False,
+    codec: str = "H264",
+    resource_path=None,
+    advertised_origin=None,
+    stale=False,
+    repeat_stale=False,
+):
     requests = []
     writers = []
     tasks = set()
@@ -21,39 +30,63 @@ async def fake_recorder(*, reject: bool = False, codec: str = "H264", resource_p
         task = asyncio.current_task()
         tasks.add(task)
         writers.append(writer)
+        staled = set()
         try:
             while True:
                 msg = await read_message(reader)
                 requests.append(msg)
                 headers = [("CSeq", msg.get("CSeq"))]
-                if reject or not msg.get("Authorization"):
-                    headers.append(
-                        ("WWW-Authenticate", 'Digest realm="DVR", nonce="abc", qop="auth"')
-                    )
+                method = msg.line.split()[0]
+                expired = (
+                    stale
+                    and method == "GET_PARAMETER"
+                    and bool(msg.get("Authorization"))
+                    and (msg.get("CSeq") not in staled or repeat_stale)
+                )
+                if reject or not msg.get("Authorization") or expired:
+                    challenge = 'Digest realm="DVR", nonce="abc", qop="auth"'
+                    if expired:
+                        staled.add(msg.get("CSeq"))
+                        challenge = 'Digest realm="DVR", nonce="fresh", qop="auth", stale=true'
+                    headers.append(("WWW-Authenticate", challenge))
                     reply = Message("RTSP/1.0 401 Unauthorized", headers)
                 else:
                     method = msg.line.split()[0]
                     # The signer must use the upstream URI, not the loopback token URL.
-                    assert f'uri="{relay.upstream}' in msg.get("Authorization")
+                    assert f'uri="{msg.line.split()[1]}"' in msg.get("Authorization")
+                    if stale and method == "GET_PARAMETER":
+                        assert 'nonce="fresh"' in msg.get("Authorization")
+                    configured = urlsplit(relay.upstream)
+                    origin = (
+                        advertised_origin
+                        if advertised_origin is not None
+                        else f"rtsp://{configured.netloc}"
+                    )
+                    base = origin + configured.path.rstrip("/") + "/"
                     headers.append(("Session", "test;timeout=60"))
                     body = b""
                     if method == "DESCRIBE":
                         headers += [
                             ("Content-Type", "application/sdp"),
-                            ("Content-Base", relay.upstream + "/"),
+                            ("Content-Base", base),
                         ]
                         body = (
                             f"v=0\r\ns=Video\r\nm=video 0 RTP/AVP 96\r\n"
                             f"a=rtpmap:96 {codec}/90000\r\n"
-                            f"a=control:{relay.upstream}/trackID=1\r\n"
+                            f"a=control:{base}trackID=1\r\n"
                             "m=audio 0 RTP/AVP 0\r\na=control:trackID=2\r\n"
                         ).encode()
                     if method == "SETUP":
                         headers.append(("Transport", msg.get("Transport")))
+                    if method == "PLAY":
+                        headers.append(("RTP-Info", f"url={base}trackID=1;seq=1;rtptime=90000"))
                     reply = Message("RTSP/1.0 200 OK", headers, body)
                 writer.write(reply.encode())
                 if msg.line.startswith("PLAY ") and msg.get("Authorization") and not reject:
-                    writer.write(frame(encrypt(b"\x65" + b"x" * 100)))
+                    if codec == "H264":
+                        writer.write(frame(encrypt(b"\x65" + b"x" * 100)))
+                    else:
+                        writer.write(frame(b"\x40\x01clear HEVC", flagged=False))
                     writer.write(frame(b"rtcp", channel=1, flagged=False))
                 await writer.drain()
         except (asyncio.IncompleteReadError, ConnectionError):
@@ -142,11 +175,9 @@ async def test_digest_sdp_and_encrypted_video(socket_enabled, resource_path) -> 
             await writer.wait_closed()
 
 
-@pytest.mark.parametrize(("reject", "codec"), [(True, "H264"), (False, "H265")])
-async def test_failed_login_blocks_retries_and_h265_is_rejected(
-    socket_enabled, reject, codec
-) -> None:
-    async with fake_recorder(reject=reject, codec=codec) as (relay, url, requests):
+async def test_failed_login_blocks_retries(socket_enabled) -> None:
+    reject = True
+    async with fake_recorder(reject=reject) as (relay, url, requests):
         reader, writer = await connect(relay)
         writer.write(Message(f"DESCRIBE {url} RTSP/1.0", [("CSeq", "1")]).encode())
         await writer.drain()
@@ -162,3 +193,123 @@ async def test_failed_login_blocks_retries_and_h265_is_rejected(
             assert len(requests) == 2
             writer.close()
             await writer.wait_closed()
+
+
+async def request(reader, writer, method, uri, number=1, headers=()):
+    writer.write(Message(f"{method} {uri} RTSP/1.0", [("CSeq", str(number)), *headers]).encode())
+    await writer.drain()
+    return await read_message(reader)
+
+
+@pytest.mark.parametrize("advertised_origin", ["rtsp://10.0.0.7", "rtsp://dvr.internal:554", ""])
+@pytest.mark.parametrize(
+    "resource_path",
+    [None, "/Streaming/tracks/101/?starttime=20260101T120000Z&endtime=20260101T121000Z"],
+)
+async def test_advertised_urls_use_configured_endpoint(
+    socket_enabled, advertised_origin, resource_path
+):
+    async with fake_recorder(advertised_origin=advertised_origin, resource_path=resource_path) as (
+        relay,
+        url,
+        requests,
+    ):
+        reader, writer = await connect(relay)
+        try:
+            reply = await request(reader, writer, "DESCRIBE", url)
+            assert reply.get("Content-Base") == url + "/"
+            track = next(
+                line.removeprefix("a=control:")
+                for line in reply.body.decode().splitlines()
+                if line.startswith("a=control:")
+            )
+            assert track == url + "/trackID=1"
+            reply = await request(
+                reader,
+                writer,
+                "SETUP",
+                track,
+                2,
+                [("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1")],
+            )
+            assert reply.line == "RTSP/1.0 200 OK"
+            setup = next(msg for msg in requests if msg.line.startswith("SETUP "))
+            configured = urlsplit(relay.upstream)
+            target = urlsplit(setup.line.split()[1])
+            assert target.netloc == configured.netloc
+            assert target.path == configured.path.rstrip("/") + "/trackID=1"
+            assert target.query == configured.query
+            reply = await request(reader, writer, "PLAY", url, 3)
+            assert reply.get("RTP-Info") == f"url={url}/trackID=1;seq=1;rtptime=90000"
+            assert payload(await read_message(reader)) == b"\x65" + b"x" * 100
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+
+async def test_non_h264_sdp_passes_through_without_reconnect_error(socket_enabled, caplog):
+    async with fake_recorder(codec="H265") as (relay, url, _):
+        reader, writer = await connect(relay)
+        try:
+            reply = await request(reader, writer, "DESCRIBE", url)
+            assert reply.line == "RTSP/1.0 200 OK"
+            assert b"H265/90000" in reply.body
+            assert b"m=audio" in reply.body
+            await request(
+                reader,
+                writer,
+                "SETUP",
+                url + "/trackID=1",
+                2,
+                [("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1")],
+            )
+            await request(reader, writer, "PLAY", url, 3)
+            original = frame(b"\x40\x01clear HEVC", flagged=False)
+            assert await read_message(reader) == original
+            assert relay.failure is None
+            assert "requires H.264" not in caplog.text
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+
+@pytest.mark.parametrize("repeat_stale", [False, True])
+async def test_stale_nonce_retries_once_per_request(socket_enabled, repeat_stale):
+    async with fake_recorder(stale=True, repeat_stale=repeat_stale) as (relay, url, requests):
+        reader, writer = await connect(relay)
+        try:
+            assert (await request(reader, writer, "OPTIONS", url)).line == "RTSP/1.0 200 OK"
+            writer.write(Message(f"GET_PARAMETER {url} RTSP/1.0", [("CSeq", "2")]).encode())
+            await writer.drain()
+            if repeat_stale:
+                assert await asyncio.wait_for(reader.read(), 1) == b""
+                assert relay.failure
+            else:
+                assert (await read_message(reader)).line == "RTSP/1.0 200 OK"
+                assert relay.failure is None
+            signed = [msg for msg in requests if msg.line.startswith("GET_PARAMETER ")]
+            assert len(signed) == 2
+            assert 'nonce="abc"' in signed[0].get("Authorization")
+            assert 'nonce="fresh"' in signed[1].get("Authorization")
+            assert "nc=00000001" in signed[1].get("Authorization")
+            if not repeat_stale:
+                assert (
+                    await request(reader, writer, "GET_PARAMETER", url, 3)
+                ).line == "RTSP/1.0 200 OK"
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+
+@pytest.mark.parametrize(
+    "foreign",
+    [
+        "rtsp://10.0.0.7/Streaming/Channels/102/trackID=1",
+        "rtsp://10.0.0.7/Streaming/Channels/1010/trackID=1",
+        "rtsp://10.0.0.7/Other/Channels/101/trackID=1",
+    ],
+)
+def test_advertised_url_rewrite_does_not_capture_other_streams(foreign):
+    relay = LiveRelay("configured.example", 1554, "101", "user", "pass", CODE)
+    relay.url = "rtsp://127.0.0.1:1234/test-token"
+    assert relay.rewrite_urls(foreign) == foreign

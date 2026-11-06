@@ -15,10 +15,8 @@ from tests.conftest import device_entry
 from tests.fakedevice import FIXTURES, FakeDevice
 
 
-@pytest.mark.parametrize("options", [{OPT_STREAM_KEY: "ABCDEF"}, {OPT_TRY_ENCRYPTED_STREAM: True}])
-async def test_saved_or_device_code_enables_loopback_stream(
-    hass: HomeAssistant, serve, options
-) -> None:
+async def test_saved_code_enables_known_h264_loopback_stream(hass: HomeAssistant, serve) -> None:
+    options = {OPT_STREAM_KEY: "ABCDEF"}
     device = FakeDevice("nvr")
     server = await serve(device)
     entry = device_entry(server, device, options)
@@ -31,6 +29,7 @@ async def test_saved_or_device_code_enables_loopback_stream(
         for e in cameras
         if e.bridge.entry.entry_id == entry.entry_id and e.channel_id == "1" and e._stream.rank == 1
     )
+    camera._stream.codec = "H.264"
     assert camera.supported_features & CameraEntityFeature.STREAM
     url = await camera.stream_source()
     assert url is not None
@@ -82,3 +81,46 @@ async def test_saved_recording_code_leaves_clear_live_stream_unchanged(
     assert not entry.runtime_data.live_relays
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize(
+    ("options", "codec", "missing_cloud"),
+    [
+        ({OPT_TRY_ENCRYPTED_STREAM: True}, "H.265", False),
+        ({OPT_TRY_ENCRYPTED_STREAM: True}, "H.264", False),
+        ({OPT_STREAM_KEY: "ABCDEF", OPT_TRY_ENCRYPTED_STREAM: True}, "H.265", False),
+        ({OPT_STREAM_KEY: "ABCDEF"}, "H.265", True),
+        ({OPT_STREAM_KEY: "ABCDEF"}, None, True),
+    ],
+)
+async def test_recording_code_and_live_override_preserve_direct_source(
+    hass: HomeAssistant,
+    serve,
+    options,
+    codec,
+    missing_cloud,
+) -> None:
+    device = FakeDevice("nvr")
+    server = await serve(device)
+    entry = device_entry(server, device, options)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    camera = next(
+        e
+        for e in hass.data["camera"].entities
+        if e.bridge.entry.entry_id == entry.entry_id and e.channel_id == "1" and e._stream.rank == 1
+    )
+    camera._stream.codec = codec
+    if missing_cloud:
+        entry.runtime_data.profile.cloud = None
+    before = len(device.requests)
+    try:
+        source = urlsplit(await camera.stream_source())
+        assert source.username == device.username
+        assert source.path == "/Streaming/Channels/101"
+        assert not entry.runtime_data.live_relays
+        assert len(device.requests) == before  # Override alone must not fetch a decryption code.
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()

@@ -23,6 +23,7 @@ from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
         ("ABCDEF", "h264", True),
         (None, "h264", False),
         ("ABCDEF", "H.265", False),
+        ("ABCDEF", None, False),
     ],
 )
 async def test_recording_rtsp_fallback_uses_code_and_closes_relay(

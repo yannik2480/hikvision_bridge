@@ -748,7 +748,7 @@ class SessionManager:
         for attempt in range(2):
             session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
             try:
-                if source.code and (codec is None or codec.lower().replace(".", "") == "h264"):
+                if source.code and codec and codec.lower().replace(".", "") == "h264":
                     parts = urlsplit(uri)
                     resource = parts.path + (f"?{parts.query}" if parts.query else "")
                     session.relay = LiveRelay(
