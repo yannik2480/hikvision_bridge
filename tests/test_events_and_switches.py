@@ -80,6 +80,7 @@ async def test_illegal_login_turns_device_sensor_on(hass: HomeAssistant, serve) 
 
     sensor = _entity_id(hass, entry, "binary_sensor", "_illegal_login")
     assert hass.states.get(sensor).state == STATE_ON
+    assert hass.states.get(sensor).attributes["device_class"] == "safety"
     assert bus[0].data["kind"] == "illegal_access"
     assert bus[0].data["channel"] is None
 
