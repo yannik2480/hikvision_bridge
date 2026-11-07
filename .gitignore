@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+credentials.json
 
 # python
 __pycache__/
@@ -16,7 +19,8 @@ htmlcov/
 # editor / local
 .idea/
 .vscode/
-.claude/settings.local.json
+.claude/
+.impeccable/
 
 # device backups and captures never belong in the repo
 device-backup/
