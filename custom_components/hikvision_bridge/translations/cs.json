@@ -124,7 +124,7 @@
           "target_sensors": "Samostatné senzory pro osoby a vozidla",
           "playback": "Přehrávání v prohlížeči médií",
           "recording_clock": "Časy záznamů",
-          "stream_key": "Ověřovací kód (šifrované záznamy)",
+          "stream_key": "Ověřovací kód (šifrované video)",
           "sidebar_panel": "Zobrazit panel Hikvision v postranním panelu",
           "panel_admin_only": "Panel vidí jen správci",
           "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování"
@@ -134,7 +134,7 @@
           "hold_seconds": "Zařízení u mnoha detekcí hlásí jen začátek; senzor zůstane zapnutý tak dlouho po posledním hlášení.",
           "playback": "Záznamy jsou v H.265 nebo H.264. „MP4 jak bylo nahráno“ začne hned, ale prohlížeče přehrávají H.265 jen s hardwarovou podporou. „Převést na H.264“ funguje všude a hodně zatěžuje procesor. „Streamovat ze zařízení“ nechá zařízení přehrát záznam přes RTSP.",
           "recording_clock": "Hodiny, podle kterých zařízení udává časy svých záznamů. „Automaticky“ je zjistí samo. Pokud se časová osa a přehrávaný záznam liší o posun vašeho časového pásma, zvolte druhé hodiny.",
-          "stream_key": "Záznamy pořízené se šifrováním streamu se dešifrují ověřovacím kódem zařízení, který se čte ze zařízení. Zadejte ho sem jen tehdy, když ho zařízení neuvádí, jako mnoho kamer.",
+          "stream_key": "Slouží k dešifrování záznamů a místního živého videa H.264 při zapnutém šifrování streamu. Zadejte sem ověřovací kód zařízení, abyste zapnuli živé dešifrování; zvuk a šifrované živé video H.265 nejsou podporovány. Záznamy mohou použít i kód načtený ze zařízení.",
           "sidebar_panel": "Platí pro všechna zařízení a účty této integrace. Karta na nástěnce zůstává dostupná.",
           "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty.",
           "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: hodiny se liší o {detail} s",
       "description": "Hodiny zařízení se znatelně liší od Home Assistant. Časy událostí se opravují, ale záznamy nesou nesprávný čas. Nastavte v zařízení NTP."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: živé video nelze dešifrovat",
+      "description": "Zařízení odmítlo přihlášení k živému streamu, nabídlo pouze nešifrované ověření Basic, nebo ověřovací kód neodpovídá streamu. Živé video zůstane vypnuté, aby nedošlo k zablokování přihlášení. Zkontrolujte ověřovací kód v možnostech a přihlašovací údaje zařízení a poté integraci znovu načtěte."
     }
   },
   "exceptions": {

@@ -134,6 +134,12 @@ with the device's verification code, which it reads from the device. Many camera
 code; enter it in the integration options (*Verification code*) then. If no code fits, playback says so
 instead of returning a broken file. The media browser mode *Stream from the device* cannot decrypt.
 
+When the sidebar player cannot download efficiently from the selected time, it falls
+back to recorded RTSP playback. With a verification code configured on the local device
+entry and a known H.264 codec, that fallback also uses the decryption relay, so DVR encryption can
+stay enabled. The relay closes when playback stops, is replaced, or fails to start.
+The media browser's separate *Stream from the device* mode is unchanged.
+
 ### Recordings panel and card
 
 The sidebar entry **Hikvision** opens a viewer for all cameras: the camera list on the left, the
@@ -313,8 +319,15 @@ that keep events from arriving; fixes that change the device always ask first.
    Assistant (*Event → … → Linkage Method*). Without it the device detects but never reports.
    The repair *“… is not reported”* or the action `add_center_links` can tick it for you (preview first).
 2. **Draw the line or area**: a line crossing or intrusion detection without a drawn line/area never triggers.
-3. **Hik-Connect stream encryption** (*Network → Platform Access*): when on, Home Assistant cannot
-   decode the recorder's stream (snapshots and events still work). Switch it off or use a direct camera connection.
+3. **Hik-Connect stream encryption** (*Network → Platform Access*): encrypted local H.264 live
+   video can be decoded without changing this setting. Enter the device's verification code
+   in the local camera or recorder entry's options. The integration uses a token-protected
+   RTSP relay on loopback, decrypts marked video units and preserves their timestamps;
+   Home Assistant's normal player handles playback without transcoding. The relay uses TCP
+   and supports video only; encrypted H.265 and audio are not supported. Direct camera
+   connections keep their existing stream path. Only an explicitly configured verification
+   code and a known H.264 codec select the relay. *Try the live stream even with encryption
+   on* alone keeps the normal source URL; H.265 and unknown codecs do too.
 4. **Recorder motion target filter**: some recorders report motion only for people/vehicles. The repair names the filter.
 5. **Time**: configure NTP; event times are corrected, recordings are not.
 6. **Digest authentication** (*System → Security → Authentication*) or HTTPS, so passwords are not sent in clear text.
@@ -428,7 +441,10 @@ Other ISAPI devices should work; please report models that do or do not.
   stops at the first rejection, never retries, and waits for the lock to expire. Correct the password via the reauthentication notice.
 * **No events**: check the *Event connection* sensor and the repairs; most often the linkage
   *Notify surveillance center* is missing or no area is drawn.
-* **Camera shows no video, snapshots work**: Hik-Connect stream encryption (see above), or use a direct camera connection.
+* **Camera shows no video, snapshots work**: with stream encryption enabled, enter the
+  verification code in the local device's options and use an H.264 stream (see above).
+  A rejected live-stream password or verification code stops retries until the entry is
+  reloaded; correct the corresponding credentials/options first.
 * **Main stream does not play in the browser**: 4K H.265 streams need a browser with H.265 support; use the sub stream otherwise.
 * **A recording does not play**: *“The recording is encrypted and the verification code does not fit”*
   means stream encryption with an unknown code; enter the code in the options (see [Recordings](#recordings)). A black or missing picture with H.265 means the browser cannot decode it;
@@ -457,10 +473,37 @@ Logged requests never contain passwords; still check the log before attaching it
 * Hik-Connect areas: changing an area recreates it with a new id (see [Security areas](#security-areas)).
 * Session login (cookie based) is not implemented; Digest and Basic authentication are.
 * Holiday schedules are not exposed.
-* Encrypted Hik-Connect live streams cannot be decoded (recordings can, see [Recordings](#recordings)).
+* Encrypted live video is supported for local H.264 RTSP/TCP streams only. Cloud-only
+  Hik-Connect live streams, encrypted H.265 and live audio decryption are not supported.
 * In the media browser, converted playback starts at the beginning of the recorded file and cannot seek; the Hikvision panel can.
 * Cameras play one recording at a time; recordings exist only in main stream quality.
 * Plate recognition (ANPR) follows Hikvision's documented notification format but has not been verified on a real plate camera yet. Plate entities appear when the device lists `ANPR` or `vehicleDetection` among a channel's events; plate events from other channels still reach the bus event.
+
+## Encrypted live video implementation
+
+The local relay opens on demand and closes on entry unload. Its URL contains a random
+256-bit path token rather than the DVR credentials or verification code; it listens only
+on `127.0.0.1` in Home Assistant's network namespace. Decrypted video is available inside
+that namespace and is served to viewers through Home Assistant's normal authentication.
+Other processes sharing that namespace are not isolated by loopback alone.
+
+RTSP messages and fragmented video units have size limits. Incomplete fragmented units
+are dropped, and rejected credentials stop further login attempts for that relay until
+reload. A Digest challenge marked `stale=true` is retried once with the fresh nonce per
+request before it is treated as a rejection. Advertised stream URLs are matched by the
+configured stream path, so an internal address or omitted port does not bypass the relay.
+If SDP reports another codec, its SDP and RTP pass through without decryption. The decryption sanity check is not cryptographic authentication of the footage.
+No cloud service, vendor SDK or additional runtime dependency is required.
+
+The H.264 RTP encryption format was informed by the MIT-licensed protocol notes in
+[Sentinel Eye](https://github.com/dsameendra/sentinel-eye/blob/main/tools/NOTES.md) and
+[homebridge-hikvision-dvr](https://github.com/matthewdeaves/homebridge-hikvision-dvr/blob/main/lib/hikcrypt.js).
+Neither reference application is installed or executed.
+
+Hardware validation: DS-7104HQHI-K1, V3.5.37 build 180928, with encryption enabled;
+main stream H.264 1920×1080 and sub stream H.264 704×480. Browser playback through Home
+Assistant was also confirmed. Encrypted H.265 and other recorder encryption variants
+have not been verified.
 
 ## Development
 

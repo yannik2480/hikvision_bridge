@@ -124,7 +124,7 @@
           "target_sensors": "Külön érzékelők személyekhez és járművekhez",
           "playback": "Lejátszás a médiaböngészőben",
           "recording_clock": "Felvételek időpontja",
-          "stream_key": "Ellenőrző kód (titkosított felvételek)",
+          "stream_key": "Ellenőrző kód (titkosított videó)",
           "sidebar_panel": "Hikvision panel megjelenítése az oldalsávban",
           "panel_admin_only": "A panelt csak a rendszergazdák látják",
           "try_encrypted_stream": "Élő közvetítés megpróbálása bekapcsolt titkosítással is"
@@ -134,7 +134,7 @@
           "hold_seconds": "Az eszközök sok észlelésnél csak a kezdetet jelentik; az érzékelő ennyi ideig bekapcsolva marad az utolsó jelzés után.",
           "playback": "A felvételek H.265 vagy H.264 formátumúak. Az „MP4 felvett formában” azonnal indul, de a böngészők a H.265-öt csak hardveres támogatással játsszák le. Az „Átalakítás H.264-re” mindenhol működik, és sok processzort igényel. A „Streamelés az eszközről” az eszközzel játszatja le a felvételt RTSP-n keresztül.",
           "recording_clock": "Az óra, amely szerint az eszköz a felvételei időpontját megadja. Az „Automatikus” kideríti. Ha az idővonal és a lejátszott felvétel az időzónád eltolásával eltér, válaszd a másik órát.",
-          "stream_key": "A streamtitkosítással készült felvételeket az eszköz ellenőrző kódjával fejtjük vissza, amelyet az eszközről olvasunk ki. Csak akkor add meg itt, ha az eszköz nem közli, ahogy sok kamera sem.",
+          "stream_key": "Felvételek és helyi H.264 élő videó visszafejtésére szolgál, miközben a stream titkosítása bekapcsolva marad. Az élő visszafejtés bekapcsolásához add meg itt az eszköz ellenőrző kódját; a hang és a titkosított H.265 élő videó nem támogatott. A felvételek az eszközről kiolvasott kódot is használhatják.",
           "sidebar_panel": "Az integráció összes eszközére és fiókjára vonatkozik. Az irányítópult-kártya továbbra is elérhető.",
           "panel_admin_only": "A rendszergazdai jogok nélküli felhasználók többé nem látják a panelt. Minden eszközre és fiókra vonatkozik.",
           "try_encrypted_stream": "Próbálja meg lejátszani a helyi RTSP-videót még akkor is, ha az eszköz Hik-Connect stream titkosítást jelez."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: az óra {detail} mp-et tér el",
       "description": "Az eszköz órája észrevehetően eltér a Home Assistanttól. Az események időpontjai javításra kerülnek, de a felvételek hibás időt kapnak. Állítson be NTP-t az eszközön."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: az élő videó nem fejthető vissza",
+      "description": "Az eszköz elutasította az élő stream bejelentkezését, csak titkosítatlan Basic hitelesítést kínált, vagy az ellenőrző kód nem illik a streamhez. Az élő videó kikapcsolva marad, hogy elkerülhető legyen a bejelentkezés zárolása. Ellenőrizd az ellenőrző kódot a beállításokban és az eszköz hitelesítő adatait, majd töltsd újra az integrációt."
     }
   },
   "exceptions": {

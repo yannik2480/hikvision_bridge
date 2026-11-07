@@ -124,7 +124,7 @@
           "target_sensors": "Cảm biến riêng cho người và phương tiện",
           "playback": "Phát trong trình duyệt phương tiện",
           "recording_clock": "Thời gian ghi hình",
-          "stream_key": "Mã xác minh (bản ghi được mã hóa)",
+          "stream_key": "Mã xác minh (video được mã hóa)",
           "sidebar_panel": "Hiển thị bảng Hikvision trên thanh bên",
           "panel_admin_only": "Chỉ quản trị viên thấy bảng",
           "try_encrypted_stream": "Thử phát trực tiếp ngay cả khi bật mã hóa"
@@ -134,7 +134,7 @@
           "hold_seconds": "Với nhiều loại phát hiện, thiết bị chỉ báo lúc bắt đầu; cảm biến giữ bật trong khoảng thời gian này sau lần báo cuối.",
           "playback": "Bản ghi là H.265 hoặc H.264. 'MP4 như khi ghi' bắt đầu ngay, nhưng trình duyệt chỉ phát H.265 khi có hỗ trợ phần cứng. 'Chuyển sang H.264' phát được ở mọi nơi và tốn nhiều CPU. 'Phát trực tiếp từ thiết bị' để thiết bị phát bản ghi qua RTSP.",
           "recording_clock": "Đồng hồ mà thiết bị dùng để ghi thời gian các bản ghi. 'Tự động' sẽ tự xác định. Nếu dòng thời gian và bản ghi đang phát lệch nhau đúng bằng độ lệch múi giờ của bạn, hãy chọn đồng hồ còn lại.",
-          "stream_key": "Bản ghi được tạo khi bật mã hóa luồng sẽ được giải mã bằng mã xác minh của thiết bị, được đọc từ thiết bị. Chỉ nhập ở đây nếu thiết bị không cung cấp, như nhiều camera.",
+          "stream_key": "Dùng để giải mã bản ghi và video trực tiếp H.264 cục bộ trong khi vẫn bật mã hóa luồng. Nhập mã xác minh của thiết bị tại đây để bật giải mã trực tiếp; âm thanh và video trực tiếp H.265 được mã hóa không được hỗ trợ. Bản ghi cũng có thể dùng mã đọc từ thiết bị.",
           "sidebar_panel": "Áp dụng cho mọi thiết bị và tài khoản của tích hợp này. Thẻ bảng điều khiển vẫn dùng được.",
           "panel_admin_only": "Người dùng không có quyền quản trị sẽ không còn thấy bảng. Áp dụng cho mọi thiết bị và tài khoản.",
           "try_encrypted_stream": "Thử phát video RTSP cục bộ ngay cả khi thiết bị báo cáo mã hóa luồng Hik-Connect đã bật."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: đồng hồ lệch {detail} giây",
       "description": "Đồng hồ thiết bị lệch đáng kể so với Home Assistant. Thời gian sự kiện được hiệu chỉnh, nhưng bản ghi mang thời gian sai. Hãy cấu hình NTP trên thiết bị."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: không thể giải mã video trực tiếp",
+      "description": "Thiết bị đã từ chối đăng nhập luồng trực tiếp, chỉ cung cấp xác thực Basic không mã hóa, hoặc mã xác minh không khớp với luồng. Video trực tiếp vẫn tắt để tránh khóa đăng nhập. Kiểm tra mã xác minh trong tùy chọn và thông tin đăng nhập của thiết bị, sau đó tải lại tích hợp."
     }
   },
   "exceptions": {

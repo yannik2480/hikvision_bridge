@@ -124,7 +124,7 @@
           "target_sensors": "Kişiler ve araçlar için ayrı sensörler",
           "playback": "Medya tarayıcısında oynatma",
           "recording_clock": "Kayıt saatleri",
-          "stream_key": "Doğrulama kodu (şifreli kayıtlar)",
+          "stream_key": "Doğrulama kodu (şifreli video)",
           "sidebar_panel": "Hikvision panelini kenar çubuğunda göster",
           "panel_admin_only": "Paneli yalnızca yöneticiler görsün",
           "try_encrypted_stream": "Şifreleme açıkken bile canlı akışı dene"
@@ -134,7 +134,7 @@
           "hold_seconds": "Cihazlar birçok algılamada yalnızca başlangıcı bildirir; sensör son bildirimden sonra bu süre kadar açık kalır.",
           "playback": "Kayıtlar H.265 veya H.264'tür. 'Kaydedildiği gibi MP4' hemen başlar, ancak tarayıcılar H.265'i yalnızca donanım desteğiyle oynatır. 'H.264'e dönüştür' her yerde çalışır ve çok işlemci gerektirir. 'Cihazdan akış' kaydı cihazın RTSP üzerinden oynatmasını sağlar.",
           "recording_clock": "Cihazın kayıt saatlerini verdiği saat. 'Otomatik' bunu kendisi bulur. Zaman çizelgesi ile oynatılan kayıt saat diliminizin farkı kadar kayıksa diğer saati seçin.",
-          "stream_key": "Akış şifrelemesiyle yapılan kayıtlar, cihazdan okunan doğrulama koduyla çözülür. Kodu buraya yalnızca cihaz bildirmiyorsa girin; birçok kamera bildirmez.",
+          "stream_key": "Akış şifrelemesi açık kalırken kayıtların ve yerel H.264 canlı videonun şifresini çözmek için kullanılır. Canlı şifre çözmeyi etkinleştirmek için cihazın doğrulama kodunu buraya girin; ses ve şifreli H.265 canlı video desteklenmez. Kayıtlar cihazdan okunan kodu da kullanabilir.",
           "sidebar_panel": "Bu entegrasyonun tüm cihazları ve hesapları için geçerlidir. Gösterge paneli kartı kullanılabilir kalır.",
           "panel_admin_only": "Yönetici yetkisi olmayan kullanıcılar paneli artık görmez. Tüm cihazlar ve hesaplar için geçerlidir.",
           "try_encrypted_stream": "Cihaz Hik-Connect akış şifrelemesini bildirse bile yerel RTSP videosunu oynatmayı deneyin."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: saat {detail} sn kaymış",
       "description": "Cihazın saati Home Assistant'tan belirgin şekilde farklı. Olay zamanları düzeltilir, ancak kayıtlar yanlış zamanı taşır. Cihazda NTP'yi yapılandırın."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: canlı videonun şifresi çözülemiyor",
+      "description": "Cihaz canlı akış oturum açmasını reddetti, yalnızca şifresiz Basic kimlik doğrulaması sundu veya doğrulama kodu akışa uymuyor. Oturum açma kilidini önlemek için canlı video kapalı kalır. Seçeneklerdeki doğrulama kodunu ve cihazın kimlik bilgilerini kontrol edin, ardından entegrasyonu yeniden yükleyin."
     }
   },
   "exceptions": {

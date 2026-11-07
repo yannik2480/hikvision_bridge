@@ -31,8 +31,10 @@ import secrets
 import shutil
 import tempfile
 import time
+from urllib.parse import urlsplit
 from weakref import WeakKeyDictionary, WeakSet
 
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
@@ -42,6 +44,7 @@ from ..wire.faults import DeviceRejected, Unsupported, detail
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrub_text, scrubbed_logger
 from . import playback
+from .live import LiveRelay
 from .playback import NoRecording, PlaybackSource, RecordingEncrypted
 
 _LOGGER = scrubbed_logger(__name__)
@@ -339,6 +342,7 @@ class Session:
     folder: Path
     process: asyncio.subprocess.Process | None = None
     pump: asyncio.Task | None = None
+    relay: LiveRelay | None = None
     last_access: float = field(default_factory=time.monotonic)
     fetched: int = -1  # highest segment number the player asked for
     scrambled: bool = False  # the download was encrypted
@@ -785,9 +789,22 @@ class SessionManager:
             session = Session(secrets.token_urlsafe(16), key, start, end, quality, folder)
             began = time.monotonic()
             try:
+                if source.code and codec and codec.lower().replace(".", "") == "h264":
+                    parts = urlsplit(uri)
+                    resource = parts.path + (f"?{parts.query}" if parts.query else "")
+                    session.relay = LiveRelay(
+                        source.link.endpoint.host,
+                        source.rtsp_port,
+                        source.track,
+                        source.credentials[CONF_USERNAME],
+                        source.credentials[CONF_PASSWORD],
+                        source.code,
+                        resource_path=resource,
+                    )
+                    url = await session.relay.start()
                 await self._spawn(session, hls_args(url, quality, codec, folder), False)
-            except asyncio.CancelledError:
-                # A newer start: the camera serves one playback, this one must not linger.
+            except BaseException:
+                # A newer start or failed spawn must not leave a playback relay behind.
                 await self._end(session)
                 raise
             reason = await self._first_segment(session, "RTSP")
@@ -853,9 +870,13 @@ class SessionManager:
         return _reason(errors, session.scrambled) if errors else "playback_failed"
 
     async def _end(self, session: Session) -> None:
-        await _cancel(session.pump)
-        if session.process is not None:
-            await _end(session.process)
+        try:
+            await _cancel(session.pump)
+            if session.process is not None:
+                await _end(session.process)
+        finally:
+            if session.relay is not None:
+                await session.relay.close()
 
     async def stop(self, session_id: str) -> None:
         async with self._lock:

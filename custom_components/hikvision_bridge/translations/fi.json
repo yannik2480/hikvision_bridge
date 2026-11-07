@@ -124,7 +124,7 @@
           "target_sensors": "Erilliset anturit ihmisille ja ajoneuvoille",
           "playback": "Toisto mediaselaimessa",
           "recording_clock": "Tallenteiden ajat",
-          "stream_key": "Vahvistuskoodi (salatut tallenteet)",
+          "stream_key": "Vahvistuskoodi (salattu video)",
           "sidebar_panel": "Näytä Hikvision-paneeli sivupalkissa",
           "panel_admin_only": "Vain ylläpitäjät näkevät paneelin",
           "try_encrypted_stream": "Kokeile suoraa lähetystä salauksen ollessa päällä"
@@ -134,7 +134,7 @@
           "hold_seconds": "Laitteet ilmoittavat monista tunnistuksista vain alun; anturi pysyy päällä näin kauan viimeisen ilmoituksen jälkeen.",
           "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta.",
           "recording_clock": "Kello, jonka mukaan laite ilmoittaa tallenteidensa ajat. 'Automaattinen' selvittää sen. Jos aikajana ja toistettu tallenne poikkeavat aikavyöhykkeesi siirtymän verran, valitse toinen kello.",
-          "stream_key": "Virran salauksella tehdyt tallenteet puretaan laitteen vahvistuskoodilla, joka luetaan laitteesta. Syötä se tähän vain, jos laite ei ilmoita sitä, kuten moni kamera.",
+          "stream_key": "Käytetään tallenteiden ja paikallisen H.264-livevideon salauksen purkuun niin, että virran salaus pysyy päällä. Syötä laitteen vahvistuskoodi tähän ottaaksesi livepurun käyttöön; ääntä ja salattua H.265-livevideota ei tueta. Tallenteet voivat käyttää myös laitteesta luettua koodia.",
           "sidebar_panel": "Koskee kaikkia tämän integraation laitteita ja tilejä. Kojelaudan kortti pysyy käytettävissä.",
           "panel_admin_only": "Käyttäjät ilman ylläpitäjän oikeuksia eivät enää näe paneelia. Koskee kaikkia laitteita ja tilejä.",
           "try_encrypted_stream": "Kokeile toistaa paikallista RTSP-videota, vaikka laite ilmoittaisi Hik-Connect-suojauksen olevan käytössä."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: kello poikkeaa {detail} s",
       "description": "Laitteen kello poikkeaa selvästi Home Assistantista. Tapahtumien ajat korjataan, mutta tallenteissa on väärä aika. Määritä laitteeseen NTP."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: livevideon salausta ei voi purkaa",
+      "description": "Laite hylkäsi livevirran kirjautumisen, tarjosi vain salaamattoman Basic-todennuksen tai vahvistuskoodi ei sovi virtaan. Livevideo pysyy pois päältä kirjautumisen lukittumisen välttämiseksi. Tarkista vahvistuskoodi asetuksista ja laitteen tunnukset ja lataa integraatio sitten uudelleen."
     }
   },
   "exceptions": {

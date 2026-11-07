@@ -124,7 +124,7 @@
           "target_sensors": "Aparte sensoren voor personen en voertuigen",
           "playback": "Afspelen in de mediabrowser",
           "recording_clock": "Opnametijden",
-          "stream_key": "Verificatiecode (versleutelde opnamen)",
+          "stream_key": "Verificatiecode (versleutelde video)",
           "sidebar_panel": "Hikvision-paneel in de zijbalk tonen",
           "panel_admin_only": "Alleen beheerders zien het paneel",
           "try_encrypted_stream": "Probeer de livestream zelfs met codering ingeschakeld"
@@ -134,7 +134,7 @@
           "hold_seconds": "Apparaten melden bij veel detecties alleen het begin; de sensor blijft zo lang aan na de laatste melding.",
           "playback": "Opnames zijn H.265 of H.264. 'MP4 zoals opgenomen' start meteen, maar browsers spelen H.265 alleen af met hardwareondersteuning. 'Omzetten naar H.264' werkt overal en vraagt veel CPU. 'Streamen vanaf het apparaat' laat het apparaat de opname via RTSP afspelen.",
           "recording_clock": "De klok waarop het apparaat de tijden van zijn opnamen aangeeft. 'Automatisch' zoekt dit uit. Wijken de tijdlijn en de afgespeelde opname af met de verschuiving van je tijdzone, kies dan de andere klok.",
-          "stream_key": "Opnamen die met streamversleuteling zijn gemaakt, worden ontsleuteld met de verificatiecode van het apparaat, die van het apparaat wordt gelezen. Vul hem hier alleen in als het apparaat hem niet doorgeeft, zoals bij veel camera's.",
+          "stream_key": "Wordt gebruikt om opnames en lokale H.264-livevideo te ontsleutelen terwijl streamversleuteling aan blijft. Vul hier de verificatiecode van het apparaat in om live-ontsleuteling in te schakelen; audio en versleutelde H.265-livevideo worden niet ondersteund. Opnames kunnen ook de code gebruiken die van het apparaat wordt gelezen.",
           "sidebar_panel": "Geldt voor alle apparaten en accounts van deze integratie. De dashboardkaart blijft beschikbaar.",
           "panel_admin_only": "Gebruikers zonder beheerdersrechten zien het paneel niet meer. Geldt voor alle apparaten en accounts.",
           "try_encrypted_stream": "Probeer lokale RTSP-video af te spelen, zelfs als het apparaat meldt dat Hik-Connect-streamversleuteling is ingeschakeld."
@@ -773,6 +773,10 @@
     "clock_skew": {
       "title": "{device}: klok wijkt {detail} s af",
       "description": "De klok van het apparaat wijkt merkbaar af van Home Assistant. Gebeurtenistijden worden gecorrigeerd, maar opnamen krijgen de verkeerde tijd. Stel NTP in op het apparaat."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: livevideo kan niet worden ontsleuteld",
+      "description": "Het apparaat heeft de aanmelding voor de livestream geweigerd, alleen onversleutelde Basic-aanmelding aangeboden, of de verificatiecode past niet bij de stream. Livevideo blijft uit om een aanmeldblokkade te voorkomen. Controleer de verificatiecode in de opties en de inloggegevens van het apparaat en laad de integratie daarna opnieuw."
     }
   },
   "exceptions": {
