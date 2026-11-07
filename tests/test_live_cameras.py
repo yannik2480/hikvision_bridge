@@ -159,3 +159,47 @@ async def test_rejected_relay_raises_repair_and_stops_offering_stream(
     finally:
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()
+
+
+async def test_saved_code_decrypts_when_dvr_omits_encryption_flag(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    missing = "<EZVIZ><enabled>true</enabled><registerStatus>true</registerStatus></EZVIZ>"
+    device.overrides[CLOUD_PATH] = (200, missing)
+    server = await serve(device)
+    entry = device_entry(server, device, {OPT_STREAM_KEY: "ABCDEF"})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    camera = next(
+        e
+        for e in hass.data["camera"].entities
+        if e.bridge.entry.entry_id == entry.entry_id and e.channel_id == "1" and e._stream.rank == 2
+    )
+    try:
+        assert camera._stream.codec == "H.264"
+        assert entry.runtime_data.profile.cloud.stream_encrypted is None
+        url = await camera.stream_source()
+        assert urlsplit(url).username is None
+        assert "/Streaming/Channels/" not in url
+        # An explicit off flag still preserves the original direct source after refresh.
+        device.overrides[CLOUD_PATH] = (
+            200,
+            missing.replace(
+                "</EZVIZ>", "<streamEncryptEnabled>false</streamEncryptEnabled></EZVIZ>"
+            ),
+        )
+        entry.runtime_data.refresher.request_full()
+        await entry.runtime_data.refresher.async_refresh()
+        direct = urlsplit(await camera.stream_source())
+        assert direct.username == device.username
+        assert direct.path == "/Streaming/Channels/102"
+        # Missing again must not be remembered as an explicit false.
+        device.overrides[CLOUD_PATH] = (200, missing)
+        entry.runtime_data.refresher.request_full()
+        await entry.runtime_data.refresher.async_refresh()
+        assert await camera.stream_source() == url
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()

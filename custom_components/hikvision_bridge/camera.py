@@ -96,7 +96,7 @@ class ChannelCamera(BridgeEntity, Camera):
         return {
             "codec": stream.codec,
             "resolution": f"{stream.width}x{stream.height}" if stream.width else None,
-            "stream_encrypted": bool(cloud and cloud.stream_encrypted),
+            "stream_encrypted": cloud.stream_encrypted if cloud else False,
         }
 
     async def async_added_to_hass(self) -> None:
@@ -149,7 +149,11 @@ class ChannelCamera(BridgeEntity, Camera):
             port = self.bridge.routes[self.channel_id].rtsp_port
         cloud = self.bridge.profile.cloud
         code = self._decryption_code
-        if link is self.bridge.link and code and (cloud is None or cloud.stream_encrypted):
+        if (
+            link is self.bridge.link
+            and code
+            and (cloud is None or cloud.stream_encrypted is not False)
+        ):
             # The relay only accepts TCP, irrespective of the normal RTSP preference.
             self.stream_options["rtsp_transport"] = RTSP_TCP
             relay = self.bridge.live_relays.get(stream_id)

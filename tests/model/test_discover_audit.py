@@ -9,6 +9,7 @@ from custom_components.hikvision_bridge.model.features import detection, linkage
 from custom_components.hikvision_bridge.model.inventory import ChannelSource, DeviceShape
 from custom_components.hikvision_bridge.model.vocabulary import Kind, canonical
 from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
+from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.fakedevice import FakeDevice
 
 pytestmark = pytest.mark.usefixtures("socket_enabled")
@@ -164,3 +165,22 @@ async def test_proxy_streams_do_not_add_to_a_full_listing(link_to) -> None:
     )
     profile = await discover.discover(await link_to(device))
     assert "103" not in [s.stream_id for s in profile.channels["1"].streams]
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [
+        ("", None),
+        ("<streamEncrypteEnabled>true</streamEncrypteEnabled>", True),
+        ("<streamEncrypteEnabled>false</streamEncrypteEnabled>", False),
+        ("<streamEncryptEnabled>true</streamEncryptEnabled>", True),
+        ("<streamEncryptEnabled>false</streamEncryptEnabled>", False),
+        (
+            "<streamEncrypteEnabled>false</streamEncrypteEnabled><streamEncryptEnabled>true</streamEncryptEnabled>",
+            True,
+        ),
+    ],
+)
+def test_missing_encryption_flag_is_unknown(flags, expected):
+    state = discover.read_cloud_state(parse(f"<EZVIZ><enabled>true</enabled>{flags}</EZVIZ>"))
+    assert state.stream_encrypted is expected

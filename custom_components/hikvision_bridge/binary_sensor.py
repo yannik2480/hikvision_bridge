@@ -177,9 +177,9 @@ class StreamEncryptionSensor(PolledEntity, BinarySensorEntity):
         super().__init__(bridge, None, "stream_encryption")
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         cloud = self.bridge.profile.cloud
-        return bool(cloud and cloud.stream_encrypted)
+        return cloud.stream_encrypted if cloud else False
 
 
 class EventLinkSensor(PushEntity, BinarySensorEntity):
