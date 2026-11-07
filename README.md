@@ -328,6 +328,12 @@ that keep events from arriving; fixes that change the device always ask first.
    connections keep their existing stream path. Only an explicitly configured verification
    code and a known H.264 codec select the relay. *Try the live stream even with encryption
    on* alone keeps the normal source URL; H.265 and unknown codecs do too.
+
+   **Older devices that do not report encryption status:** entering a verification code
+   also opts into the relay for known H.264 streams when that status is missing. An explicit
+   *encryption off* response keeps the normal source URL. Once running, the relay checks the
+   video packets: only units carrying Hikvision's encryption marker are decrypted; unmarked
+   video passes through unchanged.
 4. **Recorder motion target filter**: some recorders report motion only for people/vehicles. The repair names the filter.
 5. **Time**: configure NTP; event times are corrected, recordings are not.
 6. **Digest authentication** (*System → Security → Authentication*) or HTTPS, so passwords are not sent in clear text.
