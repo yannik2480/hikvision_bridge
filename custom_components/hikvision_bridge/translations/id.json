@@ -123,7 +123,7 @@
           "target_sensors": "Sensor terpisah untuk orang dan kendaraan",
           "playback": "Pemutaran di peramban media",
           "recording_clock": "Waktu rekaman",
-          "stream_key": "Kode verifikasi (rekaman terenkripsi)",
+          "stream_key": "Kode verifikasi (video terenkripsi)",
           "sidebar_panel": "Tampilkan panel Hikvision di bilah samping",
           "panel_admin_only": "Hanya administrator yang melihat panel",
           "try_encrypted_stream": "Coba streaming langsung meskipun enkripsi aktif"
@@ -133,7 +133,7 @@
           "hold_seconds": "Perangkat hanya melaporkan awal dari banyak deteksi; sensor tetap aktif selama ini setelah laporan terakhir.",
           "playback": "Rekaman berformat H.265 atau H.264. 'MP4 sesuai rekaman' langsung dimulai, tetapi peramban hanya memutar H.265 dengan dukungan perangkat keras. 'Ubah ke H.264' bisa diputar di mana saja dan butuh banyak CPU. 'Streaming dari perangkat' membiarkan perangkat memutar rekaman melalui RTSP.",
           "recording_clock": "Jam yang dipakai perangkat untuk waktu rekamannya. 'Otomatis' mencari tahu sendiri. Jika linimasa dan rekaman yang diputar selisih sebesar offset zona waktu Anda, pilih jam yang lain.",
-          "stream_key": "Rekaman yang dibuat dengan enkripsi stream didekripsi dengan kode verifikasi perangkat, yang dibaca dari perangkat. Masukkan di sini hanya jika perangkat tidak melaporkannya, seperti banyak kamera.",
+          "stream_key": "Digunakan untuk mendekripsi rekaman dan video langsung H.264 lokal sambil tetap mengaktifkan enkripsi stream. Masukkan kode verifikasi perangkat di sini untuk mengaktifkan dekripsi langsung; audio dan video langsung H.265 terenkripsi tidak didukung. Rekaman juga dapat menggunakan kode yang dibaca dari perangkat.",
           "sidebar_panel": "Berlaku untuk semua perangkat dan akun integrasi ini. Kartu dasbor tetap tersedia.",
           "panel_admin_only": "Pengguna tanpa hak administrator tidak lagi melihat panel. Berlaku untuk semua perangkat dan akun.",
           "try_encrypted_stream": "Coba putar video RTSP lokal meskipun perangkat melaporkan enkripsi streaming Hik-Connect aktif."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: jam meleset {detail} d",
       "description": "Jam perangkat berbeda cukup jauh dari Home Assistant. Waktu peristiwa dikoreksi, tetapi rekaman memiliki waktu yang salah. Konfigurasikan NTP di perangkat."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: video langsung tidak dapat didekripsi",
+      "description": "Perangkat menolak login stream langsung, hanya menawarkan autentikasi Basic tanpa enkripsi, atau kode verifikasi tidak cocok dengan stream. Video langsung tetap mati untuk menghindari penguncian login. Periksa kode verifikasi di opsi dan kredensial perangkat, lalu muat ulang integrasi."
     }
   },
   "exceptions": {

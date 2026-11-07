@@ -123,7 +123,7 @@
           "target_sensors": "Capteurs séparés pour les personnes et les véhicules",
           "playback": "Lecture dans le navigateur multimédia",
           "recording_clock": "Heures des enregistrements",
-          "stream_key": "Code de vérification (enregistrements chiffrés)",
+          "stream_key": "Code de vérification (vidéo chiffrée)",
           "sidebar_panel": "Afficher le panneau Hikvision dans la barre latérale",
           "panel_admin_only": "Seuls les administrateurs voient le panneau",
           "try_encrypted_stream": "Essayer le flux en direct même avec le chiffrement activé"
@@ -133,7 +133,7 @@
           "hold_seconds": "Les appareils ne signalent que le début de nombreuses détections ; le capteur reste actif aussi longtemps après le dernier signalement.",
           "playback": "Les enregistrements sont en H.265 ou H.264. « MP4 tel qu'enregistré » démarre immédiatement, mais les navigateurs ne lisent le H.265 qu'avec une prise en charge matérielle. « Convertir en H.264 » fonctionne partout et sollicite fortement le processeur. « Diffuser depuis l'appareil » laisse l'appareil lire l'enregistrement via RTSP.",
           "recording_clock": "L'horloge selon laquelle l'appareil indique les heures de ses enregistrements. « Automatique » la détermine. Si la frise et l'enregistrement lu sont décalés du décalage de votre fuseau horaire, choisissez l'autre horloge.",
-          "stream_key": "Les enregistrements effectués avec le chiffrement du flux sont déchiffrés avec le code de vérification de l'appareil, lu sur l'appareil. Saisissez-le ici uniquement si l'appareil ne le fournit pas, comme beaucoup de caméras.",
+          "stream_key": "Sert à déchiffrer les enregistrements et la vidéo en direct H.264 locale tout en gardant le chiffrement du flux activé. Saisissez ici le code de vérification de l'appareil pour activer le déchiffrement en direct ; l'audio et la vidéo en direct H.265 chiffrée ne sont pas pris en charge. Les enregistrements peuvent aussi utiliser le code lu sur l'appareil.",
           "sidebar_panel": "S'applique à tous les appareils et comptes de cette intégration. La carte du tableau de bord reste disponible.",
           "panel_admin_only": "Les utilisateurs sans droits d'administrateur ne voient plus le panneau. S'applique à tous les appareils et comptes.",
           "try_encrypted_stream": "Essayez de lire le flux RTSP local même si l'appareil signale le chiffrement Hik-Connect. De nombreux enregistreurs ne chiffrent que les flux cloud."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device} : horloge décalée de {detail} s",
       "description": "L'horloge de l'appareil diffère sensiblement de celle de Home Assistant. Les heures des événements sont corrigées, mais les enregistrements portent une heure erronée. Configurez NTP sur l'appareil."
+    },
+    "live_decryption_failed": {
+      "title": "{device} : la vidéo en direct ne peut pas être déchiffrée",
+      "description": "L'appareil a refusé la connexion au flux en direct, n'a proposé qu'une authentification Basic non chiffrée, ou le code de vérification ne correspond pas au flux. La vidéo en direct reste désactivée pour éviter un blocage de connexion. Vérifiez le code de vérification dans les options et les identifiants de l'appareil, puis rechargez l'intégration."
     }
   },
   "exceptions": {

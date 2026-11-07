@@ -123,7 +123,7 @@
           "target_sensors": "Separata sensorer för personer och fordon",
           "playback": "Uppspelning i mediabläddraren",
           "recording_clock": "Inspelningstider",
-          "stream_key": "Verifieringskod (krypterade inspelningar)",
+          "stream_key": "Verifieringskod (krypterad video)",
           "sidebar_panel": "Visa Hikvision-panelen i sidofältet",
           "panel_admin_only": "Endast administratörer ser panelen",
           "try_encrypted_stream": "Prova liveströmmen även med kryptering på"
@@ -133,7 +133,7 @@
           "hold_seconds": "Enheter rapporterar bara starten av många detekteringar; sensorn förblir på så här länge efter den senaste rapporten.",
           "playback": "Inspelningar är H.265 eller H.264. ”MP4 som inspelat” startar direkt, men webbläsare spelar bara H.265 med hårdvarustöd. ”Konvertera till H.264” fungerar överallt och kräver mycket CPU. ”Strömma från enheten” låter enheten spela upp inspelningen via RTSP.",
           "recording_clock": "Den klocka enheten anger tiderna för sina inspelningar efter. 'Automatiskt' tar reda på det. Om tidslinjen och den uppspelade inspelningen skiljer sig med din tidszons förskjutning, välj den andra klockan.",
-          "stream_key": "Inspelningar gjorda med strömkryptering dekrypteras med enhetens verifieringskod, som läses från enheten. Ange den här endast om enheten inte rapporterar den, som många kameror inte gör.",
+          "stream_key": "Används för att dekryptera inspelningar och lokal H.264-livevideo medan strömkrypteringen förblir på. Ange enhetens verifieringskod här för att aktivera live-dekryptering; ljud och krypterad H.265-livevideo stöds inte. Inspelningar kan också använda koden som läses från enheten.",
           "sidebar_panel": "Gäller alla enheter och konton i denna integration. Instrumentpanelskortet finns kvar.",
           "panel_admin_only": "Användare utan administratörsrättigheter ser inte längre panelen. Gäller alla enheter och konton.",
           "try_encrypted_stream": "Försök spela upp lokal RTSP-video även om enheten rapporterar att Hik-Connect-strömkryptering är aktiverad."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: klockan avviker {detail} s",
       "description": "Enhetens klocka skiljer sig märkbart från Home Assistant. Händelsetider korrigeras, men inspelningar får fel tid. Konfigurera NTP på enheten."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: livevideo kan inte dekrypteras",
+      "description": "Enheten avvisade inloggningen till liveströmmen, erbjöd bara okrypterad Basic-autentisering, eller så passar verifieringskoden inte strömmen. Livevideo förblir avstängd för att undvika en inloggningsspärr. Kontrollera verifieringskoden i alternativen och enhetens inloggningsuppgifter och läs sedan in integrationen igen."
     }
   },
   "exceptions": {

@@ -123,7 +123,7 @@
           "target_sensors": "Sensores separados para pessoas e veículos",
           "playback": "Reprodução no navegador de multimédia",
           "recording_clock": "Horas das gravações",
-          "stream_key": "Código de verificação (gravações encriptadas)",
+          "stream_key": "Código de verificação (vídeo encriptado)",
           "sidebar_panel": "Mostrar o painel Hikvision na barra lateral",
           "panel_admin_only": "Apenas os administradores veem o painel",
           "try_encrypted_stream": "Tentar transmissão em direto mesmo com encriptação ativada"
@@ -133,7 +133,7 @@
           "hold_seconds": "Os dispositivos só comunicam o início de muitas deteções; o sensor fica ativo durante este tempo após a última comunicação.",
           "playback": "As gravações são H.265 ou H.264. «MP4 tal como gravado» começa de imediato, mas os navegadores só reproduzem H.265 com suporte de hardware. «Converter para H.264» funciona em todo o lado e exige muito CPU. «Transmitir a partir do dispositivo» deixa o dispositivo reproduzir a gravação por RTSP.",
           "recording_clock": "O relógio com que o dispositivo indica as horas das gravações. 'Automático' descobre-o. Se a linha temporal e a gravação reproduzida diferirem pelo desfasamento do seu fuso horário, escolha o outro relógio.",
-          "stream_key": "As gravações feitas com encriptação do fluxo são desencriptadas com o código de verificação do dispositivo, lido do dispositivo. Introduza-o aqui apenas se o dispositivo não o indicar, como acontece com muitas câmaras.",
+          "stream_key": "Usado para desencriptar gravações e vídeo em direto H.264 local, mantendo a encriptação do stream ativa. Introduza aqui o código de verificação do dispositivo para ativar a desencriptação em direto; áudio e vídeo em direto H.265 encriptado não são suportados. As gravações também podem usar o código lido do dispositivo.",
           "sidebar_panel": "Aplica-se a todos os dispositivos e contas desta integração. O cartão do painel de controlo continua disponível.",
           "panel_admin_only": "Os utilizadores sem direitos de administrador deixam de ver o painel. Aplica-se a todos os dispositivos e contas.",
           "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte encriptação Hik-Connect ativada."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: relógio desfasado {detail} s",
       "description": "O relógio do dispositivo difere visivelmente do do Home Assistant. As horas dos eventos são corrigidas, mas as gravações ficam com a hora errada. Configure o NTP no dispositivo."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: não é possível desencriptar o vídeo em direto",
+      "description": "O dispositivo rejeitou o início de sessão do stream em direto, ofereceu apenas autenticação Basic não encriptada, ou o código de verificação não corresponde ao stream. O vídeo em direto fica desligado para evitar um bloqueio do início de sessão. Verifique o código de verificação nas opções e as credenciais do dispositivo e recarregue a integração."
     }
   },
   "exceptions": {

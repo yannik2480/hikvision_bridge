@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: clock off by {detail} s",
       "description": "The device clock differs noticeably from Home Assistant. Event times are corrected, but recordings carry the wrong time. Configure NTP on the device."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: live video cannot be decrypted",
+      "description": "The device rejected the live stream login, offered only unencrypted Basic authentication, or the verification code does not fit the stream. Live video stays off to avoid a login lockout. Check the verification code in the options and the device's credentials, then reload the integration."
     }
   },
   "exceptions": {

@@ -9,6 +9,7 @@ matthewdeaves/homebridge-hikvision-dvr lib/hikcrypt.js. No vendor SDK is loaded.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 import re
@@ -30,6 +31,10 @@ _STREAM_URL = re.compile(r'(?:rtsp://[^\s/;,"<>]+)?/Streaming/[^\s;,"<>]*', re.I
 
 class LiveError(Exception):
     """A protocol error with a message containing no device-supplied text."""
+
+
+class LiveRejected(LiveError):
+    """The code, the login or its scheme cannot work; retrying would only risk a lockout."""
 
 
 @dataclass
@@ -90,7 +95,7 @@ class H264Decryptor:
             raise LiveError("Encrypted H.264 unit is too short")
         plain = self.cipher.decryptor().update(data[1 : 1 + count])
         if plain[0] != data[0]:
-            raise LiveError("Live verification code does not fit the encrypted stream")
+            raise LiveRejected("Live verification code does not fit the encrypted stream")
         return plain + data[1 + count :]
 
     def feed(self, frame: bytes) -> list[bytes]:
@@ -197,6 +202,7 @@ class LiveRelay:
         code: str,
         *,
         resource_path: str | None = None,
+        on_failure: Callable[[], None] | None = None,
     ) -> None:
         self.host, self.port = host, port
         address = f"[{host}]" if ":" in host else host
@@ -211,6 +217,7 @@ class LiveRelay:
         self.tasks: set[asyncio.Task] = set()
         self.url = ""
         self.failure: str | None = None
+        self.on_failure = on_failure
         self.lock = asyncio.Lock()
         self.closing = False
 
@@ -260,10 +267,15 @@ class LiveRelay:
             done, _ = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
             for finished in done:
                 finished.result()
+        except LiveRejected as err:
+            # Terminal: refuse further connections until the entry reloads, so a wrong
+            # login is not retried into a lockout. The callback raises a repair issue.
+            first_failure = self.failure is None
+            self.failure = str(err)
+            _LOGGER.warning("Encrypted live stream stopped: %s", err)
+            if first_failure and self.on_failure is not None:
+                self.on_failure()
         except LiveError as err:
-            # Terminal failures require an options reload, preventing login retry loops.
-            if str(err).startswith(("Live verification", "DVR rejected")):
-                self.failure = str(err)
             _LOGGER.warning("Encrypted live stream stopped: %s", err)
         except (
             OSError,
@@ -387,11 +399,14 @@ class _Session:
                     and challenge.stale
                     and not stale_retry
                 ):
-                    raise LiveError(
+                    raise LiveRejected(
                         "DVR rejected live-stream credentials; reload after correcting them"
                     )
                 if challenge is None or request is None:
                     raise LiveError("Unsupported RTSP authentication challenge")
+                if challenge.scheme != "digest":
+                    # RTSP is plain text: Basic would send the password readable on the network.
+                    raise LiveRejected("DVR offered only Basic authentication over plain RTSP")
                 self.signer = build_signer(self.relay.username, self.relay.password, challenge)
                 await self.request(request, stale_retry=signed)
                 continue

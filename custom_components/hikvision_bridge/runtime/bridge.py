@@ -458,6 +458,15 @@ class DeviceBridge:
         self._issue("locked", "locked_out", {"minutes": minutes}, severity=ir.IssueSeverity.ERROR)
 
     @callback
+    def report_live_failure(self) -> None:
+        """The decrypting live relay was refused (code, login or Basic-only RTSP)."""
+        self._issue("live_decryption", "live_decryption_failed", {})
+
+    @callback
+    def clear_live_failure(self) -> None:
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id("live_decryption"))
+
+    @callback
     def report_channel_fault(self, channel_id: str, err: BaseException) -> None:
         route = self.routes.get(channel_id)
         if route is None:

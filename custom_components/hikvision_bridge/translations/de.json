@@ -123,7 +123,7 @@
           "target_sensors": "Eigene Sensoren für Personen und Fahrzeuge",
           "playback": "Wiedergabe im Medienbrowser",
           "recording_clock": "Aufnahmezeiten",
-          "stream_key": "Verifizierungscode (verschlüsselte Aufnahmen)",
+          "stream_key": "Verifizierungscode (verschlüsseltes Video)",
           "sidebar_panel": "Hikvision-Panel in der Seitenleiste anzeigen",
           "panel_admin_only": "Nur Administratoren sehen das Panel",
           "try_encrypted_stream": "Livestream auch bei aktivierter Verschlüsselung versuchen"
@@ -133,7 +133,7 @@
           "hold_seconds": "Viele Geräte melden nur den Beginn einer Erkennung; der Sensor bleibt so lange nach der letzten Meldung an.",
           "playback": "Aufnahmen sind H.265 oder H.264. „MP4 wie aufgenommen“ startet sofort, Browser spielen H.265 aber nur mit Hardwareunterstützung. „In H.264 umwandeln“ läuft überall und braucht viel CPU. „Vom Gerät streamen“ lässt das Gerät die Aufnahme per RTSP abspielen.",
           "recording_clock": "Die Uhr, nach der das Gerät die Zeiten seiner Aufnahmen angibt. „Automatisch“ findet sie heraus. Liegen Zeitleiste und abgespielte Aufnahme um den Versatz deiner Zeitzone auseinander, wähle die andere Uhr.",
-          "stream_key": "Mit Stream-Verschlüsselung aufgenommene Aufnahmen werden mit dem Verifizierungscode des Geräts entschlüsselt, der vom Gerät gelesen wird. Trage ihn hier nur ein, wenn das Gerät ihn nicht meldet, wie viele Kameras.",
+          "stream_key": "Entschlüsselt Aufnahmen und lokales H.264-Livevideo, während die Stream-Verschlüsselung eingeschaltet bleibt. Trage hier den Verifizierungscode des Geräts ein, um die Live-Entschlüsselung zu aktivieren; Audio und verschlüsseltes H.265-Livevideo werden nicht unterstützt. Für Aufnahmen kann auch der vom Gerät gelesene Code verwendet werden.",
           "sidebar_panel": "Gilt für alle Geräte und Konten dieser Integration. Die Dashboard-Karte bleibt verfügbar.",
           "panel_admin_only": "Benutzer ohne Administratorrechte sehen das Panel nicht mehr. Gilt für alle Geräte und Konten.",
           "try_encrypted_stream": "Spielt den lokalen RTSP-Livestream ab, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: Uhr weicht um {detail} s ab",
       "description": "Die Geräteuhr weicht deutlich von Home Assistant ab. Ereigniszeiten werden korrigiert, Aufnahmen tragen aber die falsche Zeit. Bitte NTP am Gerät einrichten."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: Livevideo kann nicht entschlüsselt werden",
+      "description": "Das Gerät hat die Anmeldung für den Livestream abgelehnt, nur unverschlüsselte Basic-Anmeldung angeboten, oder der Verifizierungscode passt nicht zum Stream. Das Livevideo bleibt aus, um eine Anmeldesperre zu vermeiden. Prüfe den Verifizierungscode in den Optionen und die Zugangsdaten des Geräts und lade die Integration dann neu."
     }
   },
   "exceptions": {

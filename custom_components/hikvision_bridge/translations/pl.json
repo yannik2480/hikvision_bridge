@@ -123,7 +123,7 @@
           "target_sensors": "Osobne czujniki dla osób i pojazdów",
           "playback": "Odtwarzanie w przeglądarce multimediów",
           "recording_clock": "Czas nagrań",
-          "stream_key": "Kod weryfikacyjny (zaszyfrowane nagrania)",
+          "stream_key": "Kod weryfikacyjny (szyfrowane wideo)",
           "sidebar_panel": "Pokaż panel Hikvision na pasku bocznym",
           "panel_admin_only": "Panel widzą tylko administratorzy",
           "try_encrypted_stream": "Spróbuj transmisji na żywo nawet przy włączonym szyfrowaniu"
@@ -133,7 +133,7 @@
           "hold_seconds": "Urządzenia zgłaszają tylko początek wielu wykryć; czujnik pozostaje włączony tak długo po ostatnim zgłoszeniu.",
           "playback": "Nagrania są w H.265 lub H.264. „MP4 jak nagrano” startuje od razu, ale przeglądarki odtwarzają H.265 tylko przy wsparciu sprzętowym. „Konwertuj do H.264” działa wszędzie i mocno obciąża procesor. „Strumień z urządzenia” pozwala urządzeniu odtworzyć nagranie przez RTSP.",
           "recording_clock": "Zegar, według którego urządzenie podaje czas nagrań. „Automatycznie” ustala go samo. Jeśli oś czasu i odtwarzane nagranie różnią się o przesunięcie Twojej strefy czasowej, wybierz drugi zegar.",
-          "stream_key": "Nagrania wykonane z szyfrowaniem strumienia są odszyfrowywane kodem weryfikacyjnym urządzenia, odczytywanym z urządzenia. Wpisz go tutaj tylko wtedy, gdy urządzenie go nie podaje, jak wiele kamer.",
+          "stream_key": "Służy do odszyfrowywania nagrań i lokalnego wideo na żywo H.264 przy włączonym szyfrowaniu strumienia. Wpisz tutaj kod weryfikacyjny urządzenia, aby włączyć odszyfrowywanie na żywo; dźwięk i szyfrowane wideo na żywo H.265 nie są obsługiwane. Nagrania mogą też używać kodu odczytanego z urządzenia.",
           "sidebar_panel": "Dotyczy wszystkich urządzeń i kont tej integracji. Karta pulpitu pozostaje dostępna.",
           "panel_admin_only": "Użytkownicy bez uprawnień administratora nie widzą już panelu. Dotyczy wszystkich urządzeń i kont.",
           "try_encrypted_stream": "Spróbuj odtworzyć lokalne wideo RTSP, nawet jeśli urządzenie zgłasza szyfrowanie Hik-Connect."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: zegar przesunięty o {detail} s",
       "description": "Zegar urządzenia wyraźnie różni się od Home Assistant. Czasy zdarzeń są korygowane, ale nagrania mają błędny czas. Skonfiguruj NTP w urządzeniu."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: nie można odszyfrować wideo na żywo",
+      "description": "Urządzenie odrzuciło logowanie do strumienia na żywo, zaoferowało tylko nieszyfrowane uwierzytelnianie Basic albo kod weryfikacyjny nie pasuje do strumienia. Wideo na żywo pozostaje wyłączone, aby uniknąć blokady logowania. Sprawdź kod weryfikacyjny w opcjach i dane logowania urządzenia, a następnie przeładuj integrację."
     }
   },
   "exceptions": {

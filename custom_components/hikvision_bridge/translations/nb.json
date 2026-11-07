@@ -123,7 +123,7 @@
           "target_sensors": "Egne sensorer for personer og kjøretøy",
           "playback": "Avspilling i medieleseren",
           "recording_clock": "Opptakstider",
-          "stream_key": "Verifiseringskode (krypterte opptak)",
+          "stream_key": "Verifiseringskode (kryptert video)",
           "sidebar_panel": "Vis Hikvision-panelet i sidefeltet",
           "panel_admin_only": "Bare administratorer ser panelet",
           "try_encrypted_stream": "Prøv direktesendingen selv med kryptering på"
@@ -133,7 +133,7 @@
           "hold_seconds": "Enheter melder bare starten av mange deteksjoner; sensoren forblir på så lenge etter siste melding.",
           "playback": "Opptak er H.265 eller H.264. «MP4 som tatt opp» starter med en gang, men nettlesere spiller bare H.265 med maskinvarestøtte. «Konverter til H.264» virker overalt og krever mye CPU. «Strøm fra enheten» lar enheten spille av opptaket via RTSP.",
           "recording_clock": "Klokken enheten oppgir tidene for opptakene sine etter. 'Automatisk' finner det ut. Hvis tidslinjen og opptaket som spilles av er forskjøvet med tidssonens forskyvning, velg den andre klokken.",
-          "stream_key": "Opptak gjort med strømkryptering dekrypteres med enhetens verifiseringskode, som leses fra enheten. Skriv den inn her bare hvis enheten ikke oppgir den, slik mange kameraer ikke gjør.",
+          "stream_key": "Brukes til å dekryptere opptak og lokal H.264-livevideo mens strømkryptering forblir på. Skriv inn enhetens verifiseringskode her for å aktivere live-dekryptering; lyd og kryptert H.265-livevideo støttes ikke. Opptak kan også bruke koden som leses fra enheten.",
           "sidebar_panel": "Gjelder alle enheter og kontoer i denne integrasjonen. Dashbordkortet er fortsatt tilgjengelig.",
           "panel_admin_only": "Brukere uten administratorrettigheter ser ikke lenger panelet. Gjelder alle enheter og kontoer.",
           "try_encrypted_stream": "Prøv å spille av lokal RTSP-video selv om enheten rapporterer at Hik-Connect-strømkryptering er aktivert."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: klokken avviker {detail} s",
       "description": "Enhetens klokke avviker merkbart fra Home Assistant. Hendelsestider korrigeres, men opptak får feil tid. Konfigurer NTP på enheten."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: livevideo kan ikke dekrypteres",
+      "description": "Enheten avviste innloggingen til livestrømmen, tilbød bare ukryptert Basic-autentisering, eller verifiseringskoden passer ikke til strømmen. Livevideo forblir av for å unngå en innloggingssperre. Kontroller verifiseringskoden i alternativene og enhetens påloggingsinformasjon, og last deretter inn integrasjonen på nytt."
     }
   },
   "exceptions": {

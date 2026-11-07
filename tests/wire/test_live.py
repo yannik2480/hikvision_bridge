@@ -21,6 +21,8 @@ async def fake_recorder(
     advertised_origin=None,
     stale=False,
     repeat_stale=False,
+    basic=False,
+    on_failure=None,
 ):
     requests = []
     writers = []
@@ -44,7 +46,11 @@ async def fake_recorder(
                     and (msg.get("CSeq") not in staled or repeat_stale)
                 )
                 if reject or not msg.get("Authorization") or expired:
-                    challenge = 'Digest realm="DVR", nonce="abc", qop="auth"'
+                    challenge = (
+                        'Basic realm="DVR"'
+                        if basic
+                        else 'Digest realm="DVR", nonce="abc", qop="auth"'
+                    )
                     if expired:
                         staled.add(msg.get("CSeq"))
                         challenge = 'Digest realm="DVR", nonce="fresh", qop="auth", stale=true'
@@ -105,6 +111,7 @@ async def fake_recorder(
         "pass",
         CODE,
         resource_path=resource_path,
+        on_failure=on_failure,
     )
     try:
         url = await relay.start()
@@ -177,7 +184,12 @@ async def test_digest_sdp_and_encrypted_video(socket_enabled, resource_path) -> 
 
 async def test_failed_login_blocks_retries(socket_enabled) -> None:
     reject = True
-    async with fake_recorder(reject=reject) as (relay, url, requests):
+    failures = []
+    async with fake_recorder(reject=reject, on_failure=lambda: failures.append(1)) as (
+        relay,
+        url,
+        requests,
+    ):
         reader, writer = await connect(relay)
         writer.write(Message(f"DESCRIBE {url} RTSP/1.0", [("CSeq", "1")]).encode())
         await writer.drain()
@@ -193,6 +205,27 @@ async def test_failed_login_blocks_retries(socket_enabled) -> None:
             assert len(requests) == 2
             writer.close()
             await writer.wait_closed()
+    assert failures == [1]  # Reported once, not on every refused reconnect.
+
+
+async def test_basic_only_challenge_is_refused(socket_enabled) -> None:
+    # RTSP is plain text; Basic would put the password readable on the network.
+    failures = []
+    async with fake_recorder(basic=True, on_failure=lambda: failures.append(1)) as (
+        relay,
+        url,
+        requests,
+    ):
+        reader, writer = await connect(relay)
+        writer.write(Message(f"DESCRIBE {url} RTSP/1.0", [("CSeq", "1")]).encode())
+        await writer.drain()
+        assert await asyncio.wait_for(reader.read(), 1) == b""
+        writer.close()
+        await writer.wait_closed()
+        assert len(requests) == 1
+        assert not requests[0].get("Authorization")
+        assert relay.failure
+    assert failures == [1]
 
 
 async def request(reader, writer, method, uri, number=1, headers=()):

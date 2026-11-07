@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from homeassistant.components.camera import CameraEntityFeature
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 import pytest
 
 from custom_components.hikvision_bridge.const import OPT_STREAM_KEY, OPT_TRY_ENCRYPTED_STREAM
@@ -121,6 +122,40 @@ async def test_recording_code_and_live_override_preserve_direct_source(
         assert source.path == "/Streaming/Channels/101"
         assert not entry.runtime_data.live_relays
         assert len(device.requests) == before  # Override alone must not fetch a decryption code.
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_rejected_relay_raises_repair_and_stops_offering_stream(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    server = await serve(device)
+    entry = device_entry(server, device, {OPT_STREAM_KEY: "ABCDEF"})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    camera = next(
+        e
+        for e in hass.data["camera"].entities
+        if e.bridge.entry.entry_id == entry.entry_id and e.channel_id == "1" and e._stream.rank == 1
+    )
+    camera._stream.codec = "H.264"
+    issue_id = f"{entry.entry_id}_live_decryption"
+    try:
+        assert await camera.stream_source() is not None
+        relay = entry.runtime_data.live_relays["101"]
+        relay.failure = "rejected"
+        relay.on_failure()
+        issue = ir.async_get(hass).async_get_issue("hikvision_bridge", issue_id)
+        assert issue is not None
+        assert issue.translation_key == "live_decryption_failed"
+        assert await camera.stream_source() is None
+        # A new relay (as after a reload) starts clean and removes the repair.
+        entry.runtime_data.live_relays.clear()
+        assert await camera.stream_source() is not None
+        assert ir.async_get(hass).async_get_issue("hikvision_bridge", issue_id) is None
     finally:
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()

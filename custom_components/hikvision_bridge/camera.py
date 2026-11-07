@@ -154,6 +154,8 @@ class ChannelCamera(BridgeEntity, Camera):
             self.stream_options["rtsp_transport"] = RTSP_TCP
             relay = self.bridge.live_relays.get(stream_id)
             if relay is None:
+                # A fresh relay (after a reload) gets a fresh chance; drop the old repair.
+                self.bridge.clear_live_failure()
                 relay = LiveRelay(
                     link.endpoint.host,
                     int(port),
@@ -161,8 +163,11 @@ class ChannelCamera(BridgeEntity, Camera):
                     data[CONF_USERNAME],
                     data[CONF_PASSWORD],
                     code,
+                    on_failure=self.bridge.report_live_failure,
                 )
                 self.bridge.live_relays[stream_id] = relay
+            if relay.failure:
+                return None  # Rejected code or login: no reconnect loop until a reload.
             return await relay.start()
         user = quote(data[CONF_USERNAME], safe="")
         password = quote(data[CONF_PASSWORD], safe="")

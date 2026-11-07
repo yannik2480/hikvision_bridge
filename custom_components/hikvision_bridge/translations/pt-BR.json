@@ -123,7 +123,7 @@
           "target_sensors": "Sensores separados para pessoas e veículos",
           "playback": "Reprodução no navegador de mídia",
           "recording_clock": "Horários das gravações",
-          "stream_key": "Código de verificação (gravações criptografadas)",
+          "stream_key": "Código de verificação (vídeo criptografado)",
           "sidebar_panel": "Mostrar o painel Hikvision na barra lateral",
           "panel_admin_only": "Somente administradores veem o painel",
           "try_encrypted_stream": "Tentar transmissão ao vivo mesmo com criptografia ativada"
@@ -133,7 +133,7 @@
           "hold_seconds": "Os dispositivos só informam o início de muitas detecções; o sensor fica ativo por este tempo após o último aviso.",
           "playback": "As gravações são H.265 ou H.264. \"MP4 como gravado\" começa na hora, mas os navegadores só reproduzem H.265 com suporte de hardware. \"Converter para H.264\" funciona em qualquer lugar e exige muita CPU. \"Transmitir do dispositivo\" deixa o dispositivo reproduzir a gravação via RTSP.",
           "recording_clock": "O relógio com que o dispositivo informa os horários das gravações. 'Automático' descobre isso. Se a linha do tempo e a gravação reproduzida diferirem pelo deslocamento do seu fuso horário, escolha o outro relógio.",
-          "stream_key": "As gravações feitas com criptografia de stream são descriptografadas com o código de verificação do dispositivo, lido do próprio dispositivo. Informe-o aqui apenas se o dispositivo não o fornecer, como acontece com muitas câmeras.",
+          "stream_key": "Usado para descriptografar gravações e vídeo ao vivo H.264 local mantendo a criptografia do stream ativada. Digite aqui o código de verificação do dispositivo para ativar a descriptografia ao vivo; áudio e vídeo ao vivo H.265 criptografado não são suportados. As gravações também podem usar o código lido do dispositivo.",
           "sidebar_panel": "Vale para todos os dispositivos e contas desta integração. O cartão do dashboard continua disponível.",
           "panel_admin_only": "Usuários sem direitos de administrador deixam de ver o painel. Vale para todos os dispositivos e contas.",
           "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte criptografia Hik-Connect ativada."
@@ -770,6 +770,10 @@
     "clock_skew": {
       "title": "{device}: relógio defasado em {detail} s",
       "description": "O relógio do dispositivo difere visivelmente do Home Assistant. Os horários dos eventos são corrigidos, mas as gravações ficam com o horário errado. Configure o NTP no dispositivo."
+    },
+    "live_decryption_failed": {
+      "title": "{device}: não é possível descriptografar o vídeo ao vivo",
+      "description": "O dispositivo recusou o login do stream ao vivo, ofereceu apenas autenticação Basic sem criptografia, ou o código de verificação não corresponde ao stream. O vídeo ao vivo fica desligado para evitar um bloqueio de login. Verifique o código de verificação nas opções e as credenciais do dispositivo e recarregue a integração."
     }
   },
   "exceptions": {
