@@ -10,8 +10,8 @@ import pytest
 from custom_components.hikvision_bridge.model import discover
 from custom_components.hikvision_bridge.model.features import io, linkage, ptz
 from custom_components.hikvision_bridge.model.inventory import IoPort
-from custom_components.hikvision_bridge.runtime.hookin import FreshnessGate
-from custom_components.hikvision_bridge.wire.feed import BACKLOG_TOLERANCE, FeedFrame
+from custom_components.hikvision_bridge.runtime.hookin import WEBHOOK_TOLERANCE, FreshnessGate
+from custom_components.hikvision_bridge.wire.feed import FeedFrame
 from custom_components.hikvision_bridge.wire.xmlview import parse
 
 NS = 'xmlns="http://www.isapi.org/ver20/XMLSchema"'
@@ -84,9 +84,11 @@ def _frame(device_time: datetime | None, raw_type: str = "VMD", state: str = "ac
 def test_webhook_drops_frames_older_than_registration() -> None:
     since = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     gate = FreshnessGate(since)
-    assert not gate.admit(_frame(since - BACKLOG_TOLERANCE - timedelta(seconds=1)))
-    assert gate.dropped == 1
-    assert gate.admit(_frame(since - timedelta(seconds=1)))
+    assert not gate.admit(_frame(since - WEBHOOK_TOLERANCE - timedelta(seconds=1)))
+    assert not gate.admit(_frame(datetime(2020, 1, 1, tzinfo=UTC)))
+    assert gate.dropped == 2
+    # A device clock some hours behind still delivers live events right after a restart.
+    assert gate.admit(_frame(since - timedelta(hours=9)))
     assert gate.admit(_frame(since + timedelta(minutes=1)))
     assert gate.admit(_frame(None))
 
@@ -97,6 +99,7 @@ def test_webhook_gate_uses_heartbeat_clock_offset() -> None:
     beat = _frame(since + timedelta(hours=2), "videoloss", "inactive")
     beat.received = since
     assert gate.admit(beat)
-    # Device clock runs two hours ahead: an event stamped at the registration instant is stale.
-    assert not gate.admit(_frame(since + timedelta(hours=2) - timedelta(seconds=30)))
+    # Device clock runs two hours ahead: corrected, this frame is older than the tolerance.
+    stale = since + timedelta(hours=2) - WEBHOOK_TOLERANCE - timedelta(seconds=30)
+    assert not gate.admit(_frame(stale))
     assert gate.admit(_frame(since + timedelta(hours=2) + timedelta(seconds=1)))

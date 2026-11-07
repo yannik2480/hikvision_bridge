@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant, callback
 
 from ..const import DOMAIN, EVENT_PATH_BOTH, EVENT_PATH_WEBHOOK, OPT_EVENT_PATH, OPT_WEBHOOK_ID
 from ..wire.feed import (
-    BACKLOG_TOLERANCE,
     FeedFrame,
     MultipartSplitter,
     Part,
@@ -32,12 +31,18 @@ def webhook_wanted(entry: ConfigEntry) -> bool:
     )
 
 
-class FreshnessGate:
-    """The alertStream backlog rule for pushed frames.
+# Pushed notifications rarely carry heartbeats, so the device clock offset is often unknown.
+# A device clock that is off (no NTP, wrong time zone) must not lose live events after a
+# restart; only frames far older than the registration count as replays.
+WEBHOOK_TOLERANCE = timedelta(days=1)
 
-    A frame stamped (on the device clock, corrected by the offset heartbeats reveal) before the
-    webhook was registered is a replay of old events and is dropped. Frames without a device
-    time pass, as they do on the stream.
+
+class FreshnessGate:
+    """Drop replays of old notifications.
+
+    A frame stamped (on the device clock, corrected by the offset heartbeats reveal) more
+    than WEBHOOK_TOLERANCE before the webhook was registered is a replay and is dropped.
+    Frames without a device time pass, as they do on the stream.
     """
 
     def __init__(self, since: datetime | None = None) -> None:
@@ -51,7 +56,7 @@ class FreshnessGate:
         if frame.heartbeat:
             self.offset = frame.device_time - frame.received
             return True
-        if frame.device_time - self.offset < self.since - BACKLOG_TOLERANCE:
+        if frame.device_time - self.offset < self.since - WEBHOOK_TOLERANCE:
             self.dropped += 1
             return False
         return True
