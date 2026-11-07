@@ -151,11 +151,13 @@ def read_cloud_state(cloud: XmlNode | None) -> CloudLinkState | None:
     """Hik-Connect platform access settings, including stream encryption."""
     if cloud is None:
         return None
+    # Older DVRs omit both flags; absence does not mean encryption is off.
+    flags = (cloud.flag("streamEncrypteEnabled"), cloud.flag("streamEncryptEnabled"))
+    encrypted = any(flags) if any(value is not None for value in flags) else None
     return CloudLinkState(
         enabled=bool(cloud.flag("enabled", False)),
         registered=bool(cloud.flag("registerStatus", False)),
-        stream_encrypted=bool(cloud.flag("streamEncrypteEnabled", False))
-        or bool(cloud.flag("streamEncryptEnabled", False)),
+        stream_encrypted=encrypted,
     )
 
 
