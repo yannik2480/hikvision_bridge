@@ -47,7 +47,7 @@ def _cloud_entry() -> MockConfigEntry:
             CONF_ENTRY_KIND: KIND_CLOUD,
             CONF_ACCOUNT: "user@example.invalid",
             CONF_PASSWORD: "secret",
-            CONF_REGION_HOST: "api.example.invalid",
+            CONF_REGION_HOST: "api.hik-connect.com",
         },
         title="Hik-Connect",
     )

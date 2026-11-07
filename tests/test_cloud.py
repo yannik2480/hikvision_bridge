@@ -99,16 +99,16 @@ def _account(responses: list[dict]) -> tuple[CloudAccount, AsyncMock]:
 async def test_login_follows_one_region_redirect() -> None:
     acct, send = _account(
         [
-            {"meta": {"code": 1100}, "loginArea": {"apiDomain": "region.example.invalid"}},
+            {"meta": {"code": 1100}, "loginArea": {"apiDomain": "region.hik-connect.com"}},
             {
                 "meta": {"code": 200},
-                "loginArea": {"apiDomain": "region.example.invalid"},
+                "loginArea": {"apiDomain": "region.hik-connect.com"},
                 "loginSession": {"sessionId": "s1", "rfSessionId": "r1"},
             },
         ]
     )
     await acct.login()
-    assert acct.region_host == "region.example.invalid"
+    assert acct.region_host == "region.hik-connect.com"
     assert send.await_count == 2
 
 
@@ -137,7 +137,7 @@ def _cloud_entry() -> MockConfigEntry:
             CONF_ENTRY_KIND: KIND_CLOUD,
             CONF_ACCOUNT: "a@example.invalid",
             CONF_PASSWORD: "pw",
-            CONF_REGION_HOST: "region.example.invalid",
+            CONF_REGION_HOST: "region.hik-connect.com",
         },
         unique_id="cloud_test",
         title="a@example.invalid",

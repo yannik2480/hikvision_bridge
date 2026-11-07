@@ -176,7 +176,7 @@ class DeviceBridge:
                 self.report_channel_fault(channel_id, err)
                 continue
             expected = data.get(CONF_CAMERA_SERIAL)
-            if expected and found.serial and found.serial != expected:
+            if expected and found.serial != expected:
                 route.healthy = False
                 self._issue(
                     f"channel_mismatch_{channel_id}",
@@ -451,6 +451,10 @@ class DeviceBridge:
     def report_lockout(self, err: LockedOut) -> None:
         minutes = str(round((err.retry_after or 1800) / 60))
         self._issue("locked", "locked_out", {"minutes": minutes}, severity=ir.IssueSeverity.ERROR)
+
+    @callback
+    def clear_lockout(self) -> None:
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id("locked"))
 
     @callback
     def report_channel_fault(self, channel_id: str, err: BaseException) -> None:

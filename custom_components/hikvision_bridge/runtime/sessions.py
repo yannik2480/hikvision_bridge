@@ -71,6 +71,8 @@ RTSP_TIMEOUT = 10_000_000
 BUSY_PAUSE = 2.0
 IDLE_SECONDS = 45
 MAX_SESSIONS = 4
+# Longest a session may live, however busy; its URL is a bearer token.
+MAX_LIFETIME = 4 * 3600.0
 # Video prepared beyond the last segment the player fetched (players buffer ahead too).
 READ_AHEAD = 60
 # Recordings closer than this count as one stretch.
@@ -340,6 +342,9 @@ class Session:
     last_access: float = field(default_factory=time.monotonic)
     fetched: int = -1  # highest segment number the player asked for
     scrambled: bool = False  # the download was encrypted
+    entry_id: str = ""
+    owner: str | None = None  # id of the Home Assistant user who started it
+    created: float = field(default_factory=time.monotonic)
 
     @property
     def url(self) -> str:
@@ -392,6 +397,9 @@ class SessionManager:
 
     def get(self, session_id: str, name: str | None = None) -> Session | None:
         session = self.sessions.get(session_id)
+        if session is not None and time.monotonic() - session.created > MAX_LIFETIME:
+            self.hass.async_create_task(self.stop(session_id))
+            return None
         if session is not None:
             session.touch(name)
         return session
@@ -407,6 +415,7 @@ class SessionManager:
         replace: str | None = None,
         found: list[recordings.Recording] | None = None,
         ticket: int | None = None,
+        owner: str | None = None,
     ) -> Session:
         """Play from ``start``; ``found`` are the recorded files around it.
 
@@ -418,7 +427,7 @@ class SessionManager:
         if (pending := self._starting.get(key)) is not None:
             pending.cancel()
         task = asyncio.ensure_future(
-            self._start(source, key, start, end, quality, codec, replace, found)
+            self._start(source, key, start, end, quality, codec, replace, found, owner)
         )
         self._starting[key] = task
         try:
@@ -442,6 +451,7 @@ class SessionManager:
         codec: str | None,
         replace: str | None,
         found: list[recordings.Recording] | None,
+        owner: str | None = None,
     ) -> Session:
         async with self._lock:
             if replace:
@@ -468,8 +478,7 @@ class SessionManager:
                             self._rtsp_only.add(source.link)
                         far = err.far
                     else:
-                        self.sessions[session.session_id] = session
-                        self._watch()
+                        self._register(session, key, owner)
                         return session
                 try:
                     session = await self._from_rtsp(
@@ -491,9 +500,20 @@ class SessionManager:
             except BaseException:
                 await self.hass.async_add_executor_job(shutil.rmtree, folder, True)
                 raise
-            self.sessions[session.session_id] = session
-            self._watch()
+            self._register(session, key, owner)
             return session
+
+    def _register(self, session: Session, key: tuple[str, str, str], owner: str | None) -> None:
+        session.entry_id = key[0]
+        session.owner = owner
+        self.sessions[session.session_id] = session
+        self._watch()
+
+    async def stop_entry(self, entry_id: str) -> None:
+        """End the sessions of a config entry (it is unloading)."""
+        async with self._lock:
+            for session in [s for s in self.sessions.values() if s.entry_id == entry_id]:
+                await self._stop(session.session_id)
 
     # ------------------------------------------------------------- download
 
@@ -866,6 +886,7 @@ class SessionManager:
             s.session_id
             for s in self.sessions.values()
             if time.monotonic() - s.last_access > IDLE_SECONDS
+            or time.monotonic() - s.created > MAX_LIFETIME
         ]
         for session_id in idle:
             self.hass.async_create_task(self.stop(session_id))
