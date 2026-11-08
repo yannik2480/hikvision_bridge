@@ -170,13 +170,21 @@ def playback_uri(
     )
 
 
-def hls_args(url: str, quality: str, codec: str | None, target: Path) -> list[str]:
-    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin."""
+def hls_args(
+    url: str, quality: str, codec: str | None, target: Path, audio: bool | None = None
+) -> list[str]:
+    """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin.
+
+    ``audio`` False leaves the RTSP audio track out: recorders announce one even for channels
+    with audio off, and ffmpeg then holds back all video waiting for audio that never comes.
+    """
     args = ["-hide_banner", "-loglevel", "error"]
     if url == PIPE:
         args += ["-f", "mpeg"]
     else:
         args += ["-rtsp_transport", "tcp", "-timeout", str(RTSP_TIMEOUT)]
+        if audio is False:
+            args += ["-allowed_media_types", "video"]
     # The streams are known after the first key frame; the default waits five seconds.
     args += ["-analyzeduration", "2000000", "-i", url, "-map", "0:v:0", "-map", "0:a:0?"]
     if quality == QUALITY_COMPATIBLE:
@@ -802,7 +810,9 @@ class SessionManager:
                         resource_path=resource,
                     )
                     url = await session.relay.start()
-                await self._spawn(session, hls_args(url, quality, codec, folder), False)
+                await self._spawn(
+                    session, hls_args(url, quality, codec, folder, source.audio), False
+                )
             except BaseException:
                 # A newer start or failed spawn must not leave a playback relay behind.
                 await self._end(session)
