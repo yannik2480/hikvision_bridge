@@ -262,3 +262,22 @@ async def test_rejection_warning_says_what_was_offered_but_no_secrets(rig, caplo
     assert "qop=auth" in message
     assert "nonce" not in message
     assert "wrong" not in message
+
+
+async def test_malformed_status_line_is_a_refusal_not_unreachable() -> None:
+    """Old DVRs answer unsupported requests with ``HTTP/1.1 -1 Custom error``."""
+
+    async def handle(reader, writer):
+        await reader.readuntil(b"\r\n\r\n")
+        writer.write(b"HTTP/1.1 -1 Custom error\r\nContent-Length: 0\r\n\r\n")
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    async with aiohttp.ClientSession() as session:
+        link = IsapiLink(session, Endpoint("127.0.0.1", port, "http"), "u", "p")
+        with pytest.raises(faults.DeviceRejected, match="malformed reply"):
+            await link.read_bytes("/ISAPI/Streaming/channels/101/picture")
+    server.close()
+    await server.wait_closed()

@@ -51,6 +51,14 @@ HICCUP_PAUSE = 20.0
 LOCK_FALLBACK = 1800.0
 
 
+def _malformed(err: aiohttp.ClientResponseError) -> DeviceRejected:
+    """A reply that is not valid HTTP: the device answered, so it refused the request.
+
+    Old firmwares answer what they do not support with ``HTTP/1.1 -1 Custom error``.
+    """
+    return DeviceRejected(f"malformed reply: {err.message.splitlines()[0]}", err.status)
+
+
 def _describe_challenges(headers: list[str]) -> str:
     """The authentication a device offers, without nonces or other values."""
     offered = [
@@ -264,6 +272,8 @@ class IsapiLink:
             raise Unreachable(f"TLS handshake failed: {err}") from err
         except aiohttp.ClientConnectorDNSError as err:
             raise NameNotResolved(self.endpoint.host) from err
+        except aiohttp.ClientResponseError as err:
+            raise _malformed(err) from err
         except (aiohttp.ClientError, TimeoutError, OSError) as err:
             raise Unreachable(f"{type(err).__name__}: {err}") from err
 
@@ -591,6 +601,8 @@ class IsapiLink:
                     )
                 except aiohttp.ClientConnectorCertificateError as err:
                     raise TlsUntrusted(str(err)) from err
+                except aiohttp.ClientResponseError as err:
+                    raise _malformed(err) from err
                 except (aiohttp.ClientError, TimeoutError, OSError) as err:
                     raise Unreachable(f"{type(err).__name__}: {err}") from err
                 if response.status == 401:
