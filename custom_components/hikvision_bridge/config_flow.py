@@ -396,7 +396,8 @@ class BridgeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SERIAL: self._identity.serial,
                 CONF_MAC: self._identity.mac,
             },
-            options=_rtsp_option(self._rtsp_port),
+            # New entries play recordings seekable; older ones keep MP4 unless changed.
+            options={OPT_PLAYBACK: PLAYBACK_SEEKABLE, **_rtsp_option(self._rtsp_port)},
         )
 
     # --------------------------------------------------------------- reauth
@@ -654,7 +655,7 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                     OPT_TARGET_SENSORS, default=options.get(OPT_TARGET_SENSORS, False)
                 ): bool,
                 vol.Required(
-                    OPT_PLAYBACK, default=options.get(OPT_PLAYBACK, PLAYBACK_SEEKABLE)
+                    OPT_PLAYBACK, default=options.get(OPT_PLAYBACK, PLAYBACK_MP4)
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[PLAYBACK_SEEKABLE, PLAYBACK_MP4, PLAYBACK_H264, PLAYBACK_STREAM],

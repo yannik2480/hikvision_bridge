@@ -290,7 +290,7 @@ class BridgeMediaSource(MediaSource):
         source = pick_source(bridge, channel_id, source_key)
         if uri is None or source is None:
             raise Unresolvable("Unknown recording")
-        mode = bridge.entry.options.get(OPT_PLAYBACK, PLAYBACK_SEEKABLE)
+        mode = bridge.entry.options.get(OPT_PLAYBACK, FORMAT_MP4)
         if mode == PLAYBACK_SEEKABLE:
             return PlayMedia(recording_url(entry_id, channel_id, source.key, mode, uri), PLAY_HLS)
         if mode == PLAYBACK_STREAM:

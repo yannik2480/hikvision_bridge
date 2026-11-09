@@ -29,7 +29,7 @@ from .runtime.playback import (
     run_ffmpeg,
     thumbnail_args,
 )
-from .wire.faults import BridgeFault
+from .wire.faults import BridgeFault, detail
 from .wire.scrub import scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
@@ -41,6 +41,7 @@ THUMBNAIL_CACHE = 256
 # Each thumbnail opens a download; recorders serve only a few at a time.
 THUMBNAIL_PARALLEL = 2
 HLS = "application/vnd.apple.mpegurl"
+_VOD_PART = re.compile(r"^([0-9]{1,7})\.m4s$")
 
 
 def encode_token(playback_uri: str) -> str:
@@ -124,7 +125,13 @@ class RecordingView(HomeAssistantView):
         _, playback = found
         if fmt == PLAYBACK_SEEKABLE:
             key = (entry_id, channel_id, playback.key)
-            played = await vod.create(hass, key, playback, uri, request[KEY_HASS_USER].id)
+            try:
+                played = await vod.create(hass, key, playback, uri, request[KEY_HASS_USER].id)
+            except vod.VodsFull:
+                return web.Response(status=503)
+            except BridgeFault as err:
+                _LOGGER.debug("Recorded file not played on demand: %s", detail(err))
+                return web.Response(status=502)
             if played is None:
                 return web.Response(status=404)
             return web.Response(
@@ -263,7 +270,7 @@ class VodView(HomeAssistantView):
     async def get(self, request: web.Request, token: str, name: str) -> web.StreamResponse:
         hass = request.app[KEY_HASS]
         played = vod.get(hass, token)
-        number = int(name[:-4]) if name.endswith(".m4s") and name[:-4].isdigit() else None
+        number = int(match[1]) if (match := _VOD_PART.match(name)) else None
         if played is None or (name != vod.INIT and (number is None or number >= played.parts)):
             return web.Response(status=404)
         owner = await hass.auth.async_get_user(played.owner)
@@ -292,8 +299,15 @@ class VodView(HomeAssistantView):
                     )
                     await response.prepare(request)
                 await response.write(data)
-        except (sessions.SessionError, FileNotFoundError) as err:
-            _LOGGER.debug("No video on demand: %s", getattr(err, "reason", type(err).__name__))
+        except (sessions.SessionError, BridgeFault, FileNotFoundError) as err:
+            _LOGGER.debug(
+                "No video on demand: %s",
+                err.reason if isinstance(err, sessions.SessionError) else detail(err),
+            )
+            if response is not None:
+                # Cut short: the player must not keep half a part, it asks again.
+                _abort(request)
+                return response
         except ConnectionResetError:
             # The player went away (seeked).
             return response or web.Response(status=503)
@@ -301,6 +315,12 @@ class VodView(HomeAssistantView):
             return web.Response(status=503)
         await response.write_eof()
         return response
+
+
+def _abort(request: web.Request) -> None:
+    """End a response sent in part without ending it properly, so it reads as failed."""
+    if request.transport is not None:
+        request.transport.close()
 
 
 def async_register_views(hass: HomeAssistant) -> None:

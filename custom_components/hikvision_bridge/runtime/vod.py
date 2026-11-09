@@ -24,6 +24,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from ..model.features import recordings
+from ..wire.faults import BridgeFault, detail
+from ..wire.scrub import scrubbed_logger
 from . import sessions
 from .playback import PlaybackSource
 from .sessions import Session, SessionError
@@ -40,6 +42,12 @@ POLL_SECONDS = 0.25
 URL = "/api/hikvision_bridge/vod/{token}/{name}"
 DATA_KEY = "hikvision_bridge_vod"
 
+_LOGGER = scrubbed_logger(__name__)
+
+
+class VodsFull(Exception):
+    """MAX_VODS files are played at the moment; none is idle to make room."""
+
 
 @dataclass(slots=True)
 class Vod:
@@ -50,7 +58,8 @@ class Vod:
     owner: str
     recording: recordings.Recording  # the file as listed: its part in the day searched
     file_start: datetime  # where the file really starts
-    created: float = field(default_factory=time.monotonic)
+    # Last use; a file paused for long keeps playing on, and only idle ones make room.
+    used: float = field(default_factory=time.monotonic)
     session_id: str | None = None
     first: int = 0  # part the session started at
     starting: asyncio.Task[None] | None = None
@@ -94,7 +103,11 @@ class Vod:
     async def part(
         self, hass: HomeAssistant, source: PlaybackSource, codec: str | None, number: int
     ) -> AsyncIterator[bytes]:
-        """The pieces of part ``number`` as their session writes them."""
+        """The pieces of part ``number`` as their session writes them.
+
+        Raises SessionError if the part ends short (its session stopped or stalled): a player
+        must not take it for the whole part.
+        """
         session = await self._session(hass, source, codec, number)
         if session is None:
             return
@@ -106,6 +119,7 @@ class Vod:
         sent: set[int] = set()
         last = time.monotonic()
         pieces: list[tuple[int, float, float]] = []
+        done = False
         while self.session_id == session.session_id and session.session_id in manager.sessions:
             ended = session.process is None or session.process.returncode is not None
             pieces, done = await hass.async_add_executor_job(_pieces, session)
@@ -122,6 +136,7 @@ class Vod:
                 break
             manager.get(session.session_id)
             await asyncio.sleep(POLL_SECONDS)
+        reached = done or bool(pieces and pieces[-1][2] >= high)
         if not sent:
             # A key frame interval longer than a part: the piece over its start stands in.
             for piece, start, end in pieces:
@@ -129,6 +144,8 @@ class Vod:
                     data := await hass.async_add_executor_job(_read_bytes, session, piece)
                 ):
                     yield _media(data)
+        if not reached:
+            raise SessionError("playback_failed")
 
     async def _session(
         self, hass: HomeAssistant, source: PlaybackSource, codec: str | None, number: int
@@ -245,7 +262,10 @@ async def create(
     playback_uri: str,
     owner: str,
 ) -> Vod | None:
-    """The video on demand of a recorded file for ``owner``; None without its times."""
+    """The video on demand of a recorded file for ``owner``; None without its times.
+
+    Raises VodsFull if no room can be made, BridgeFault if the device does not answer.
+    """
     query = dict(parse_qsl(urlsplit(playback_uri).query))
     wall = await recordings.wall_offset(source.link)
     start = recordings.parse_time(query.get("starttime"), wall)
@@ -257,13 +277,20 @@ async def create(
     if end <= start:
         return None
     vods: dict[str, Vod] = hass.data.setdefault(DATA_KEY, {})
+    now = time.monotonic()
     for token, vod in list(vods.items()):
-        if time.monotonic() - vod.created > sessions.MAX_LIFETIME:
+        if now - vod.used > sessions.MAX_LIFETIME:
             del vods[token]
         elif vod.key == key and vod.owner == owner and vod.recording.playback_uri == playback_uri:
+            vod.used = now
             return vod
-    while len(vods) >= MAX_VODS:
-        del vods[next(iter(vods))]
+    if len(vods) >= MAX_VODS:
+        # Make room from the owner's own files first; one played lately by anyone stays.
+        idle = [v for v in vods.values() if now - v.used > sessions.IDLE_SECONDS]
+        if not idle:
+            raise VodsFull
+        oldest = min(idle, key=lambda v: (v.owner != owner, v.used))
+        del vods[oldest.token]
     recording = recordings.Recording(source.track, start, end, "", playback_uri, query.get("name"))
     vod = Vod(
         secrets.token_urlsafe(16), key, owner, recording, await _file_start(source, recording)
@@ -283,7 +310,12 @@ async def _file_start(source: PlaybackSource, recording: recordings.Recording) -
         return start
     for _ in range(SEARCH_BACK_DAYS):
         before = start - timedelta(days=1)
-        found = await recordings.search(source.link, source.track, before, start)
+        try:
+            found = await recordings.search(source.link, source.track, before, start)
+        except BridgeFault as err:
+            # Played from where it is listed then; a download skips to the wrong place at worst.
+            _LOGGER.debug("Real start of a recorded file not found: %s", detail(err))
+            break
         start = min((r.start for r in found if r.name == recording.name), default=start)
         if start > before:
             break
@@ -292,11 +324,22 @@ async def _file_start(source: PlaybackSource, recording: recordings.Recording) -
 
 def get(hass: HomeAssistant, token: str) -> Vod | None:
     vod = hass.data.get(DATA_KEY, {}).get(token)
-    if vod is not None and time.monotonic() - vod.created > sessions.MAX_LIFETIME:
+    if vod is None:
+        return None
+    now = time.monotonic()
+    if now - vod.used > sessions.MAX_LIFETIME:
         del hass.data[DATA_KEY][token]
         return None
+    vod.used = now
     return vod
 
 
 def drop(hass: HomeAssistant, token: str) -> None:
     hass.data.get(DATA_KEY, {}).pop(token, None)
+
+
+def drop_entry(hass: HomeAssistant, entry_id: str) -> None:
+    """Forget the files of a config entry (it is unloading)."""
+    vods: dict[str, Vod] = hass.data.get(DATA_KEY, {})
+    for token in [t for t, v in vods.items() if v.key[0] == entry_id]:
+        del vods[token]
