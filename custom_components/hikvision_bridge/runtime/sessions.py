@@ -385,9 +385,7 @@ class Session:
     def offset(self) -> float | None:
         """Seconds into the recorded file the video starts, for video on demand.
 
-        Never below 0: a session at the start of a file listed from midnight begins at the key
-        frame before it, and ffmpeg shifts negative time stamps to 0 anyway (fragments have no
-        negative times); so the parts of that session come up to one key frame interval late.
+        Never below 0: ffmpeg shifts negative time stamps to 0 (fragments have no negative times).
         """
         if self.origin is None:
             return None

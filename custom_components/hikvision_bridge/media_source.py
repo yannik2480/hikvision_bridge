@@ -234,8 +234,20 @@ class BridgeMediaSource(MediaSource):
         labels: dict[str, str],
     ) -> BrowseMediaSource:
         prefix = f"{bridge.entry.entry_id}/{channel_id}/{source.key}/{day.isoformat()}"
-        start = _midnight(day)
-        found = await recordings.search(source.link, source.track, start, start + timedelta(days=1))
+        start, end = _midnight(day), _midnight(day + timedelta(days=1))
+        # Devices cut files at the ends of a search, playback URIs too. From a second before
+        # midnight on, the file running into the day starts before it and is left out.
+        found = await recordings.search(
+            source.link, source.track, start - timedelta(seconds=1), end
+        )
+        # The files running past the day are searched on to their real end.
+        crossing = [r for r in found if r.end >= end]
+        if crossing and end <= dt_util.utcnow():
+            later = await recordings.search(
+                source.link, source.track, crossing[0].start, end + timedelta(days=1)
+            )
+            found = [r for r in found if r.end < end] + [r for r in later if r.start < end <= r.end]
+        found = [r for r in found if r.start >= start]
         kinds = sorted({r.kind for r in found}, key=recordings.KINDS.index)
         title = day.isoformat()
         if kind is None and len(kinds) > 1:
@@ -336,8 +348,10 @@ def _midnight(day: date) -> datetime:
 
 
 def _clip_title(recording: recordings.Recording, labels: dict[str, str], *, show_kind: bool) -> str:
+    """``HH:MM:SS - HH:MM:SS``; an end before the start is on the next day."""
     start = dt_util.as_local(recording.start)
-    end = dt_util.as_local(recording.end)
+    # A file still recording is listed up to the end of the search.
+    end = dt_util.as_local(min(recording.end, dt_util.utcnow()))
     title = f"{start:%H:%M:%S} - {end:%H:%M:%S}"
     if show_kind:
         title += f" · {labels.get(f'recording_kind.options.{recording.kind}', recording.kind)}"

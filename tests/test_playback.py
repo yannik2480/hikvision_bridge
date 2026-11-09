@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+import re
 import stat
 from types import MappingProxyType
 
@@ -32,7 +33,7 @@ from custom_components.hikvision_bridge.const import (
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import playback
-from custom_components.hikvision_bridge.views import recording_url
+from custom_components.hikvision_bridge.views import decode_token, recording_url
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -148,6 +149,52 @@ async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffm
     assert "<downloadRequest><playbackURI>rtsp://" in download[2]
     assert "&amp;name=b&amp;" in download[2]
     assert (await client.get(path.replace("/mp4/", "/bogus/"))).status == 404
+
+
+def clipping(files: list[tuple[datetime, datetime, str, str]]):
+    """Search answers as recorders give them: files cut at the ends of the search."""
+
+    def respond(_method: str, body: str) -> web.Response:
+        start, end = (
+            datetime.fromisoformat(t).replace(tzinfo=UTC)
+            for t in re.findall(r"<(?:start|end)Time>([^<Z]+)Z", body)
+        )
+        items = [
+            match(
+                max(s, start).astimezone(UTC),
+                (min(e, end) - max(s, start)).total_seconds() / 60,
+                kind,
+                name,
+            )
+            for s, e, kind, name in files
+            if s < end and e > start
+        ]
+        return web.Response(text=result(items, "OK"), content_type="application/xml")
+
+    return respond
+
+
+async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
+    """Files that run past midnight are listed once, on their day, with their real times."""
+    device, entry = await _setup(hass, serve, program_stream())
+    midnight = dt_util.start_of_local_day(NOW)
+    files = [
+        (midnight - timedelta(hours=5), midnight - timedelta(hours=2), "timing", "a"),
+        (midnight - timedelta(hours=2), midnight + timedelta(minutes=50), "timing", "b"),
+        (midnight + timedelta(minutes=50), NOW - timedelta(minutes=5), "timing", "c"),
+        # Still recording: the device lists it up to the end of the search.
+        (NOW - timedelta(minutes=5), midnight + timedelta(days=1), "timing", "d"),
+    ]
+    device.responders[recordings.SEARCH_PATH] = clipping(files)
+    days = f"media-source://{DOMAIN}/{entry.entry_id}/1/card"
+    yesterday = await media_source.async_browse_media(
+        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
+    )
+    assert [c.title for c in yesterday.children] == ["22:00:00 - 00:50:00", "19:00:00 - 22:00:00"]
+    uri = decode_token(yesterday.children[0].media_content_id.rsplit("/", 1)[-1])
+    assert f"&endtime={recordings.compact(midnight + timedelta(minutes=50))}&" in uri
+    today = await media_source.async_browse_media(hass, f"{days}/{midnight.date()}")
+    assert [c.title for c in today.children] == ["11:55:00 - 12:00:00", "00:50:00 - 11:55:00"]
 
 
 async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
