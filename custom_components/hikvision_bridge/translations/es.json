@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "El flujo de eventos no requiere cambios en el dispositivo. El webhook requiere que el dispositivo envíe a Home Assistant.",
           "hold_seconds": "Los dispositivos solo informan del inicio de muchas detecciones; el sensor permanece activo este tiempo tras el último aviso.",
-          "playback": "Las grabaciones son H.265 o H.264. «MP4 tal como se grabó» empieza al instante, pero los navegadores solo reproducen H.265 con soporte de hardware. «Convertir a H.264» funciona en todas partes y requiere mucha CPU. «Transmitir desde el dispositivo» deja que el dispositivo reproduzca la grabación por RTSP.",
+          "playback": "Las grabaciones son H.265 o H.264. «MP4 tal como se grabó» empieza al instante, pero los navegadores solo reproducen H.265 con soporte de hardware. «Convertir a H.264» funciona en todas partes y requiere mucha CPU. «Transmitir desde el dispositivo» deja que el dispositivo reproduzca la grabación por RTSP. «Con búsqueda» muestra la duración completa de la grabación y salta a cualquier punto, como el panel.",
           "recording_clock": "El reloj con el que el dispositivo indica las horas de sus grabaciones. 'Automático' lo averigua. Si la línea de tiempo y la grabación reproducida difieren en el desfase de tu zona horaria, elige el otro reloj.",
           "stream_key": "Se usa para descifrar grabaciones y el vídeo en directo H.264 local manteniendo activado el cifrado del flujo. Introduce aquí el código de verificación del dispositivo para activar el descifrado en directo; no se admiten el audio ni el vídeo en directo H.265 cifrado. Las grabaciones también pueden usar el código leído del dispositivo.",
           "sidebar_panel": "Se aplica a todos los dispositivos y cuentas de esta integración. La tarjeta del panel de control sigue disponible.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 tal como se grabó (recomendado)",
+        "seekable": "Con búsqueda (recomendado)",
+        "mp4": "MP4 tal como se grabó",
         "h264": "Convertir a H.264 (funciona en todas partes, alta carga de CPU)",
         "stream": "Transmitir desde el dispositivo (RTSP a HLS)"
       }

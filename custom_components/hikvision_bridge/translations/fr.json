@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "Le flux d'événements ne nécessite aucune modification de l'appareil. Le webhook exige que l'appareil envoie vers Home Assistant.",
           "hold_seconds": "Les appareils ne signalent que le début de nombreuses détections ; le capteur reste actif aussi longtemps après le dernier signalement.",
-          "playback": "Les enregistrements sont en H.265 ou H.264. « MP4 tel qu'enregistré » démarre immédiatement, mais les navigateurs ne lisent le H.265 qu'avec une prise en charge matérielle. « Convertir en H.264 » fonctionne partout et sollicite fortement le processeur. « Diffuser depuis l'appareil » laisse l'appareil lire l'enregistrement via RTSP.",
+          "playback": "Les enregistrements sont en H.265 ou H.264. « MP4 tel qu'enregistré » démarre immédiatement, mais les navigateurs ne lisent le H.265 qu'avec une prise en charge matérielle. « Convertir en H.264 » fonctionne partout et sollicite fortement le processeur. « Diffuser depuis l'appareil » laisse l'appareil lire l'enregistrement via RTSP. « Avec navigation » affiche toute la durée de l'enregistrement et permet d'aller à n'importe quel moment, comme le panneau.",
           "recording_clock": "L'horloge selon laquelle l'appareil indique les heures de ses enregistrements. « Automatique » la détermine. Si la frise et l'enregistrement lu sont décalés du décalage de votre fuseau horaire, choisissez l'autre horloge.",
           "stream_key": "Sert à déchiffrer les enregistrements et la vidéo en direct H.264 locale tout en gardant le chiffrement du flux activé. Saisissez ici le code de vérification de l'appareil pour activer le déchiffrement en direct ; l'audio et la vidéo en direct H.265 chiffrée ne sont pas pris en charge. Les enregistrements peuvent aussi utiliser le code lu sur l'appareil.",
           "sidebar_panel": "S'applique à tous les appareils et comptes de cette intégration. La carte du tableau de bord reste disponible.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 tel qu'enregistré (recommandé)",
+        "seekable": "Avec navigation (recommandé)",
+        "mp4": "MP4 tel qu'enregistré",
         "h264": "Convertir en H.264 (fonctionne partout, forte charge CPU)",
         "stream": "Diffuser depuis l'appareil (RTSP vers HLS)"
       }
