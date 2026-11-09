@@ -67,7 +67,7 @@ async def test_seekable_playback(
     played = await media_source.async_resolve_media(
         hass, f"media-source://{DOMAIN}/{entry.entry_id}/1/card/clip/{encode_token(URI)}", None
     )
-    assert played.mime_type == "application/vnd.apple.mpegurl"
+    assert played.mime_type == "application/x-mpegURL"
     path = played.url.split("?", 1)[0]
     assert "/seekable/" in path
 

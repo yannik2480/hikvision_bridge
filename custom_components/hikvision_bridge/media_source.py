@@ -44,7 +44,7 @@ from .runtime.playback import (
     rtsp_url,
     sources,
 )
-from .views import HLS, decode_token, encode_token, recording_url, thumbnail_url
+from .views import decode_token, encode_token, recording_url, thumbnail_url
 from .wire.faults import BridgeFault
 from .wire.scrub import scrubbed_logger
 
@@ -55,6 +55,8 @@ MAX_DAYS = 62
 ALL = "all"
 # Thumbnails cost one download each; continuous recording days have too many files.
 MAX_THUMBNAILS = 60
+# Home Assistant's browser player only plays HLS announced exactly as this type.
+PLAY_HLS = "application/x-mpegURL"
 
 
 async def async_get_media_source(hass: HomeAssistant) -> MediaSource:
@@ -290,7 +292,7 @@ class BridgeMediaSource(MediaSource):
             raise Unresolvable("Unknown recording")
         mode = bridge.entry.options.get(OPT_PLAYBACK, PLAYBACK_SEEKABLE)
         if mode == PLAYBACK_SEEKABLE:
-            return PlayMedia(recording_url(entry_id, channel_id, source.key, mode, uri), HLS)
+            return PlayMedia(recording_url(entry_id, channel_id, source.key, mode, uri), PLAY_HLS)
         if mode == PLAYBACK_STREAM:
             try:
                 return await self._stream(bridge, source, uri)
@@ -326,7 +328,7 @@ class BridgeMediaSource(MediaSource):
         )
         stream.add_provider(HLS_PROVIDER)
         await stream.start()
-        return PlayMedia(stream.endpoint_url(HLS_PROVIDER), HLS)
+        return PlayMedia(stream.endpoint_url(HLS_PROVIDER), PLAY_HLS)
 
 
 def _midnight(day: date) -> datetime:
