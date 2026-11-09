@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "전체",
         "continuous": "연속 녹화",
         "motion": "동작",
         "alarm": "알람 입력",

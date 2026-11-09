@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "Tutte",
         "continuous": "Continua",
         "motion": "Movimento",
         "alarm": "Ingresso allarme",

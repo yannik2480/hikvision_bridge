@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "سب",
         "continuous": "مسلسل",
         "motion": "حرکت",
         "alarm": "الارم ان پٹ",

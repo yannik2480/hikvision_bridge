@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "Összes",
         "continuous": "Folyamatos",
         "motion": "Mozgás",
         "alarm": "Riasztási bemenet",

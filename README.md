@@ -50,7 +50,7 @@
 | PTZ | Pan/tilt/zoom step buttons and a preset select per PTZ channel (also through a recorder); motorised zoom lenses get the zoom buttons only. Park action: switch, idle time, action type (preset, patrol, pattern, scans) and its number, chosen from the stored presets, patrols 1–8 or patterns 1–4 (none for scans) |
 | Recorder | One HA device per channel below the recorder, channel connected, recording per channel, storage status/free/capacity, alarm inputs |
 | Health | Event connection, event delay, stream encryption, IP address, repairs for misconfigured devices (see below); uptime/last boot, CPU, memory and reboot count (diagnostic, disabled by default; firmware that reports a timestamp instead of a count shows it as the `reported_timestamp` attribute); memory card of directly connected cameras |
-| Recordings | Recorder and memory-card recordings in the media browser, by day and kind, with thumbnails; seekable playback, or as MP4, as H.264 or streamed by the device; saving to the media folder (see below) |
+| Recordings | Recorder and memory-card recordings in the media browser, by camera and day, with thumbnails; seekable playback, or as MP4, as H.264 or streamed by the device; saving to the media folder (see below) |
 | Panel and card | Sidebar viewer and dashboard card: camera list, live view, timeline of recordings and detections to scrub through, automatic quality ([details](#recordings-panel-and-card)) |
 | Video Intercom & Doorbell | Remote door unlock button (Access Control relay pulse), call status sensor (`idle`, `ringing`, `on_call`), ringing binary sensor, and dedicated doorbell event entity with fast poll detection |
 | Hik-Connect (optional) | Cloud connection per device, stream-encryption status, connection change events, alarm control panels for security areas/groups (arm away, arm home/silent, disarm), door opening for intercoms (unverified, see limits) |
@@ -95,11 +95,17 @@ How it behaves:
 
 ### Recordings
 
-*Media → Hikvision Bridge* lists the recordings of every recorder and of cameras with a memory card:
-device → channel → day → kind (continuous, motion, alarm input, smart event, …) → recorded file.
-For a recorder channel with a [direct camera connection](#cameras-behind-a-recorder) whose camera has a
-memory card, the channel first asks which store to open: *Recorder* or *Memory card*. Days come from the
-device's calendar; files show their first picture as thumbnail (days with up to 60 files).
+*Media → Hikvision Bridge* lists every camera with recordings, of all devices: the channels of
+recorders and the cameras with a memory card. Each camera holds its days, newest first, and each day
+the files that start on it (`08:32:15 - 11:26:52`). A file that runs past midnight is listed on the day
+it starts, with its real end (`22:18:51 - 00:50:06`). Days with recordings of several kinds (continuous,
+motion, alarm input, smart event, …) show the kind in front of each file (`Motion · 05:54:10 - 08:26:53`)
+and also hold one folder per kind. Days come from the device's calendar; files show their first picture
+as thumbnail (days with up to 60 files).
+
+Recorder channels play from the recorder. The memory card of a camera with a
+[direct camera connection](#cameras-behind-a-recorder) is reached from the
+[panel](#recordings-panel-and-card) and the `source` of the actions.
 
 Devices record into an MPEG program stream with H.265 or H.264 video; downloading always returns the
 whole recorded file (often 10 minutes and several hundred MB on recorders). Home Assistant converts it
@@ -141,33 +147,79 @@ recorders that send files only from their start, the first far jump into a file 
 seconds; if the player gives up, jump again. Devices added before 0.9.20 keep *MP4 as recorded*;
 choose *Seekable* in the options to use it.
 
-The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can browse and play
-these recordings through its `folders` with the Home Assistant media browser as source (support in the
-card is still growing, so details may change). A channel's folder is
-`media-source://hikvision_bridge/<config entry id>/<channel>/<recorder or card>`; day folders are named by
-date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days with recordings of several kinds
-have one more level: *All* and one folder per kind.
-
-```yaml
-type: custom:advanced-camera-card
-cameras:
-  - camera_entity: camera.front_yard_main
-folders:
-  - type: ha
-    title: Front yard recordings
-    ha:
-      path:
-        - id: media-source://hikvision_bridge/<config entry id>/1/recorder
-        - parsers:
-            - type: date
-              format: yyyy-MM-dd
-```
-
 When the sidebar player cannot download efficiently from the selected time, it falls
 back to recorded RTSP playback. With a verification code configured on the local device
 entry and a known H.264 codec, that fallback also uses the decryption relay, so DVR encryption can
 stay enabled. The relay closes when playback stops, is replaced, or fails to start.
 The media browser's separate *Stream from the device* mode is unchanged.
+
+### Advanced Camera Card
+
+The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) shows these recordings
+in its gallery and on its timeline, and scrubs through them, with its `folders` and the media browser as
+source. It needs a version with the `enddate` parser
+([advanced-camera-card#2868](https://github.com/dermotduffy/advanced-camera-card/pull/2868)) and the
+*Seekable* playback option. The same `folders` work for every device:
+
+```yaml
+type: custom:advanced-camera-card
+profiles: [scrubbing]
+status_bar: { position: top }
+cameras_global:
+  media: { type: folder, folders: [recordings] }
+cameras:
+  # One SD camera per channel, with its HD stream as a substream (fullscreen switches to it).
+  - camera_entity: camera.camera_01_substream
+    dependencies: { cameras: [camera.camera_01_stream_principal] }
+  - &hd
+    camera_entity: camera.camera_01_stream_principal
+    capabilities: { disable_except: [substream] }
+    media: { type: auto }
+  # ... the same two entries per further channel (use `<<: *hd` for HD cameras)
+folders:
+  - id: recordings
+    title: Recordings
+    ha:
+      path:
+        - id: media-source://hikvision_bridge
+        # The selected camera's channel, found through its Home Assistant device.
+        - matchers:
+            - type: template
+              value_template: "{{ acc.media.id == 'media-source://hikvision_bridge/' ~ (acc.camera | device_id) }}"
+        - parsers: [{ type: date, format: yyyy-MM-dd }]
+          matchers: [{ type: date, since: { days: 2 } }]
+        # Clips only (kind folders stay out), start and end from the title.
+        - matchers:
+            - type: template
+              value_template: "{{ not acc.media.is_folder }}"
+          parsers:
+            - { type: startdate, regexp: '(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
+            - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
+automations:
+  - triggers: [{ trigger: fullscreen, fullscreen: true }]
+    actions: [{ action: custom:advanced-camera-card-action, advanced_camera_card_action: substream_on }]
+  - triggers: [{ trigger: fullscreen, fullscreen: false }]
+    actions: [{ action: custom:advanced-camera-card-action, advanced_camera_card_action: substream_off }]
+```
+
+* `profiles: [scrubbing]` lets the timeline scrub through the video; `status_bar` at the top keeps it
+  clear of the timeline.
+* `cameras_global.media` makes every camera's media the `recordings` folder below.
+* `cameras`: each channel is a camera on its sub stream (light on the dashboard), with its main
+  stream as a dependency. The main-stream camera only serves as substream (`disable_except`) and keeps
+  its own media (`type: auto`). The two `automations` switch to it in fullscreen and back.
+* `path` walks the media browser from `media-source://hikvision_bridge`, where every camera with
+  recordings is a folder named by its Home Assistant device id. A camera's main and sub stream belong to
+  the same device. Camera ids default to the `camera_entity`, so `acc.camera | device_id` picks the
+  selected camera's folder. Switching cameras walks the folder again for the new one.
+* The day level reads the date from the folder title (`2026-11-08`) and takes the last two days
+  (`since`); raise it for more, at one device search per day.
+* The last level takes only the files (`not acc.media.is_folder` leaves out the kind folders) and
+  reads their start and end from the title. The regular expressions are not anchored, so titles with
+  a kind in front (`Motion · 05:54:10 - 08:26:53`) match too. An end before the start is on the next
+  day, so files that run past midnight are one piece on the timeline.
+
+The folder shows the recordings of the selected camera as one *Recordings* row on the timeline.
 
 ### Recordings panel and card
 

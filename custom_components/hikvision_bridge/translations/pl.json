@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "Wszystkie",
         "continuous": "Ciągłe",
         "motion": "Ruch",
         "alarm": "Wejście alarmowe",

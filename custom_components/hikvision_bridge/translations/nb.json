@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "Alle",
         "continuous": "Kontinuerlig",
         "motion": "Bevegelse",
         "alarm": "Alarminngang",

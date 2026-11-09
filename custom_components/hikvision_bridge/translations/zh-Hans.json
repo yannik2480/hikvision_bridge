@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "全部",
         "continuous": "连续录像",
         "motion": "移动",
         "alarm": "报警输入",

@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "همه",
         "continuous": "پیوسته",
         "motion": "حرکت",
         "alarm": "ورودی هشدار",

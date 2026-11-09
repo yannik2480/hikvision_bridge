@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "Kaikki",
         "continuous": "Jatkuva",
         "motion": "Liike",
         "alarm": "Hälytystulo",

@@ -10,6 +10,7 @@ from types import MappingProxyType
 
 from aiohttp import web
 from homeassistant.components import media_source
+from homeassistant.components.media_player import BrowseError
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -19,6 +20,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 import pytest
 
+from custom_components.hikvision_bridge import media_source as media_source_module
 from custom_components.hikvision_bridge.const import (
     CONF_CHANNEL_ID,
     CONF_EVENT_SOURCE,
@@ -33,7 +35,7 @@ from custom_components.hikvision_bridge.const import (
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import playback
-from custom_components.hikvision_bridge.views import decode_token, recording_url
+from custom_components.hikvision_bridge.views import decode_token, encode_token, recording_url
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -111,31 +113,46 @@ async def _setup(hass: HomeAssistant, serve, data: bytes, **options):
     return device, entry
 
 
+async def browse(hass: HomeAssistant, identifier: str = ""):
+    uri = f"media-source://{DOMAIN}/{identifier}".rstrip("/")
+    return await media_source.async_browse_media(hass, uri)
+
+
+def titles(folder) -> list[str]:
+    return [c.title for c in folder.children]
+
+
 async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffmpeg: Path) -> None:
     device, entry = await _setup(hass, serve, program_stream())
-    root = await media_source.async_browse_media(hass, f"media-source://{DOMAIN}")
-    assert [c.title for c in root.children] == [entry.title]
-    channels = await media_source.async_browse_media(hass, root.children[0].media_content_id)
-    assert len(channels.children) == 1
-    # One source only (the memory card): the channel lists days directly.
-    days = await media_source.async_browse_media(hass, channels.children[0].media_content_id)
-    assert len(days.children) == 1
-    day = await media_source.async_browse_media(hass, days.children[0].media_content_id)
-    # Two kinds on this day: a folder for all and one per kind.
-    assert [c.media_content_id.rsplit("/", 1)[-1] for c in day.children] == [
-        "all",
-        "continuous",
-        "motion",
+    # A camera: its one device is the channel, played from its memory card.
+    device_id = entry.runtime_data.device_ids["1"]
+    root = await browse(hass)
+    assert [c.media_content_id for c in root.children] == [f"media-source://{DOMAIN}/{device_id}"]
+    days = await browse(hass, device_id)
+    today = dt_util.now().date().isoformat()
+    assert [c.media_content_id for c in days.children] == [
+        f"media-source://{DOMAIN}/{device_id}/{today}"
     ]
-    motion = await media_source.async_browse_media(hass, day.children[2].media_content_id)
-    assert len(motion.children) == 1
+    # Two kinds on this day: every clip, newest first and its kind in front, and a folder per kind.
+    day = await browse(hass, f"{device_id}/{today}")
+    assert titles(day) == [
+        "Continuous",
+        "Motion",
+        "Motion · 10:30:00 - 10:31:00",
+        "Continuous · 10:00:00 - 10:10:00",
+    ]
+    assert [c.can_expand for c in day.children] == [True, True, False, False]
+    motion = await browse(hass, f"{device_id}/{today}/motion")
+    assert titles(motion) == ["10:30:00 - 10:31:00"]
     clip = motion.children[0]
+    assert clip.media_content_id == day.children[2].media_content_id
+    assert clip.media_content_id.startswith(f"media-source://{DOMAIN}/{device_id}/clip/")
     assert clip.can_play
-    assert clip.thumbnail.startswith("/api/hikvision_bridge/thumbnail/")
+    assert clip.thumbnail.startswith(f"/api/hikvision_bridge/thumbnail/{entry.entry_id}/1/card/")
 
     played = await media_source.async_resolve_media(hass, clip.media_content_id, None)
     assert played.mime_type == "video/mp4"
-    assert "/api/hikvision_bridge/recording/" in played.url
+    assert f"/api/hikvision_bridge/recording/{entry.entry_id}/1/card/" in played.url
 
     client = await hass_client()
     path = played.url.split("?", 1)[0]
@@ -171,9 +188,78 @@ def clipping(files: list[tuple[datetime, datetime, str, str]], *, clipped: bool 
     return respond
 
 
-async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
+async def test_channels_of_every_device(hass: HomeAssistant, serve) -> None:
+    """The root lists the channels of all devices, flat, by their device id."""
+    _, camera_entry = await _setup(hass, serve, program_stream())
+    recorder = FakeDevice("nvr")
+    recorded(recorder, program_stream())
+    entry = device_entry(await serve(recorder), recorder)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    devices = entry.runtime_data.device_ids
+    channels = [c for c in entry.runtime_data.profile.channels if c in devices]
+    root = await browse(hass)
+    assert [c.media_content_id.rsplit("/", 1)[-1] for c in root.children] == [
+        camera_entry.runtime_data.device_ids["1"],
+        *(devices[c] for c in channels),
+    ]
+    assert titles(root)[1:] == [entry.runtime_data.profile.channels[c].name for c in channels]
+    # The recorder's channels are devices of their own, under the recorder's.
+    assert len(set(root.children)) == len(root.children)
+    assert devices[None] not in [c.media_content_id.rsplit("/", 1)[-1] for c in root.children]
+
+    # Anything but a channel device of this integration is refused.
+    unknown = [devices[None], "0123456789abcdef", ""]
+    for device_id in unknown:
+        with pytest.raises(BrowseError):
+            await browse(hass, f"{device_id}/2026-10-21")
+        with pytest.raises(media_source.Unresolvable):
+            await media_source.async_resolve_media(
+                hass, f"media-source://{DOMAIN}/{device_id}/clip/{encode_token('rtsp://x')}", None
+            )
+    channel = devices[channels[0]]
+    for bad in ("nope", "2026-10-21/all", "2026-10-21/motion/x", "clip"):
+        with pytest.raises(BrowseError):
+            await browse(hass, f"{channel}/{bad}")
+
+
+async def test_days(hass: HomeAssistant, serve) -> None:
+    device, entry = await _setup(hass, serve, program_stream())
+    device_id = entry.runtime_data.device_ids["1"]
+    today = dt_util.now().date()
+    yesterday = today - timedelta(days=1)
+
+    def calendar(_method: str, body: str) -> web.Response:
+        listed = "".join(
+            f"<day><dayOfMonth>{d.day}</dayOfMonth><record>true</record></day>"
+            for d in (yesterday, today)
+            if f"<monthOfYear>{d.month}</monthOfYear>" in body
+        )
+        return web.Response(
+            text=f"<trackDailyDistribution><dayList>{listed}</dayList></trackDailyDistribution>",
+            content_type="application/xml",
+        )
+
+    device.responders["/ISAPI/ContentMgmt/record/tracks/101/dailyDistribution"] = calendar
+    days = await browse(hass, device_id)
+    assert titles(days) == [today.isoformat(), yesterday.isoformat()]
+
+    # Without a calendar, the last days.
+    device.responders["/ISAPI/ContentMgmt/record/tracks/101/dailyDistribution"] = lambda _m, _b: (
+        web.Response(status=404)
+    )
+    days = await browse(hass, device_id)
+    assert len(days.children) == media_source_module.DAYS_WITHOUT_CALENDAR
+    assert days.children[0].title == today.isoformat()
+    assert days.children[1].title == yesterday.isoformat()
+
+
+async def test_files_of_a_day(hass: HomeAssistant, serve) -> None:
     """Files that run past midnight are listed once, on their day, with their real times."""
     device, entry = await _setup(hass, serve, program_stream())
+    device_id = entry.runtime_data.device_ids["1"]
     midnight = dt_util.start_of_local_day(NOW)
     files = [
         (midnight - timedelta(hours=5), midnight - timedelta(hours=2), "timing", "a"),
@@ -191,35 +277,32 @@ async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
         return respond(method, body)
 
     device.responders[recordings.SEARCH_PATH] = search
-    days = f"media-source://{DOMAIN}/{entry.entry_id}/1/card"
-    yesterday = await media_source.async_browse_media(
-        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
-    )
-    assert [c.title for c in yesterday.children] == ["22:00:00 - 00:50:00", "19:00:00 - 22:00:00"]
+    yesterday = await browse(hass, f"{device_id}/{(midnight - timedelta(days=1)).date()}")
+    # One kind: the files only, without it.
+    assert titles(yesterday) == ["22:00:00 - 00:50:00", "19:00:00 - 22:00:00"]
     # The file past midnight ends within the hour: no whole day more is searched for it.
     assert spans == [timedelta(days=1, seconds=1), timedelta(hours=3)]
     uri = decode_token(yesterday.children[0].media_content_id.rsplit("/", 1)[-1])
     assert f"&endtime={recordings.compact(midnight + timedelta(minutes=50))}&" in uri
-    today = await media_source.async_browse_media(hass, f"{days}/{midnight.date()}")
-    assert [c.title for c in today.children] == ["11:55:00 - 12:00:00", "00:50:00 - 11:55:00"]
+    today = await browse(hass, f"{device_id}/{midnight.date()}")
+    assert titles(today) == ["11:55:00 - 12:00:00", "00:50:00 - 11:55:00"]
 
     # A file running past that hour is searched on for a day.
     files[1:3] = [
         (midnight - timedelta(hours=2), midnight + timedelta(hours=3), "timing", "b"),
         (midnight + timedelta(hours=3), NOW - timedelta(minutes=5), "timing", "c"),
     ]
-    yesterday = await media_source.async_browse_media(
-        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
-    )
-    assert [c.title for c in yesterday.children] == ["22:00:00 - 03:00:00", "19:00:00 - 22:00:00"]
+    yesterday = await browse(hass, f"{device_id}/{(midnight - timedelta(days=1)).date()}")
+    assert titles(yesterday) == ["22:00:00 - 03:00:00", "19:00:00 - 22:00:00"]
     assert spans[-2:] == [timedelta(hours=3), timedelta(days=1, hours=2)]
 
 
 async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
     _, entry = await _setup(hass, serve, program_stream(), **{OPT_PLAYBACK: "h264"})
     token = "cnRzcDovL3gvU3RyZWFtaW5nL3RyYWNrcy8xMDEvP3N0YXJ0dGltZT0x"
+    device_id = entry.runtime_data.device_ids["1"]
     played = await media_source.async_resolve_media(
-        hass, f"media-source://{DOMAIN}/{entry.entry_id}/1/card/clip/{token}", None
+        hass, f"media-source://{DOMAIN}/{device_id}/clip/{token}", None
     )
     assert "/h264/" in played.url
 
@@ -472,14 +555,11 @@ async def test_recorder_or_memory_card(hass: HomeAssistant, serve) -> None:
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    channel = await media_source.async_browse_media(
-        hass, f"media-source://{DOMAIN}/{entry.entry_id}/1"
-    )
-    assert [c.media_content_id.rsplit("/", 1)[-1] for c in channel.children] == [
-        "recorder",
-        "card",
-    ]
     device_id = entry.runtime_data.device_ids["1"]
+    # The media browser plays from the recorder; the camera's card is in the panel.
+    day = await browse(hass, f"{device_id}/{dt_util.now().date()}")
+    assert len(day.children) == 4
+    assert "/1/recorder/" in day.children[-1].thumbnail
     period = {"device_id": device_id, "start": START, "end": NOW}
     from_card = await hass.services.async_call(
         DOMAIN,

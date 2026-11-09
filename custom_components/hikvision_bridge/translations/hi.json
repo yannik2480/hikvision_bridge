@@ -924,7 +924,6 @@
     },
     "recording_kind": {
       "options": {
-        "all": "सभी",
         "continuous": "लगातार",
         "motion": "गति",
         "alarm": "अलार्म इनपुट",
