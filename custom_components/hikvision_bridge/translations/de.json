@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "Der Ereignis-Stream braucht keine Änderung am Gerät. Der Webhook setzt voraus, dass das Gerät an Home Assistant sendet.",
           "hold_seconds": "Viele Geräte melden nur den Beginn einer Erkennung; der Sensor bleibt so lange nach der letzten Meldung an.",
-          "playback": "Aufnahmen sind H.265 oder H.264. „MP4 wie aufgenommen“ startet sofort, Browser spielen H.265 aber nur mit Hardwareunterstützung. „In H.264 umwandeln“ läuft überall und braucht viel CPU. „Vom Gerät streamen“ lässt das Gerät die Aufnahme per RTSP abspielen. „Mit Vorspulen“ zeigt die ganze Länge der Aufnahme und springt an jede Stelle, wie das Panel.",
+          "playback": "Aufnahmen sind H.265 oder H.264. „MP4 wie aufgenommen“ startet sofort, Browser spielen H.265 aber nur mit Hardwareunterstützung. „In H.264 umwandeln“ läuft überall und braucht viel CPU. „Vom Gerät streamen“ lässt das Gerät die Aufnahme per RTSP abspielen. „Mit Spulen“ zeigt die ganze Länge der Aufnahme und springt an jede Stelle, wie das Panel.",
           "recording_clock": "Die Uhr, nach der das Gerät die Zeiten seiner Aufnahmen angibt. „Automatisch“ findet sie heraus. Liegen Zeitleiste und abgespielte Aufnahme um den Versatz deiner Zeitzone auseinander, wähle die andere Uhr.",
           "stream_key": "Entschlüsselt Aufnahmen und lokales H.264-Livevideo, während die Stream-Verschlüsselung eingeschaltet bleibt. Trage hier den Verifizierungscode des Geräts ein, um die Live-Entschlüsselung zu aktivieren; Audio und verschlüsseltes H.265-Livevideo werden nicht unterstützt. Für Aufnahmen kann auch der vom Gerät gelesene Code verwendet werden.",
           "sidebar_panel": "Gilt für alle Geräte und Konten dieser Integration. Die Dashboard-Karte bleibt verfügbar.",
@@ -891,7 +891,7 @@
     },
     "playback": {
       "options": {
-        "seekable": "Mit Vorspulen (empfohlen)",
+        "seekable": "Mit Spulen (empfohlen)",
         "mp4": "MP4 wie aufgenommen",
         "h264": "In H.264 umwandeln (läuft überall, hohe CPU-Last)",
         "stream": "Vom Gerät streamen (RTSP zu HLS)"

@@ -25,8 +25,10 @@ from custom_components.hikvision_bridge.const import (
     KIND_CLOUD,
     KIND_DEVICE,
     OPT_PANEL_ADMIN_ONLY,
+    OPT_PLAYBACK,
     OPT_RTSP_PORT,
     OPT_SIDEBAR_PANEL,
+    PLAYBACK_SEEKABLE,
 )
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -68,6 +70,8 @@ async def test_device_flow_creates_entry_keyed_by_serial(hass: HomeAssistant, se
     assert result["data"][CONF_ENTRY_KIND] == KIND_DEVICE
     assert result["data"][CONF_SCHEME] == "http"
     assert result["data"][CONF_SERIAL] == "TESTSERIAL201"
+    # New entries play recordings seekable; entries without the option keep MP4.
+    assert result["result"].options == {OPT_PLAYBACK: PLAYBACK_SEEKABLE}
     assert {method for method, _ in device.requests} == {"GET"}
 
 

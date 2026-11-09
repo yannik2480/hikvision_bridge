@@ -107,8 +107,8 @@ while it downloads, using its ffmpeg:
 
 | Format | What happens | Use |
 | --- | --- | --- |
-| Seekable (default) | The file as HLS video on demand, made like the [panel's playback](#recordings-panel-and-card): video copied, audio to AAC | Shows the length of the file and seeks anywhere in it; H.265 needs a browser with hardware support |
-| MP4 as recorded | Video copied into MP4, audio to AAC; almost no CPU | Plays at once; H.265 needs a browser with hardware support (Safari, Chrome/Edge on most current PCs) |
+| Seekable (default for devices added from 0.9.20 on) | The file as HLS video on demand, made like the [panel's playback](#recordings-panel-and-card): video copied, audio to AAC | Shows the length of the file and seeks anywhere in it; H.265 needs a browser with hardware support |
+| MP4 as recorded (default for devices added before) | Video copied into MP4, audio to AAC; almost no CPU | Plays at once; H.265 needs a browser with hardware support (Safari, Chrome/Edge on most current PCs) |
 | H.264 | Decoded and encoded again, at most 1080p | Plays in every browser and on casting devices; slow on small machines, especially with 4K recordings |
 | Stream from the device | The device plays the file over RTSP, Home Assistant serves it as HLS; falls back to MP4 when Home Assistant cannot set up the stream | Long continuous recordings; plays in real time, no seeking, restarts at the end |
 | MPEG-TS as recorded | Video copied into MPEG-TS | Saving only |
@@ -135,17 +135,15 @@ with the device's verification code, which it reads from the device. Many camera
 code; enter it in the integration options (*Verification code*) then. If no code fits, playback says so
 instead of returning a broken file. The media browser mode *Stream from the device* cannot decrypt.
 
-**Seekable playback.** The playlist lists the whole file in parts of 4 seconds, so the player knows its
-length and seeks in it. Parts come from one playback session per camera, as in the panel: from the
-download of the file where the device is fast enough to get there, else over RTSP from the wanted time
-(a few seconds to start, then real time). A seek far from what is prepared starts the session again
-there; the first seek into a file may take up to about 10 seconds on recorders that send files only
-from their start, while the integration learns how far the download gets. Video carries the time
-stamps of the file, so parts made by different sessions line up. Playback stops with the media
-browser; the session ends after 45 seconds without requests.
+**Seekable playback.** The player shows the whole length of the file and can jump anywhere in it.
+Jumps close to what already plays are instant; a far jump takes a few seconds, as in the panel. On
+recorders that send files only from their start, the first far jump into a file can take about 10
+seconds; if the player gives up, jump again. Devices added before 0.9.20 keep *MP4 as recorded*;
+choose *Seekable* in the options to use it.
 
-The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) plays these recordings
-through its `folders` with the Home Assistant media browser as source. A channel's folder is
+The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can browse and play
+these recordings through its `folders` with the Home Assistant media browser as source (support in the
+card is still growing, so details may change). A channel's folder is
 `media-source://hikvision_bridge/<config entry id>/<channel>/<recorder or card>`; day folders are named by
 date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days with recordings of several kinds
 have one more level: *All* and one folder per kind.
@@ -331,7 +329,7 @@ restored. Deleted areas remove their panel.
 | RTSP port (optional) | empty | Empty uses the port reported by the device, otherwise 554. Applies to the device's own streams; direct camera connections have their own RTSP port |
 | RTSP transport | TCP | *TCP* is reliable; *UDP* can have less delay but shows artefacts on packet loss |
 | Separate sensors for people and vehicles | off | Adds person and vehicle binary sensors for detections with a target filter |
-| Playback in the media browser | Seekable | *Seekable*, *MP4 as recorded*, *Convert to H.264* or *Stream from the device*, see [Recordings](#recordings) |
+| Playback in the media browser | Seekable (MP4 as recorded for devices added before 0.9.20) | *Seekable*, *MP4 as recorded*, *Convert to H.264* or *Stream from the device*, see [Recordings](#recordings) |
 | Recording times | Automatic | The clock the device gives its recording times on: most devices use their own clock, some older cameras real UTC. *Automatic* finds it out from recordings in progress and from the recordings events started |
 | Show the Hikvision panel in the sidebar | on | Removes the sidebar entry when off; the dashboard card keeps working. Applies to all entries of the integration |
 | Only administrators see the panel | off | Hides the sidebar entry from users without administrator rights. Applies to all entries of the integration |
