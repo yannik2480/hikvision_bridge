@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "Luồng sự kiện không cần thay đổi gì trên thiết bị. Webhook yêu cầu thiết bị gửi đến Home Assistant.",
           "hold_seconds": "Với nhiều loại phát hiện, thiết bị chỉ báo lúc bắt đầu; cảm biến giữ bật trong khoảng thời gian này sau lần báo cuối.",
-          "playback": "Bản ghi là H.265 hoặc H.264. 'MP4 như khi ghi' bắt đầu ngay, nhưng trình duyệt chỉ phát H.265 khi có hỗ trợ phần cứng. 'Chuyển sang H.264' phát được ở mọi nơi và tốn nhiều CPU. 'Phát trực tiếp từ thiết bị' để thiết bị phát bản ghi qua RTSP.",
+          "playback": "Bản ghi là H.265 hoặc H.264. 'MP4 như khi ghi' bắt đầu ngay, nhưng trình duyệt chỉ phát H.265 khi có hỗ trợ phần cứng. 'Chuyển sang H.264' phát được ở mọi nơi và tốn nhiều CPU. 'Phát trực tiếp từ thiết bị' để thiết bị phát bản ghi qua RTSP. 'Tua được' hiển thị toàn bộ độ dài bản ghi và cho phép tua đến bất kỳ vị trí nào, như bảng điều khiển.",
           "recording_clock": "Đồng hồ mà thiết bị dùng để ghi thời gian các bản ghi. 'Tự động' sẽ tự xác định. Nếu dòng thời gian và bản ghi đang phát lệch nhau đúng bằng độ lệch múi giờ của bạn, hãy chọn đồng hồ còn lại.",
           "stream_key": "Dùng để giải mã bản ghi và video trực tiếp H.264 cục bộ trong khi vẫn bật mã hóa luồng. Nhập mã xác minh của thiết bị tại đây để bật giải mã trực tiếp; âm thanh và video trực tiếp H.265 được mã hóa không được hỗ trợ. Bản ghi cũng có thể dùng mã đọc từ thiết bị.",
           "sidebar_panel": "Áp dụng cho mọi thiết bị và tài khoản của tích hợp này. Thẻ bảng điều khiển vẫn dùng được.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 như khi ghi (khuyên dùng)",
+        "seekable": "Tua được (khuyên dùng)",
+        "mp4": "MP4 như khi ghi",
         "h264": "Chuyển sang H.264 (phát ở mọi nơi, tải CPU cao)",
         "stream": "Phát trực tiếp từ thiết bị (RTSP sang HLS)"
       }

@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "Tapahtumavirta ei vaadi muutoksia laitteeseen. Webhook edellyttää, että laite lähettää Home Assistantiin.",
           "hold_seconds": "Laitteet ilmoittavat monista tunnistuksista vain alun; anturi pysyy päällä näin kauan viimeisen ilmoituksen jälkeen.",
-          "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta.",
+          "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta. 'Siirrettävä' näyttää tallenteen koko pituuden ja siirtyy mihin kohtaan tahansa, kuten paneeli.",
           "recording_clock": "Kello, jonka mukaan laite ilmoittaa tallenteidensa ajat. 'Automaattinen' selvittää sen. Jos aikajana ja toistettu tallenne poikkeavat aikavyöhykkeesi siirtymän verran, valitse toinen kello.",
           "stream_key": "Käytetään tallenteiden ja paikallisen H.264-livevideon salauksen purkuun niin, että virran salaus pysyy päällä. Syötä laitteen vahvistuskoodi tähän ottaaksesi livepurun käyttöön; ääntä ja salattua H.265-livevideota ei tueta. Tallenteet voivat käyttää myös laitteesta luettua koodia.",
           "sidebar_panel": "Koskee kaikkia tämän integraation laitteita ja tilejä. Kojelaudan kortti pysyy käytettävissä.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 tallennettuna (suositus)",
+        "seekable": "Siirrettävä (suositus)",
+        "mp4": "MP4 tallennettuna",
         "h264": "Muunna H.264:ksi (toimii kaikkialla, suuri suoritinkuorma)",
         "stream": "Suoratoista laitteelta (RTSP:stä HLS:ksi)"
       }

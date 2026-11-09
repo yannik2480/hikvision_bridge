@@ -184,3 +184,21 @@ async def test_proxy_streams_do_not_add_to_a_full_listing(link_to) -> None:
 def test_missing_encryption_flag_is_unknown(flags, expected):
     state = discover.read_cloud_state(parse(f"<EZVIZ><enabled>true</enabled>{flags}</EZVIZ>"))
     assert state.stream_encrypted is expected
+
+
+@pytest.mark.parametrize(
+    ("audio", "expected"),
+    [
+        ("<Audio><enabled>true</enabled></Audio>", True),
+        ("<Audio><enabled>false</enabled></Audio>", False),
+        ("<Audio><audioCompressionType>G.711ulaw</audioCompressionType></Audio>", None),
+        ("", None),
+    ],
+)
+def test_stream_audio_comes_from_its_audio_enabled(audio, expected):
+    listing = parse(
+        "<StreamingChannelList><StreamingChannel><id>101</id>"
+        f"<Video><videoCodecType>H.264</videoCodecType></Video>{audio}"
+        "</StreamingChannel></StreamingChannelList>"
+    )
+    assert discover._streams(listing)["1"][0].audio is expected

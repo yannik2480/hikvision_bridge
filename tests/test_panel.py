@@ -93,6 +93,14 @@ def test_hls_args(tmp_path: Path) -> None:
     assert "-rtsp_transport" not in piped
     assert piped[piped.index("-hls_segment_filename") + 1] == str(tmp_path / "seg%05d.m4s")
     assert "-ss" not in piped
+    # A channel with audio off still announces an audio track over RTSP that sends nothing.
+    assert "-allowed_media_types" not in original
+    silent = sessions.hls_args("rtsp://x", sessions.QUALITY_ORIGINAL, "H.264", tmp_path, False)
+    assert silent[silent.index("-allowed_media_types") + 1] == "video"
+    assert silent.index("-allowed_media_types") < silent.index("-i")
+    assert "-allowed_media_types" not in sessions.hls_args(
+        sessions.PIPE, sessions.QUALITY_ORIGINAL, "h264", tmp_path, False
+    )
 
 
 def _keyed(parameters: bytes, key: bytes, other: bytes) -> tuple[bytes, dict[int, int]]:

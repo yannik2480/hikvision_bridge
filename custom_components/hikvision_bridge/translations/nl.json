@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "De gebeurtenisstream vereist geen wijziging op het apparaat. De webhook vereist dat het apparaat naar Home Assistant stuurt.",
           "hold_seconds": "Apparaten melden bij veel detecties alleen het begin; de sensor blijft zo lang aan na de laatste melding.",
-          "playback": "Opnames zijn H.265 of H.264. 'MP4 zoals opgenomen' start meteen, maar browsers spelen H.265 alleen af met hardwareondersteuning. 'Omzetten naar H.264' werkt overal en vraagt veel CPU. 'Streamen vanaf het apparaat' laat het apparaat de opname via RTSP afspelen.",
+          "playback": "Opnames zijn H.265 of H.264. 'MP4 zoals opgenomen' start meteen, maar browsers spelen H.265 alleen af met hardwareondersteuning. 'Omzetten naar H.264' werkt overal en vraagt veel CPU. 'Streamen vanaf het apparaat' laat het apparaat de opname via RTSP afspelen. 'Doorspoelbaar' toont de volledige lengte van de opname en springt naar elk punt, zoals het paneel.",
           "recording_clock": "De klok waarop het apparaat de tijden van zijn opnamen aangeeft. 'Automatisch' zoekt dit uit. Wijken de tijdlijn en de afgespeelde opname af met de verschuiving van je tijdzone, kies dan de andere klok.",
           "stream_key": "Wordt gebruikt om opnames en lokale H.264-livevideo te ontsleutelen terwijl streamversleuteling aan blijft. Vul hier de verificatiecode van het apparaat in om live-ontsleuteling in te schakelen; audio en versleutelde H.265-livevideo worden niet ondersteund. Opnames kunnen ook de code gebruiken die van het apparaat wordt gelezen.",
           "sidebar_panel": "Geldt voor alle apparaten en accounts van deze integratie. De dashboardkaart blijft beschikbaar.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 zoals opgenomen (aanbevolen)",
+        "seekable": "Doorspoelbaar (aanbevolen)",
+        "mp4": "MP4 zoals opgenomen",
         "h264": "Omzetten naar H.264 (werkt overal, hoge CPU-belasting)",
         "stream": "Streamen vanaf het apparaat (RTSP naar HLS)"
       }

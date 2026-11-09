@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "O fluxo de eventos não exige mudanças no dispositivo. O webhook exige que o dispositivo envie para o Home Assistant.",
           "hold_seconds": "Os dispositivos só informam o início de muitas detecções; o sensor fica ativo por este tempo após o último aviso.",
-          "playback": "As gravações são H.265 ou H.264. \"MP4 como gravado\" começa na hora, mas os navegadores só reproduzem H.265 com suporte de hardware. \"Converter para H.264\" funciona em qualquer lugar e exige muita CPU. \"Transmitir do dispositivo\" deixa o dispositivo reproduzir a gravação via RTSP.",
+          "playback": "As gravações são H.265 ou H.264. \"MP4 como gravado\" começa na hora, mas os navegadores só reproduzem H.265 com suporte de hardware. \"Converter para H.264\" funciona em qualquer lugar e exige muita CPU. \"Transmitir do dispositivo\" deixa o dispositivo reproduzir a gravação via RTSP. 'Com busca' mostra a duração inteira da gravação e permite ir a qualquer ponto, como o painel.",
           "recording_clock": "O relógio com que o dispositivo informa os horários das gravações. 'Automático' descobre isso. Se a linha do tempo e a gravação reproduzida diferirem pelo deslocamento do seu fuso horário, escolha o outro relógio.",
           "stream_key": "Usado para descriptografar gravações e vídeo ao vivo H.264 local mantendo a criptografia do stream ativada. Digite aqui o código de verificação do dispositivo para ativar a descriptografia ao vivo; áudio e vídeo ao vivo H.265 criptografado não são suportados. As gravações também podem usar o código lido do dispositivo.",
           "sidebar_panel": "Vale para todos os dispositivos e contas desta integração. O cartão do dashboard continua disponível.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 como gravado (recomendado)",
+        "seekable": "Com busca (recomendado)",
+        "mp4": "MP4 como gravado",
         "h264": "Converter para H.264 (funciona em qualquer lugar, alta carga de CPU)",
         "stream": "Transmitir do dispositivo (RTSP para HLS)"
       }
