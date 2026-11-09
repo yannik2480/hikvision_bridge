@@ -111,7 +111,7 @@ async def _setup(hass: HomeAssistant, serve, data: bytes, **options):
 
 
 async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffmpeg: Path) -> None:
-    device, entry = await _setup(hass, serve, program_stream())
+    device, entry = await _setup(hass, serve, program_stream(), **{OPT_PLAYBACK: "mp4"})
     root = await media_source.async_browse_media(hass, f"media-source://{DOMAIN}")
     assert [c.title for c in root.children] == [entry.title]
     channels = await media_source.async_browse_media(hass, root.children[0].media_content_id)

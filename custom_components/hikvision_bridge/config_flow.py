@@ -64,6 +64,7 @@ from .const import (
     OPT_WEBHOOK_ID,
     PLAYBACK_H264,
     PLAYBACK_MP4,
+    PLAYBACK_SEEKABLE,
     PLAYBACK_STREAM,
     RECORDING_CLOCK_AUTO,
     RECORDING_CLOCK_DEVICE,
@@ -653,10 +654,10 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                     OPT_TARGET_SENSORS, default=options.get(OPT_TARGET_SENSORS, False)
                 ): bool,
                 vol.Required(
-                    OPT_PLAYBACK, default=options.get(OPT_PLAYBACK, PLAYBACK_MP4)
+                    OPT_PLAYBACK, default=options.get(OPT_PLAYBACK, PLAYBACK_SEEKABLE)
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[PLAYBACK_MP4, PLAYBACK_H264, PLAYBACK_STREAM],
+                        options=[PLAYBACK_SEEKABLE, PLAYBACK_MP4, PLAYBACK_H264, PLAYBACK_STREAM],
                         translation_key="playback",
                     )
                 ),

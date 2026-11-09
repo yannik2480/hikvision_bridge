@@ -29,6 +29,7 @@ from .const import (
     KIND_CLOUD,
     OPT_PLAYBACK,
     OPT_RTSP_TRANSPORT,
+    PLAYBACK_SEEKABLE,
     PLAYBACK_STREAM,
     RTSP_TCP,
 )
@@ -43,7 +44,7 @@ from .runtime.playback import (
     rtsp_url,
     sources,
 )
-from .views import decode_token, encode_token, recording_url, thumbnail_url
+from .views import HLS, decode_token, encode_token, recording_url, thumbnail_url
 from .wire.faults import BridgeFault
 from .wire.scrub import scrubbed_logger
 
@@ -287,7 +288,9 @@ class BridgeMediaSource(MediaSource):
         source = pick_source(bridge, channel_id, source_key)
         if uri is None or source is None:
             raise Unresolvable("Unknown recording")
-        mode = bridge.entry.options.get(OPT_PLAYBACK, FORMAT_MP4)
+        mode = bridge.entry.options.get(OPT_PLAYBACK, PLAYBACK_SEEKABLE)
+        if mode == PLAYBACK_SEEKABLE:
+            return PlayMedia(recording_url(entry_id, channel_id, source.key, mode, uri), HLS)
         if mode == PLAYBACK_STREAM:
             try:
                 return await self._stream(bridge, source, uri)
@@ -323,7 +326,7 @@ class BridgeMediaSource(MediaSource):
         )
         stream.add_provider(HLS_PROVIDER)
         await stream.start()
-        return PlayMedia(stream.endpoint_url(HLS_PROVIDER), "application/vnd.apple.mpegurl")
+        return PlayMedia(stream.endpoint_url(HLS_PROVIDER), HLS)
 
 
 def _midnight(day: date) -> datetime:

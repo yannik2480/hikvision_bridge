@@ -9,11 +9,11 @@ from collections import OrderedDict
 import re
 
 from aiohttp import web
-from homeassistant.components.http import KEY_HASS, HomeAssistantView
+from homeassistant.components.http import KEY_HASS, KEY_HASS_USER, HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
-from .runtime import playback as playback_module, sessions
+from .const import DOMAIN, PLAYBACK_SEEKABLE
+from .runtime import playback as playback_module, sessions, vod
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import (
     EXTENSION,
@@ -40,6 +40,7 @@ _PLAYBACK_URI = re.compile(r"^rtsp://[^/\s]+/Streaming/tracks/\d+/?\?[^\s<>]*$",
 THUMBNAIL_CACHE = 256
 # Each thumbnail opens a download; recorders serve only a few at a time.
 THUMBNAIL_PARALLEL = 2
+HLS = "application/vnd.apple.mpegurl"
 
 
 def encode_token(playback_uri: str) -> str:
@@ -100,7 +101,7 @@ def _seconds(value: str | None) -> float | None:
 
 
 class RecordingView(HomeAssistantView):
-    """One recorded file, converted while it downloads."""
+    """One recorded file, converted while it downloads, or its playlist to play on demand."""
 
     url = RECORDING_URL
     name = "api:hikvision_bridge:recording"
@@ -118,9 +119,17 @@ class RecordingView(HomeAssistantView):
         hass = request.app[KEY_HASS]
         uri = decode_token(token)
         found = _find_source(hass, entry_id, channel_id, source)
-        if uri is None or found is None or fmt not in FORMATS:
+        if uri is None or found is None or fmt not in (*FORMATS, PLAYBACK_SEEKABLE):
             return web.Response(status=404)
         _, playback = found
+        if fmt == PLAYBACK_SEEKABLE:
+            key = (entry_id, channel_id, playback.key)
+            played = await vod.create(hass, key, playback, uri, request[KEY_HASS_USER].id)
+            if played is None:
+                return web.Response(status=404)
+            return web.Response(
+                text=played.playlist(), content_type=HLS, headers={"Cache-Control": "no-cache"}
+            )
         offset = _seconds(request.query.get("offset"))
         duration = _seconds(request.query.get("duration"))
         response = web.StreamResponse(headers={"Content-Type": MIME[fmt]})
@@ -241,7 +250,61 @@ class SessionView(HomeAssistantView):
         )
 
 
+class VodView(HomeAssistantView):
+    """Init section and parts of a recorded file played on demand.
+
+    Like SessionView, the random token in the URL is the access token.
+    """
+
+    url = vod.URL
+    name = "api:hikvision_bridge:vod"
+    requires_auth = False
+
+    async def get(self, request: web.Request, token: str, name: str) -> web.StreamResponse:
+        hass = request.app[KEY_HASS]
+        played = vod.get(hass, token)
+        number = int(name[:-4]) if name.endswith(".m4s") and name[:-4].isdigit() else None
+        if played is None or (name != vod.INIT and (number is None or number >= played.parts)):
+            return web.Response(status=404)
+        owner = await hass.auth.async_get_user(played.owner)
+        found = _find_source(hass, *played.key)
+        if owner is None or not owner.is_active:
+            vod.drop(hass, token)
+            return web.Response(status=404)
+        if found is None:
+            return web.Response(status=404)
+        bridge, source = found
+        main = bridge.profile.channels[played.key[1]].main_stream
+        codec = main.codec if main else None
+        response: web.StreamResponse | None = None
+        try:
+            if number is None:
+                init = await played.init_section(hass, source, codec)
+                return (
+                    web.Response(status=503)
+                    if init is None
+                    else web.Response(body=init, content_type="video/mp4")
+                )
+            async for data in played.part(hass, source, codec, number):
+                if response is None:
+                    response = web.StreamResponse(
+                        headers={"Content-Type": "video/iso.segment", "Cache-Control": "no-cache"}
+                    )
+                    await response.prepare(request)
+                await response.write(data)
+        except (sessions.SessionError, FileNotFoundError) as err:
+            _LOGGER.debug("No video on demand: %s", getattr(err, "reason", type(err).__name__))
+        except ConnectionResetError:
+            # The player went away (seeked).
+            return response or web.Response(status=503)
+        if response is None:
+            return web.Response(status=503)
+        await response.write_eof()
+        return response
+
+
 def async_register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(RecordingView())
     hass.http.register_view(ThumbnailView())
     hass.http.register_view(SessionView())
+    hass.http.register_view(VodView())

@@ -132,7 +132,7 @@
         "data_description": {
           "event_path": "Fluxul de evenimente nu necesită modificări pe dispozitiv. Webhook-ul necesită ca dispozitivul să trimită către Home Assistant.",
           "hold_seconds": "Dispozitivele raportează doar începutul multor detecții; senzorul rămâne activ atât timp după ultima raportare.",
-          "playback": "Înregistrările sunt H.265 sau H.264. „MP4 așa cum a fost înregistrat” pornește imediat, dar browserele redau H.265 doar cu suport hardware. „Convertire în H.264” funcționează oriunde și necesită mult procesor. „Flux de la dispozitiv” lasă dispozitivul să redea înregistrarea prin RTSP.",
+          "playback": "Înregistrările sunt H.265 sau H.264. „MP4 așa cum a fost înregistrat” pornește imediat, dar browserele redau H.265 doar cu suport hardware. „Convertire în H.264” funcționează oriunde și necesită mult procesor. „Flux de la dispozitiv” lasă dispozitivul să redea înregistrarea prin RTSP. „Cu derulare” arată toată durata înregistrării și permite saltul în orice punct, ca panoul.",
           "recording_clock": "Ceasul după care dispozitivul indică orele înregistrărilor. „Automat” îl determină. Dacă cronologia și înregistrarea redată diferă cu decalajul fusului tău orar, alege celălalt ceas.",
           "stream_key": "Folosit pentru a decripta înregistrările și video live H.264 local, păstrând criptarea fluxului activată. Introduceți aici codul de verificare al dispozitivului pentru a activa decriptarea live; sunetul și video live H.265 criptat nu sunt acceptate. Înregistrările pot folosi și codul citit de pe dispozitiv.",
           "sidebar_panel": "Se aplică tuturor dispozitivelor și conturilor acestei integrări. Cardul de pe tabloul de bord rămâne disponibil.",
@@ -891,7 +891,8 @@
     },
     "playback": {
       "options": {
-        "mp4": "MP4 așa cum a fost înregistrat (recomandat)",
+        "seekable": "Cu derulare (recomandat)",
+        "mp4": "MP4 așa cum a fost înregistrat",
         "h264": "Convertire în H.264 (funcționează oriunde, încărcare mare a procesorului)",
         "stream": "Flux de la dispozitiv (RTSP în HLS)"
       }
