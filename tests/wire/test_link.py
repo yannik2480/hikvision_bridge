@@ -264,20 +264,33 @@ async def test_rejection_warning_says_what_was_offered_but_no_secrets(rig, caplo
     assert "wrong" not in message
 
 
-async def test_malformed_status_line_is_a_refusal_not_unreachable() -> None:
-    """Old DVRs answer unsupported requests with ``HTTP/1.1 -1 Custom error``."""
+async def _reply_with(head: bytes):
+    """A server answering every request with ``head`` (status line and headers)."""
 
     async def handle(reader, writer):
         await reader.readuntil(b"\r\n\r\n")
-        writer.write(b"HTTP/1.1 -1 Custom error\r\nContent-Length: 0\r\n\r\n")
+        writer.write(head)
         await writer.drain()
         writer.close()
 
-    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    return await asyncio.start_server(handle, "127.0.0.1", 0)
+
+
+@pytest.mark.parametrize(
+    ("head", "fault"),
+    [
+        # Old DVRs answer unsupported requests with this status line.
+        (b"HTTP/1.1 -1 Custom error\r\nContent-Length: 0\r\n\r\n", faults.DeviceRejected),
+        # Other parse errors say nothing about the request.
+        (b"HTTP/1.1 200 OK\r\nContent-Length: abc\r\n\r\n", faults.Unreachable),
+    ],
+)
+async def test_unparsable_reply_is_a_refusal_only_for_a_bad_status_line(head, fault) -> None:
+    server = await _reply_with(head)
     port = server.sockets[0].getsockname()[1]
     async with aiohttp.ClientSession() as session:
         link = IsapiLink(session, Endpoint("127.0.0.1", port, "http"), "u", "p")
-        with pytest.raises(faults.DeviceRejected, match="malformed reply"):
+        with pytest.raises(fault):
             await link.read_bytes("/ISAPI/Streaming/channels/101/picture")
     server.close()
     await server.wait_closed()
