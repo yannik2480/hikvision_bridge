@@ -345,9 +345,14 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
         """Find recorder inputs without a signal; the device describes them as NO VIDEO."""
         if not self._bridge.profile.shape.records:
             return
-        _, listing = await self._try_read(
+        ok, listing = await self._try_read(
             self._bridge.link.read_xml("/ISAPI/System/Video/inputs/channels", optional=True)
         )
+        if not ok:
+            if self._missed(("video_inputs", None)):
+                snapshot.no_video = frozenset()
+            return
+        self._misses.pop(("video_inputs", None), None)
         if listing is None:
             return
         snapshot.no_video = frozenset(

@@ -80,17 +80,13 @@ class PushEntity(BridgeEntity):
         return self.bridge.router.feeds_healthy() and super().available
 
 
-class PolledEntity(CoordinatorEntity[StatusRefresher], BridgeEntity):
+# BridgeEntity first, so that its availability wraps the refresher's.
+class PolledEntity(BridgeEntity, CoordinatorEntity[StatusRefresher]):
     """Entity backed by the status refresher."""
 
     def __init__(self, bridge: DeviceBridge, channel_id: str | None, feature: str) -> None:
         CoordinatorEntity.__init__(self, bridge.refresher)
         BridgeEntity.__init__(self, bridge, channel_id, feature)
-
-    @property
-    def available(self) -> bool:
-        # CoordinatorEntity.available comes first in the MRO and skips BridgeEntity's.
-        return super().available and not (self._needs_video and self.video_lost)
 
 
 class ImageSettingEntity(PolledEntity):

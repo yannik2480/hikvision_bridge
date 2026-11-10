@@ -144,5 +144,14 @@ async def test_channel_unavailable_during_video_loss(hass: HomeAssistant, serve)
     assert unavailable() == set()
     assert hass.states.get(video_loss).state == STATE_OFF
 
+    # A list that stops answering does not keep the channel hidden for good.
+    await refresh("NO VIDEO")
+    device.overrides[inputs] = (500, "<ResponseStatus><statusCode>6</statusCode></ResponseStatus>")
+    for _ in range(3):
+        assert unavailable() == lost
+        await refresher.async_refresh()
+        await hass.async_block_till_done()
+    assert unavailable() == set()
+
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
