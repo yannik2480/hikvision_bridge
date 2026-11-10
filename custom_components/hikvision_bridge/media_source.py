@@ -6,6 +6,7 @@ Identifiers: ``entry/channel/source/day/kind`` for folders (later parts optional
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 
 from homeassistant.components.media_player import BrowseError, MediaClass
@@ -243,10 +244,14 @@ class BridgeMediaSource(MediaSource):
         # The files running past the day are searched on to their real end.
         crossing = [r for r in found if r.end >= end]
         if crossing and end <= dt_util.utcnow():
-            later = await recordings.search(
-                source.link, source.track, crossing[0].start, end + timedelta(days=1)
-            )
-            found = [r for r in found if r.end < end] + [r for r in later if r.start < end <= r.end]
+            # If the device does not answer, they stay cut at midnight.
+            with suppress(BridgeFault):
+                later = await recordings.search(
+                    source.link, source.track, crossing[0].start, end + timedelta(days=1)
+                )
+                found = [r for r in found if r.end < end] + [
+                    r for r in later if r.start < end <= r.end
+                ]
         found = [r for r in found if r.start >= start]
         kinds = sorted({r.kind for r in found}, key=recordings.KINDS.index)
         title = day.isoformat()
