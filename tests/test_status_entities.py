@@ -94,3 +94,55 @@ async def test_values_outlive_a_few_failed_reads(hass: HomeAssistant, serve) -> 
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+def _video_inputs(res_desc: str) -> str:
+    return (
+        f"<VideoInputChannelList {NS}><VideoInputChannel><id>1</id><inputPort>1</inputPort>"
+        f"<name>Camera 01</name><resDesc>{res_desc}</resDesc></VideoInputChannel>"
+        "</VideoInputChannelList>"
+    )
+
+
+async def test_channel_unavailable_during_video_loss(hass: HomeAssistant, serve) -> None:
+    device = FakeDevice("nvr")
+    inputs = "/ISAPI/System/Video/inputs/channels"
+    device.documents[inputs] = _video_inputs("1080P30")
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    refresher = entry.runtime_data.refresher
+    lost = {
+        _entity(hass, entry, "camera", "_ch1_stream_1").entity_id,
+        _entity(hass, entry, "binary_sensor", "_ch1_recording").entity_id,
+        _entity(hass, entry, "binary_sensor", "_ch1_event_motion").entity_id,
+    }
+    kept = {
+        _entity(hass, entry, "binary_sensor", "_ch2_recording").entity_id,
+        _entity(hass, entry, "sensor", "_network_address").entity_id,
+    }
+    video_loss = _entity(hass, entry, "binary_sensor", "_ch1_event_video_loss").entity_id
+
+    async def refresh(res_desc: str) -> None:
+        device.documents[inputs] = _video_inputs(res_desc)
+        await refresher.async_refresh()
+        await hass.async_block_till_done()
+
+    def unavailable() -> set[str]:
+        return {e for e in lost | kept if hass.states.get(e).state == STATE_UNAVAILABLE}
+
+    assert unavailable() == set()
+    assert hass.states.get(video_loss).state == STATE_OFF
+
+    await refresh("NO VIDEO")
+    assert unavailable() == lost
+    assert hass.states.get(video_loss).state == STATE_ON
+
+    await refresh("1080P30")
+    assert unavailable() == set()
+    assert hass.states.get(video_loss).state == STATE_OFF
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

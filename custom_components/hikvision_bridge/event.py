@@ -69,7 +69,7 @@ class DetectionEvents(BridgeEntity, EventEntity):
 
     @property
     def available(self) -> bool:
-        return self.bridge.router.feeds_healthy()
+        return self.bridge.router.feeds_healthy() and super().available
 
 
 class DoorbellEvent(BridgeEntity, EventEntity):

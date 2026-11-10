@@ -24,6 +24,7 @@ from ..model.features import adjust, detection, health, io, storage
 from ..model.features.detection import DetectionState
 from ..model.features.health import DeviceHealth
 from ..model.features.image import ImageValue
+from ..model.ids import numeric_id
 from ..model.inventory import StorageUnit
 from ..model.vocabulary import Kind
 from ..wire.faults import BadCredentials, BridgeFault, LockedOut, Unreachable
@@ -46,6 +47,8 @@ class Snapshot:
     inputs: dict[str, bool | None] = field(default_factory=dict)
     outputs: dict[str, bool | None] = field(default_factory=dict)
     channels_online: dict[str, bool | None] = field(default_factory=dict)
+    # Recorder channels whose input has no signal (video loss).
+    no_video: frozenset[str] = frozenset()
     storage: list[StorageUnit] = field(default_factory=list)
     stream_encrypted: bool | None = None
     image: dict[str, dict[str, ImageValue]] = field(default_factory=dict)
@@ -104,6 +107,7 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
                 inputs=dict(previous.inputs),
                 outputs=dict(previous.outputs),
                 channels_online=dict(previous.channels_online),
+                no_video=previous.no_video,
                 storage=list(previous.storage),
                 stream_encrypted=previous.stream_encrypted,
                 image=dict(previous.image),
@@ -116,6 +120,7 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
         )
         try:
             await self._read_io(snapshot)
+            await self._read_video_inputs(snapshot)
             if due(DETECTION_EVERY):
                 await self._read_detections(snapshot)
             if due(CHANNELS_EVERY):
@@ -335,6 +340,22 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
                 continue
             ok, units = await self._try_read(storage.read(link), channel.channel_id)
             self._settle("storage", snapshot.channel_storage, channel.channel_id, ok, units)
+
+    async def _read_video_inputs(self, snapshot: Snapshot) -> None:
+        """Find recorder inputs without a signal; the device describes them as NO VIDEO."""
+        if not self._bridge.profile.shape.records:
+            return
+        _, listing = await self._try_read(
+            self._bridge.link.read_xml("/ISAPI/System/Video/inputs/channels", optional=True)
+        )
+        if listing is None:
+            return
+        snapshot.no_video = frozenset(
+            channel_id
+            for node in listing.children("VideoInputChannel")
+            if (channel_id := numeric_id(node.text("id")))
+            and (node.text("resDesc") or "").strip().upper() == "NO VIDEO"
+        )
 
     async def _read_channels(self, snapshot: Snapshot) -> None:
         profile = self._bridge.profile
