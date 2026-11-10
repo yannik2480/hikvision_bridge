@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Hành động đỗ"
+      },
+      "privacy_mask": {
+        "name": "Mặt nạ riêng tư"
       }
     },
     "camera": {

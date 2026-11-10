@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Parkeringsåtgärd"
+      },
+      "privacy_mask": {
+        "name": "Sekretessmask"
       }
     },
     "camera": {

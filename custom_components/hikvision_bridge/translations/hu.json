@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Parkolási művelet"
+      },
+      "privacy_mask": {
+        "name": "Adatvédelmi maszk"
       }
     },
     "camera": {

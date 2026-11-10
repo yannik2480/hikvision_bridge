@@ -79,6 +79,8 @@ class ChannelProfile:
     raw_kinds: set[str] = field(default_factory=set)
     streams: list[StreamSpec] = field(default_factory=list)
     switchable: set[Kind] = field(default_factory=set)
+    # The channel has a privacy mask covering the whole frame, which can be switched.
+    privacy_mask: bool = False
     # Adjustable settings (image, strobe, siren, speaker) by key.
     image: dict[str, ImageCapability] = field(default_factory=dict)
     ptz: PtzCapability | None = None

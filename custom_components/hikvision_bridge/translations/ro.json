@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Acțiune de parcare"
+      },
+      "privacy_mask": {
+        "name": "Mască de confidențialitate"
       }
     },
     "camera": {

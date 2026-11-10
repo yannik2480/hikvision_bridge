@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Parkovací akce"
+      },
+      "privacy_mask": {
+        "name": "Maska soukromí"
       }
     },
     "camera": {

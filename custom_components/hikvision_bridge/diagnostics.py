@@ -105,6 +105,7 @@ async def async_get_config_entry_diagnostics(
     result["state"] = (
         {
             "detections": {f"{c}/{k}": asdict(v) for (c, k), v in data.detections.items()},
+            "privacy": {c: asdict(v) for c, v in data.privacy.items()},
             "inputs": data.inputs,
             "outputs": data.outputs,
             "channels_online": data.channels_online,

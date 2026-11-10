@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Aksi parkir"
+      },
+      "privacy_mask": {
+        "name": "Masker privasi"
       }
     },
     "camera": {

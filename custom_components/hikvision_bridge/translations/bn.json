@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "পার্ক অ্যাকশন"
+      },
+      "privacy_mask": {
+        "name": "গোপনীয়তা মাস্ক"
       }
     },
     "camera": {
