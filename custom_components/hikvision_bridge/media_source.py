@@ -237,14 +237,14 @@ class BridgeMediaSource(MediaSource):
         start, end = _midnight(day), _midnight(day + timedelta(days=1))
         # Devices cut files at the ends of a search, playback URIs too. From a second before
         # midnight on, the file running into the day starts before it and is left out.
-        searched = await recordings.recent_search(
+        searched = await recordings.search(
             source.link, source.track, start - timedelta(seconds=1), end
         )
         found = [r for r in searched if r.start >= start]
         # The files running past the day are searched on to their real end.
         crossing = [r for r in found if r.end >= end]
         if crossing and end <= dt_util.utcnow():
-            later = await recordings.recent_search(
+            later = await recordings.search(
                 source.link, source.track, crossing[0].start, end + timedelta(days=1)
             )
             found = [r for r in found if r.end < end] + [r for r in later if r.start < end <= r.end]
