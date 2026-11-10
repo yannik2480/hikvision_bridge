@@ -86,9 +86,12 @@ class DetectionSensor(PushEntity, BinarySensorEntity):
         self._attr_device_class = _CHANNEL_KINDS[kind]
         if kind in (Kind.DEFOCUS, Kind.AUDIO_EXCEPTION, Kind.SCENE_CHANGE):
             self._attr_entity_registry_enabled_default = False
+        self._needs_video = kind != Kind.VIDEO_LOSS
 
     @property
     def is_on(self) -> bool:
+        if self._kind == Kind.VIDEO_LOSS and self.video_lost:
+            return True
         return self.bridge.router.is_active(self.channel_id, self._kind.value)
 
 
