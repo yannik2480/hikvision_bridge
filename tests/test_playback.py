@@ -182,16 +182,37 @@ async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
         # Still recording: the device lists it up to the end of the search.
         (NOW - timedelta(minutes=5), midnight + timedelta(days=1), "timing", "d"),
     ]
-    device.responders[recordings.SEARCH_PATH] = clipping(files)
+    respond = clipping(files)
+    spans: list[timedelta] = []
+
+    def search(method: str, body: str) -> web.Response:
+        start, end = map(recordings.parse_time, re.findall(r"<(?:start|end)Time>([^<]+)", body))
+        spans.append(end - start)
+        return respond(method, body)
+
+    device.responders[recordings.SEARCH_PATH] = search
     days = f"media-source://{DOMAIN}/{entry.entry_id}/1/card"
     yesterday = await media_source.async_browse_media(
         hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
     )
     assert [c.title for c in yesterday.children] == ["22:00:00 - 00:50:00", "19:00:00 - 22:00:00"]
+    # The file past midnight ends within the hour: no whole day more is searched for it.
+    assert spans == [timedelta(days=1, seconds=1), timedelta(hours=3)]
     uri = decode_token(yesterday.children[0].media_content_id.rsplit("/", 1)[-1])
     assert f"&endtime={recordings.compact(midnight + timedelta(minutes=50))}&" in uri
     today = await media_source.async_browse_media(hass, f"{days}/{midnight.date()}")
     assert [c.title for c in today.children] == ["11:55:00 - 12:00:00", "00:50:00 - 11:55:00"]
+
+    # A file running past that hour is searched on for a day.
+    files[1:3] = [
+        (midnight - timedelta(hours=2), midnight + timedelta(hours=3), "timing", "b"),
+        (midnight + timedelta(hours=3), NOW - timedelta(minutes=5), "timing", "c"),
+    ]
+    yesterday = await media_source.async_browse_media(
+        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
+    )
+    assert [c.title for c in yesterday.children] == ["22:00:00 - 03:00:00", "19:00:00 - 22:00:00"]
+    assert spans[-2:] == [timedelta(hours=3), timedelta(days=1, hours=2)]
 
 
 async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
