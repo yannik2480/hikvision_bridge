@@ -6,6 +6,7 @@ Identifiers: ``entry/channel/source/day/kind`` for folders (later parts optional
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 
 from homeassistant.components.media_player import BrowseError, MediaClass
@@ -244,20 +245,21 @@ class BridgeMediaSource(MediaSource):
         # The files running past the day are searched on to their real end.
         crossing = [r for r in found if r.end >= end]
         if crossing and end <= dt_util.utcnow():
-            # Most files end soon after midnight, and cameras with many files a day take long
-            # to search one: a whole day more is searched only for files running past an hour.
-            later: list[recordings.Recording] = []
-            for reach in (timedelta(hours=1), timedelta(days=1)):
-                later = [
-                    r
-                    for r in await recordings.search(
-                        source.link, source.track, crossing[0].start, end + reach
-                    )
-                    if r.start < end <= r.end
-                ]
-                if all(r.end < end + reach for r in later):
-                    break
-            found = [r for r in found if r.end < end] + (later or crossing)
+           with suppress(BridgeFault):
+               # Most files end soon after midnight, and cameras with many files a day take long
+               # to search one: a whole day more is searched only for files running past an hour.
+               later: list[recordings.Recording] = []
+               for reach in (timedelta(hours=1), timedelta(days=1)):
+                   later = [
+                       r
+                       for r in await recordings.search(
+                           source.link, source.track, crossing[0].start, end + reach
+                       )
+                       if r.start < end <= r.end
+                   ]
+                   if all(r.end < end + reach for r in later):
+                       break
+               found = [r for r in found if r.end < end] + (later or crossing)
         kinds = sorted({r.kind for r in found}, key=recordings.KINDS.index)
         title = day.isoformat()
         if kind is None and len(kinds) > 1:
