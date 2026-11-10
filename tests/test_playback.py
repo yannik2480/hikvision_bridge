@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+import re
 import stat
 from types import MappingProxyType
 
@@ -32,7 +33,7 @@ from custom_components.hikvision_bridge.const import (
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import playback
-from custom_components.hikvision_bridge.views import recording_url
+from custom_components.hikvision_bridge.views import decode_token, recording_url
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -148,6 +149,70 @@ async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffm
     assert "<downloadRequest><playbackURI>rtsp://" in download[2]
     assert "&amp;name=b&amp;" in download[2]
     assert (await client.get(path.replace("/mp4/", "/bogus/"))).status == 404
+
+
+def clipping(files: list[tuple[datetime, datetime, str, str]]):
+    """Search answers as recorders give them: files cut at the ends of the search."""
+
+    def respond(_method: str, body: str) -> web.Response:
+        start, end = map(recordings.parse_time, re.findall(r"<(?:start|end)Time>([^<]+)", body))
+        items = [
+            match(
+                max(s, start).astimezone(UTC),
+                (min(e, end) - max(s, start)).total_seconds() / 60,
+                kind,
+                name,
+            )
+            for s, e, kind, name in files
+            if s < end and e > start
+        ]
+        return web.Response(text=result(items, "OK"), content_type="application/xml")
+
+    return respond
+
+
+async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
+    """Files that run past midnight are listed once, on their day, with their real times."""
+    device, entry = await _setup(hass, serve, program_stream())
+    midnight = dt_util.start_of_local_day(NOW)
+    files = [
+        (midnight - timedelta(hours=5), midnight - timedelta(hours=2), "timing", "a"),
+        (midnight - timedelta(hours=2), midnight + timedelta(minutes=50), "timing", "b"),
+        (midnight + timedelta(minutes=50), NOW - timedelta(minutes=5), "timing", "c"),
+        # Still recording: the device lists it up to the end of the search.
+        (NOW - timedelta(minutes=5), midnight + timedelta(days=1), "timing", "d"),
+    ]
+    respond = clipping(files)
+    spans: list[timedelta] = []
+
+    def search(method: str, body: str) -> web.Response:
+        start, end = map(recordings.parse_time, re.findall(r"<(?:start|end)Time>([^<]+)", body))
+        spans.append(end - start)
+        return respond(method, body)
+
+    device.responders[recordings.SEARCH_PATH] = search
+    days = f"media-source://{DOMAIN}/{entry.entry_id}/1/card"
+    yesterday = await media_source.async_browse_media(
+        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
+    )
+    assert [c.title for c in yesterday.children] == ["22:00:00 - 00:50:00", "19:00:00 - 22:00:00"]
+    # The file past midnight ends within the hour: no whole day more is searched for it.
+    assert spans == [timedelta(days=1, seconds=1), timedelta(hours=3)]
+    uri = decode_token(yesterday.children[0].media_content_id.rsplit("/", 1)[-1])
+    assert f"&endtime={recordings.compact(midnight + timedelta(minutes=50))}&" in uri
+    today = await media_source.async_browse_media(hass, f"{days}/{midnight.date()}")
+    assert [c.title for c in today.children] == ["11:55:00 - 12:00:00", "00:50:00 - 11:55:00"]
+
+    # A file running past that hour is searched on for a day.
+    files[1:3] = [
+        (midnight - timedelta(hours=2), midnight + timedelta(hours=3), "timing", "b"),
+        (midnight + timedelta(hours=3), NOW - timedelta(minutes=5), "timing", "c"),
+    ]
+    yesterday = await media_source.async_browse_media(
+        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
+    )
+    assert [c.title for c in yesterday.children] == ["22:00:00 - 03:00:00", "19:00:00 - 22:00:00"]
+    assert spans[-2:] == [timedelta(hours=3), timedelta(days=1, hours=2)]
 
 
 async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
