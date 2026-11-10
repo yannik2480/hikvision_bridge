@@ -48,6 +48,8 @@ FIELD_SERIAL = "device_serial"
 
 MAX_PERIOD = timedelta(days=1)
 MAX_FILES = 50
+# How far past the period files running over its ends are searched for their real times.
+WHOLE_SPAN = timedelta(days=1)
 MEDIA_FOLDER = DOMAIN
 
 MAX_RESPONSE = 65536
@@ -237,12 +239,30 @@ async def _find_recordings(call: ServiceCall) -> tuple[Any, str, Any, list]:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_recordings")
     for source in candidates:
         try:
-            found = await recordings.search(source.link, source.track, start, end)
+            found = await _whole_files(source, start, end)
         except BridgeFault as err:
             raise _fail(err, "read_failed") from err
         if found:
             return bridge, channel, source, found
     return bridge, channel, candidates[0], []
+
+
+async def _whole_files(source: Any, start: datetime, end: datetime) -> list[recordings.Recording]:
+    """The files of the period with their real times.
+
+    Devices cut the files at the ends of a search, but some send them whole all the same: trimmed
+    from their listed start, those would come out at the wrong time.
+    """
+    found = await recordings.search(source.link, source.track, start, end)
+    wider = (
+        start - WHOLE_SPAN if any(r.start <= start for r in found) else start,
+        end + WHOLE_SPAN if any(r.end >= end for r in found) else end,
+    )
+    if wider == (start, end):
+        return found
+    # shortcut: a file reaching more than WHOLE_SPAN past the period stays cut there.
+    found = await recordings.search(source.link, source.track, *wider)
+    return [r for r in found if r.end > start and r.start < end]
 
 
 async def _search_recordings(call: ServiceCall) -> ServiceResponse:

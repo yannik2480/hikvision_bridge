@@ -334,6 +334,44 @@ async def test_download_recording(
     assert err.value.translation_key == "bad_period"
 
 
+async def test_files_over_the_period_ends(
+    hass: HomeAssistant, serve, tmp_path: Path, fake_ffmpeg: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Files running over the ends of the period have their real times, and are trimmed so."""
+    hass.config.media_dirs = {"local": str(tmp_path / "media")}
+    hass.config.allowlist_external_dirs = {str(tmp_path)}
+    device, entry = await _setup(hass, serve, program_stream())
+    files = [
+        (START - timedelta(hours=1), START + timedelta(minutes=30), "timing", "a"),
+        (START + timedelta(minutes=30), START + timedelta(minutes=90), "timing", "b"),
+    ]
+    device.responders[recordings.SEARCH_PATH] = clipping(files)
+    period = {
+        "device_id": _device_id(hass, entry),
+        "start": START + timedelta(minutes=10),
+        "end": START + timedelta(hours=1),
+    }
+    found = await hass.services.async_call(
+        DOMAIN, "search_recordings", period, blocking=True, return_response=True
+    )
+    assert [(r["start"], r["end"]) for r in found["recordings"]] == [
+        (s.isoformat(), e.isoformat()) for s, e, _, _ in files
+    ]
+    trims = []
+    ffmpeg_args = playback.ffmpeg_args
+
+    def recorded_args(*args, **kwargs):
+        trims.append((kwargs["offset"], kwargs["duration"]))
+        return ffmpeg_args(*args, **kwargs)
+
+    monkeypatch.setattr(playback, "ffmpeg_args", recorded_args)
+    await hass.services.async_call(
+        DOMAIN, "download_recording", period, blocking=True, return_response=True
+    )
+    # From 70 minutes into the first file on; the first 30 minutes of the second.
+    assert trims == [(4200.0, None), (None, 1800.0)]
+
+
 def _device_id(hass: HomeAssistant, entry) -> str:
     return dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)[0].id
 
