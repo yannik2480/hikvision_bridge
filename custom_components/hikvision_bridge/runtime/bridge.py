@@ -47,6 +47,7 @@ from . import identity
 from .live import LiveRelay
 from .refresh import StatusRefresher
 from .router import EventRouter, Origin
+from .tls import device_context
 
 _LOGGER = scrubbed_logger(__name__)
 MAIN_FEED = "main"
@@ -62,6 +63,7 @@ def build_link(hass: HomeAssistant, data: dict) -> IsapiLink:
         data[CONF_USERNAME],
         data[CONF_PASSWORD],
         trusted=True,
+        ssl_context=device_context(verify),
     )
 
 

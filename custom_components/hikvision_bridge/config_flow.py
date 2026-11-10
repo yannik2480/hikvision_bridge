@@ -81,6 +81,7 @@ from .const import (
 from .model.discover import read_identity_only
 from .model.inventory import Identity
 from .panel import PANEL_DEFAULTS, async_set_panel_settings, panel_settings
+from .runtime.tls import device_context
 from .wire import faults
 from .wire.link import Endpoint, IsapiLink
 
@@ -210,6 +211,7 @@ async def probe_device(
             Endpoint(data[CONF_HOST].strip(), int(port), scheme),
             data[CONF_USERNAME],
             data[CONF_PASSWORD],
+            ssl_context=device_context(verify),
         )
         try:
             identity = await read_identity_only(link)
