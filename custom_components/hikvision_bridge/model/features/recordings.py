@@ -392,6 +392,7 @@ def parse_results(
 async def search(link: IsapiLink, track: str, start: datetime, end: datetime) -> list[Recording]:
     """All recordings of a track overlapping the period, oldest first.
 
+    Devices cut the files running over the ends of the period to it, playback URIs too.
     Some devices page by ``maxResults``, others answer everything at once and still say
     MORE; paging stops as soon as a page brings nothing new.
     """

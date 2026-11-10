@@ -155,10 +155,7 @@ def clipping(files: list[tuple[datetime, datetime, str, str]]):
     """Search answers as recorders give them: files cut at the ends of the search."""
 
     def respond(_method: str, body: str) -> web.Response:
-        start, end = (
-            datetime.fromisoformat(t).replace(tzinfo=UTC)
-            for t in re.findall(r"<(?:start|end)Time>([^<Z]+)Z", body)
-        )
+        start, end = map(recordings.parse_time, re.findall(r"<(?:start|end)Time>([^<]+)", body))
         items = [
             match(
                 max(s, start).astimezone(UTC),
