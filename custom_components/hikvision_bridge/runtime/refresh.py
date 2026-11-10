@@ -20,10 +20,11 @@ from ..const import (
     GRACE_BEFORE_UNAVAILABLE,
 )
 from ..model.discover import CLOUD_PATH, read_cloud_state
-from ..model.features import adjust, detection, health, io, storage
+from ..model.features import adjust, detection, health, io, privacy, storage
 from ..model.features.detection import DetectionState
 from ..model.features.health import DeviceHealth
 from ..model.features.image import ImageValue
+from ..model.features.privacy import PrivacyState
 from ..model.ids import numeric_id
 from ..model.inventory import StorageUnit
 from ..model.vocabulary import Kind
@@ -44,6 +45,7 @@ STORAGE_EVERY = 20  # 10 min
 @dataclass(slots=True)
 class Snapshot:
     detections: dict[tuple[str, Kind], DetectionState] = field(default_factory=dict)
+    privacy: dict[str, PrivacyState] = field(default_factory=dict)
     inputs: dict[str, bool | None] = field(default_factory=dict)
     outputs: dict[str, bool | None] = field(default_factory=dict)
     channels_online: dict[str, bool | None] = field(default_factory=dict)
@@ -104,6 +106,7 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
             if previous is None
             else Snapshot(
                 detections=dict(previous.detections),
+                privacy=dict(previous.privacy),
                 inputs=dict(previous.inputs),
                 outputs=dict(previous.outputs),
                 channels_online=dict(previous.channels_online),
@@ -123,6 +126,7 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
             await self._read_video_inputs(snapshot)
             if due(DETECTION_EVERY):
                 await self._read_detections(snapshot)
+                await self._read_privacy(snapshot)
             if due(CHANNELS_EVERY):
                 await self._read_channels(snapshot)
                 await self._read_cloud(snapshot)
@@ -208,6 +212,19 @@ class StatusRefresher(DataUpdateCoordinator[Snapshot]):
                 self._settle("detection", snapshot.detections, key, True, result)
         if keys and failures == len(keys):
             raise next(r for r in results if isinstance(r, BridgeFault))
+
+    async def _read_privacy(self, snapshot: Snapshot) -> None:
+        """On/off state of the privacy mask of every channel that has one."""
+        for channel in self._bridge.profile.channels.values():
+            if not channel.privacy_mask:
+                continue
+            # The device the mask was found on at discovery, also for channels reached directly.
+            ok, state = await self._try_read(
+                privacy.read(self._bridge.link, channel.channel_id), channel.channel_id
+            )
+            self._settle(
+                "privacy", snapshot.privacy, channel.channel_id, ok and state is not None, state
+            )
 
     async def _read_cloud(self, snapshot: Snapshot) -> None:
         """Follow the Hik-Connect settings, so that switching stream encryption takes effect."""

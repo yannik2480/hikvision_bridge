@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "إجراء التوقف"
+      },
+      "privacy_mask": {
+        "name": "قناع الخصوصية"
       }
     },
     "camera": {

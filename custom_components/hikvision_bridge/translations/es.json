@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Acción de estacionamiento"
+      },
+      "privacy_mask": {
+        "name": "Máscara de privacidad"
       }
     },
     "camera": {

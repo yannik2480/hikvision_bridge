@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "守望动作"
+      },
+      "privacy_mask": {
+        "name": "隐私遮罩"
       }
     },
     "camera": {

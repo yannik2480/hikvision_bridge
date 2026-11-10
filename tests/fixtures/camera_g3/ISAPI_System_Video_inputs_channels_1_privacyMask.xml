@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PrivacyMask version="2.0" xmlns="http://www.std-cgi.com/ver20/XMLSchema">
+<enabled>false</enabled>
+<normalizedScreenSize>
+<normalizedScreenWidth>704</normalizedScreenWidth>
+<normalizedScreenHeight>576</normalizedScreenHeight>
+</normalizedScreenSize>
+<PrivacyMaskRegionList size="1">
+<PrivacyMaskRegion version="2.0" xmlns="http://www.std-cgi.com/ver20/XMLSchema">
+<id>1</id>
+<enabled>true</enabled>
+<RegionCoordinatesList>
+<RegionCoordinates>
+<positionX>0</positionX>
+<positionY>1</positionY>
+</RegionCoordinates>
+<RegionCoordinates>
+<positionX>704</positionX>
+<positionY>1</positionY>
+</RegionCoordinates>
+<RegionCoordinates>
+<positionX>704</positionX>
+<positionY>576</positionY>
+</RegionCoordinates>
+<RegionCoordinates>
+<positionX>0</positionX>
+<positionY>576</positionY>
+</RegionCoordinates>
+</RegionCoordinatesList>
+</PrivacyMaskRegion>
+</PrivacyMaskRegionList>
+</PrivacyMask>

@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import ImageSettingEntity, PolledEntity, add_entities, image_entities
-from .model.features import detection, io
+from .model.features import detection, io, privacy
 from .model.inventory import IoPort
 from .model.vocabulary import Kind
 from .runtime.bridge import DeviceBridge
@@ -31,6 +31,11 @@ async def async_setup_entry(
         for channel in bridge.profile.channels.values()
         for kind in sorted(channel.switchable)
     ]
+    entities.extend(
+        PrivacyMaskSwitch(bridge, channel.channel_id)
+        for channel in bridge.profile.channels.values()
+        if channel.privacy_mask
+    )
     entities.extend(AlarmOutputSwitch(bridge, port) for port in bridge.profile.outputs.values())
     entities.extend(image_entities(bridge, "switch", ImageSwitch))
     profile = bridge.profile
@@ -52,6 +57,44 @@ def _raise_write_error(err: BridgeFault) -> None:
         translation_key="write_failed",
         translation_placeholders={"reason": type(err).__name__},
     ) from err
+
+
+class PrivacyMaskSwitch(PolledEntity, SwitchEntity):
+    """Hides or shows the areas masked on the camera; the areas themselves are set up there."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "privacy_mask"
+
+    def __init__(self, bridge: DeviceBridge, channel_id: str) -> None:
+        super().__init__(bridge, channel_id, "switch_privacy_mask")
+
+    @property
+    def _state(self) -> privacy.PrivacyState | None:
+        return self.coordinator.data.privacy.get(self.channel_id)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._state is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        state = self._state
+        return state.enabled if state else None
+
+    async def _apply(self, on: bool) -> None:
+        try:
+            state = await privacy.switch(self.bridge.link, self.channel_id, on)
+        except BridgeFault as err:
+            _raise_write_error(err)
+            return
+        self.coordinator.data.privacy[self.channel_id] = state
+        self.async_write_ha_state()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._apply(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._apply(False)
 
 
 class DetectionSwitch(PolledEntity, SwitchEntity):

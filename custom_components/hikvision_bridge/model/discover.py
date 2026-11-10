@@ -9,7 +9,7 @@ from ..wire.faults import NotIsapi
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrubbed_logger
 from ..wire.xmlview import XmlNode
-from .features import detection, intercom, io, linkage, storage
+from .features import detection, intercom, io, linkage, privacy, storage
 from .ids import numeric_id
 from .inventory import (
     ChannelProfile,
@@ -262,7 +262,21 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
 
     if probe_switches:
         await probe_switchable(link, profile)
+        await probe_privacy(link, profile)
     return profile
+
+
+async def probe_privacy(link: IsapiLink, profile: DeviceProfile) -> None:
+    """Find which channels have a privacy mask covering the whole frame (those get a switch)."""
+
+    async def check(channel: ChannelProfile) -> None:
+        state = await privacy.read(link, channel.channel_id)
+        if state is not None and state.full_frame:
+            channel.privacy_mask = True
+
+    await asyncio.gather(
+        *(check(channel) for channel in profile.channels.values() if channel.online is not False)
+    )
 
 
 async def probe_switchable(link: IsapiLink, profile: DeviceProfile) -> None:

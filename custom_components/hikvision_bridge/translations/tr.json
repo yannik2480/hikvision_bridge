@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Park eylemi"
+      },
+      "privacy_mask": {
+        "name": "Gizlilik maskesi"
       }
     },
     "camera": {

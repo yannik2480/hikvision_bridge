@@ -147,3 +147,56 @@ async def test_switch_writes_back_only_the_enabled_flag(hass: HomeAssistant, ser
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_privacy_mask_switch_writes_the_frame_corners(hass: HomeAssistant, serve) -> None:
+    device = FakeDevice("camera_g3")
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    switch = _entity_id(hass, entry, "switch", "_switch_privacy_mask")
+    assert hass.states.get(switch).state == STATE_OFF  # as the device reports it
+
+    await hass.services.async_call("switch", "turn_on", {"entity_id": switch}, blocking=True)
+
+    assert len(device.writes) == 1
+    method, path, body = device.writes[0]
+    assert method == "PUT"
+    assert path == "/ISAPI/System/Video/inputs/channels/1/privacyMask"
+    original = device._index[path][1]
+    # the flag flips and the top edge (1 on the device, as the firmware moved it) becomes the
+    # frame's own 0; everything else is byte-identical
+    expected = original.replace("<enabled>false</enabled>", "<enabled>true</enabled>", 1)
+    expected = expected.replace("<positionY>1</positionY>", "<positionY>0</positionY>")
+    assert body == expected
+    assert hass.states.get(switch).state == STATE_ON
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_partial_privacy_mask_gets_no_switch(hass: HomeAssistant, serve) -> None:
+    device = FakeDevice("camera_g3")
+    path = "/ISAPI/System/Video/inputs/channels/1/privacyMask"
+    status, text = device._index[path]
+    # a mask over the left quarter of the picture only
+    device._index[path] = (
+        status,
+        text.replace("<positionX>704</positionX>", "<positionX>176</positionX>"),
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    ids = [
+        e.unique_id for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    ]
+    assert not [i for i in ids if i.endswith("_switch_privacy_mask")]
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "파킹 동작"
+      },
+      "privacy_mask": {
+        "name": "프라이버시 마스크"
       }
     },
     "camera": {

@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "پارک کارروائی"
+      },
+      "privacy_mask": {
+        "name": "پرائیویسی ماسک"
       }
     },
     "camera": {

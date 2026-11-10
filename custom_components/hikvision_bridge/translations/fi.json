@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Pysäköintitoiminto"
+      },
+      "privacy_mask": {
+        "name": "Yksityisyysmaski"
       }
     },
     "camera": {

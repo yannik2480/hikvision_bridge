@@ -354,6 +354,9 @@
       },
       "park_action": {
         "name": "Parkeringshandling"
+      },
+      "privacy_mask": {
+        "name": "Personvernmaske"
       }
     },
     "camera": {

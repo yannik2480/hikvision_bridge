@@ -71,6 +71,10 @@
   "file": "ISAPI_System_Video_inputs_channels_1_motionDetection.xml",
   "status": 200
  },
+ "/ISAPI/System/Video/inputs/channels/1/privacyMask": {
+  "file": "ISAPI_System_Video_inputs_channels_1_privacyMask.xml",
+  "status": 200
+ },
  "/ISAPI/System/capabilities": {
   "file": "ISAPI_System_capabilities.xml",
   "status": 200
