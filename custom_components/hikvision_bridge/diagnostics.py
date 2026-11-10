@@ -109,6 +109,7 @@ async def async_get_config_entry_diagnostics(
             "inputs": data.inputs,
             "outputs": data.outputs,
             "channels_online": data.channels_online,
+            "no_video": sorted(data.no_video),
             "storage": [asdict(u) for u in data.storage],
         }
         if data is not None

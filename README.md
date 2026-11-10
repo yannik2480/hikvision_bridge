@@ -43,7 +43,7 @@
 | Detections | Binary sensor per channel and detection kind (motion, line crossing, intrusion, region entrance/exit, tamper, video loss, scene change, defocus, audio exception); optional person/vehicle sensors |
 | Event entities | One per channel, fires on every smart detection (good for automations that must not miss repeated triggers) |
 | Plate recognition (ANPR) | On channels that report plate events: last plate as a sensor (country, direction, confidence, plate and vehicle colour, allow/block list as attributes), vehicle picture and plate close-up (close-up disabled by default); the plate details are also on the event entity and the `hikvision_bridge_event` bus event |
-| Switches | Detections on/off including video loss on recorders (only the `enabled` flag is written back, everything else stays byte-identical); alarm outputs; arm/disarm alarm inputs; privacy mask on/off for cameras whose mask covers the whole frame (drawing it stays on the device; each write puts the frame's own corners into that region, because some firmware moves the top edge down a pixel on every write of the mask) |
+| Switches | Detections on/off including video loss on recorders (only the `enabled` flag is written back, everything else stays byte-identical); alarm outputs; arm/disarm alarm inputs; privacy mask on/off for cameras whose mask covers the whole frame (drawing it stays on the device) |
 | Image settings | Day/night, supplement light, colour, WDR and more per channel (see below) |
 | Deterrence and audio | Strobe light duration and frequency, siren sound, volume and repeats, speaker and microphone volume (cameras that have them) |
 | Cameras | Main/sub stream per channel, snapshots, codec and resolution as attributes |

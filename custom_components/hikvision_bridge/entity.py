@@ -29,6 +29,8 @@ class BridgeEntity(Entity):
     """Entity bound to one device entry; never sets an entity_id."""
 
     _attr_has_entity_name = True
+    # Entities that report video loss themselves stay available while the channel has none.
+    _needs_video = True
 
     def __init__(self, bridge: DeviceBridge, channel_id: str | None, feature: str) -> None:
         self.bridge = bridge
@@ -37,6 +39,23 @@ class BridgeEntity(Entity):
         self._attr_device_info = DeviceInfo(
             identifiers={identity.entity_device_identifier(bridge.profile, channel_id)}
         )
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self.channel_id is not None and not isinstance(self, CoordinatorEntity):
+            # Follow polled video loss; polled entities already listen to the refresher.
+            self.async_on_remove(
+                self.bridge.refresher.async_add_listener(self.async_write_ha_state)
+            )
+
+    @property
+    def video_lost(self) -> bool:
+        data = self.bridge.refresher.data
+        return data is not None and self.channel_id in data.no_video
+
+    @property
+    def available(self) -> bool:
+        return super().available and not (self._needs_video and self.video_lost)
 
 
 class PushEntity(BridgeEntity):
@@ -58,10 +77,11 @@ class PushEntity(BridgeEntity):
 
     @property
     def available(self) -> bool:
-        return self.bridge.router.feeds_healthy()
+        return self.bridge.router.feeds_healthy() and super().available
 
 
-class PolledEntity(CoordinatorEntity[StatusRefresher], BridgeEntity):
+# BridgeEntity first, so that its availability wraps the refresher's.
+class PolledEntity(BridgeEntity, CoordinatorEntity[StatusRefresher]):
     """Entity backed by the status refresher."""
 
     def __init__(self, bridge: DeviceBridge, channel_id: str | None, feature: str) -> None:

@@ -9,14 +9,12 @@ import struct
 
 from homeassistant.components import media_source
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.hikvision_bridge.const import DOMAIN, OPT_PLAYBACK, PLAYBACK_SEEKABLE
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import sessions, vod
 from custom_components.hikvision_bridge.views import encode_token
-from custom_components.hikvision_bridge.wire import faults
 from tests.model.test_recordings import program_stream
 from tests.test_panel import _script
 from tests.test_playback import START, _setup
@@ -127,37 +125,16 @@ async def test_seekable_playback(
 
 def test_playlist_ends_with_the_rest() -> None:
     recording = recordings.Recording("101", START, START + timedelta(seconds=9), "", URI)
-    played = vod.Vod("token", ("entry", "1", "card"), "owner", recording, START)
+    played = vod.Vod("token", ("entry", "1", "card"), "owner", recording)
     playlist = played.playlist()
     assert played.parts == 3
     assert playlist.count("#EXTINF:4.000,") == 2
     assert "#EXTINF:1.000,\n/api/hikvision_bridge/vod/token/2.m4s" in playlist
 
 
-async def test_file_listed_from_midnight(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A file running into the day searched starts earlier than it is listed."""
-    midnight = dt_util.start_of_local_day(START)
-    real = midnight - timedelta(days=1, hours=3)
-    asked = []
-
-    async def search(_link, _track, start, end):
-        asked.append(start)
-        return [recordings.Recording("101", max(start, real), end, "", URI, "a")]
-
-    monkeypatch.setattr(recordings, "search", search)
-    source = type("Source", (), {"link": None, "track": "101"})()
-    listed = recordings.Recording("101", midnight, START, "", URI, "a")
-    assert await vod._file_start(source, listed) == real
-    assert asked == [midnight - timedelta(days=1), midnight - timedelta(days=2)]
-    # Files listed from any other time start there.
-    later = recordings.Recording("101", START, START, "", URI, "a")
-    assert await vod._file_start(source, later) == START
-    assert len(asked) == 2
-
-
 def _vod(hass: HomeAssistant, token: str, owner: str, used: float) -> vod.Vod:
     recording = recordings.Recording("101", START, START + timedelta(minutes=1), "", token)
-    played = vod.Vod(token, ("entry", "1", "card"), owner, recording, START, used=used)
+    played = vod.Vod(token, ("entry", "1", "card"), owner, recording, used=used)
     hass.data.setdefault(vod.DATA_KEY, {})[token] = played
     return played
 
@@ -212,19 +189,6 @@ async def test_drop_entry_keeps_other_entries(hass: HomeAssistant) -> None:
     other.key = ("other", "1", "card")
     vod.drop_entry(hass, "entry")
     assert list(hass.data[vod.DATA_KEY]) == ["b"]
-
-
-async def test_real_start_search_failing_plays_from_the_listing(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def search(*_):
-        raise faults.Unreachable("down")
-
-    monkeypatch.setattr(recordings, "search", search)
-    source = type("Source", (), {"link": None, "track": "101"})()
-    midnight = dt_util.start_of_local_day(START)
-    listed = recordings.Recording("101", midnight, START, "", URI, "a")
-    assert await vod._file_start(source, listed) == midnight
 
 
 def test_offset_is_never_negative() -> None:

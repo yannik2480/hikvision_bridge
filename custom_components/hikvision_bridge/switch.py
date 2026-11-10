@@ -82,9 +82,8 @@ class PrivacyMaskSwitch(PolledEntity, SwitchEntity):
         return state.enabled if state else None
 
     async def _apply(self, on: bool) -> None:
-        link, remote = self.bridge.route(self.channel_id)
         try:
-            state = await privacy.switch(link, remote, on)
+            state = await privacy.switch(self.bridge.link, self.channel_id, on)
         except BridgeFault as err:
             _raise_write_error(err)
             return

@@ -12,8 +12,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import suppress
-from dataclasses import dataclass, field, replace
-from datetime import datetime, time as time_of_day, timedelta
+from dataclasses import dataclass, field
+from datetime import timedelta
 import math
 import secrets
 import struct
@@ -24,8 +24,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from ..model.features import recordings
-from ..wire.faults import BridgeFault, detail
-from ..wire.scrub import scrubbed_logger
 from . import sessions
 from .playback import PlaybackSource
 from .sessions import Session, SessionError
@@ -35,14 +33,11 @@ from .sessions import Session, SessionError
 PART_SECONDS = 4
 INIT = "init.mp4"
 MAX_VODS = 16
-SEARCH_BACK_DAYS = 7
 # Longest wait for the next piece while its session still runs.
 WAIT_SECONDS = sessions.FIRST_SEGMENT_TIMEOUT
 POLL_SECONDS = 0.25
 URL = "/api/hikvision_bridge/vod/{token}/{name}"
 DATA_KEY = "hikvision_bridge_vod"
-
-_LOGGER = scrubbed_logger(__name__)
 
 
 class VodsFull(Exception):
@@ -56,8 +51,7 @@ class Vod:
     token: str
     key: tuple[str, str, str]  # entry, channel, recording source
     owner: str
-    recording: recordings.Recording  # the file as listed: its part in the day searched
-    file_start: datetime  # where the file really starts
+    recording: recordings.Recording
     # Last use; a file paused for long keeps playing on, and only idle ones make room.
     used: float = field(default_factory=time.monotonic)
     session_id: str | None = None
@@ -192,7 +186,7 @@ class Vod:
             self.recording.end,
             sessions.QUALITY_ORIGINAL,
             codec,
-            found=[replace(self.recording, start=self.file_start)],
+            found=[self.recording],
             ticket=ticket,
             owner=self.owner,
             origin=self.recording.start,
@@ -264,7 +258,7 @@ async def create(
 ) -> Vod | None:
     """The video on demand of a recorded file for ``owner``; None without its times.
 
-    Raises VodsFull if no room can be made, BridgeFault if the device does not answer.
+    Raises VodsFull if no room can be made.
     """
     query = dict(parse_qsl(urlsplit(playback_uri).query))
     wall = await recordings.wall_offset(source.link)
@@ -292,34 +286,9 @@ async def create(
         oldest = min(idle, key=lambda v: (v.owner != owner, v.used))
         del vods[oldest.token]
     recording = recordings.Recording(source.track, start, end, "", playback_uri, query.get("name"))
-    vod = Vod(
-        secrets.token_urlsafe(16), key, owner, recording, await _file_start(source, recording)
-    )
+    vod = Vod(secrets.token_urlsafe(16), key, owner, recording)
     vods[vod.token] = vod
     return vod
-
-
-async def _file_start(source: PlaybackSource, recording: recordings.Recording) -> datetime:
-    """Where a file listed from midnight on really starts.
-
-    The media browser searches a day; devices list a file running into it from midnight on,
-    and send it from its real start. Searched back a day at a time, up to SEARCH_BACK_DAYS.
-    """
-    start = recording.start
-    if not recording.name or dt_util.as_local(start).time() != time_of_day(0):
-        return start
-    for _ in range(SEARCH_BACK_DAYS):
-        before = start - timedelta(days=1)
-        try:
-            found = await recordings.search(source.link, source.track, before, start)
-        except BridgeFault as err:
-            # Played from where it is listed then; a download skips to the wrong place at worst.
-            _LOGGER.debug("Real start of a recorded file not found: %s", detail(err))
-            break
-        start = min((r.start for r in found if r.name == recording.name), default=start)
-        if start > before:
-            break
-    return start
 
 
 def get(hass: HomeAssistant, token: str) -> Vod | None:

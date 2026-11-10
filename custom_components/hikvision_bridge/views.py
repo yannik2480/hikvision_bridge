@@ -129,9 +129,6 @@ class RecordingView(HomeAssistantView):
                 played = await vod.create(hass, key, playback, uri, request[KEY_HASS_USER].id)
             except vod.VodsFull:
                 return web.Response(status=503)
-            except BridgeFault as err:
-                _LOGGER.debug("Recorded file not played on demand: %s", detail(err))
-                return web.Response(status=502)
             if played is None:
                 return web.Response(status=404)
             return web.Response(

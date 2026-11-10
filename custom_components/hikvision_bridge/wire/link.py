@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 import ipaddress
 import json
+import ssl
 import time
 from typing import Any
 
@@ -165,9 +166,16 @@ class IsapiLink:
         write_timeout: float = 20,
         connect_timeout: float = 10,
         trusted: bool = False,
+        ssl_context: ssl.SSLContext | None = None,
     ) -> None:
-        """``trusted``: the credentials are stored ones that already worked (not a new login)."""
+        """``trusted``: the credentials are stored ones that already worked (not a new login).
+
+        ``ssl_context``: used for HTTPS requests instead of the session's own TLS settings.
+        """
         self._session = session
+        self._tls: dict[str, ssl.SSLContext] = (
+            {"ssl": ssl_context} if ssl_context is not None and endpoint.scheme == "https" else {}
+        )
         self.endpoint = endpoint
         self._username = username
         self._password = password
@@ -264,6 +272,7 @@ class IsapiLink:
                 data=body,
                 timeout=limits,
                 allow_redirects=False,
+                **self._tls,
             ) as response:
                 payload = await response.read()
                 return (
@@ -606,6 +615,7 @@ class IsapiLink:
                         data=payload,
                         timeout=timeout,
                         allow_redirects=False,
+                        **self._tls,
                     )
                 except aiohttp.ClientConnectorCertificateError as err:
                     raise TlsUntrusted(str(err)) from err
