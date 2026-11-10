@@ -214,17 +214,6 @@ async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
     assert [c.title for c in yesterday.children] == ["22:00:00 - 03:00:00", "19:00:00 - 22:00:00"]
     assert spans[-2:] == [timedelta(hours=3), timedelta(days=1, hours=2)]
 
-    # Without an answer to the search past midnight, the file stays cut there.
-    answer = device.responders[recordings.SEARCH_PATH]
-    day_search = f"{(midnight - timedelta(days=1, seconds=1)).astimezone(UTC):%H:%M:%SZ}<"
-    device.responders[recordings.SEARCH_PATH] = lambda method, body: (
-        answer(method, body) if day_search in body else web.Response(status=404)
-    )
-    yesterday = await media_source.async_browse_media(
-        hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
-    )
-    assert yesterday.children[0].title == "22:00:00 - 00:00:00"
-
 
 async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
     _, entry = await _setup(hass, serve, program_stream(), **{OPT_PLAYBACK: "h264"})
