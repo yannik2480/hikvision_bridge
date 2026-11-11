@@ -48,6 +48,9 @@ FIELD_SERIAL = "device_serial"
 
 MAX_PERIOD = timedelta(days=1)
 MAX_FILES = 50
+WHOLE_STEP = timedelta(hours=1)
+# How far past the period files running over its ends are searched for their real times.
+WHOLE_SPAN = timedelta(days=1)
 MEDIA_FOLDER = DOMAIN
 
 MAX_RESPONSE = 65536
@@ -237,12 +240,43 @@ async def _find_recordings(call: ServiceCall) -> tuple[Any, str, Any, list]:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_recordings")
     for source in candidates:
         try:
-            found = await recordings.search(source.link, source.track, start, end)
+            found = await _whole_files(source, start, end)
         except BridgeFault as err:
             raise _fail(err, "read_failed") from err
         if found:
             return bridge, channel, source, found
     return bridge, channel, candidates[0], []
+
+
+async def _whole_files(source: Any, start: datetime, end: datetime) -> list[recordings.Recording]:
+    """The files of the period with their real times.
+
+    Devices cut the files at the ends of a search, but some send them whole all the same: trimmed
+    from their listed start, those would come out at the wrong time.
+    """
+    found = await recordings.search(source.link, source.track, start, end)
+    start_boundary, end_boundary = start.replace(microsecond=0), end.replace(microsecond=0)
+    wider_start = start - WHOLE_STEP if any(r.start == start_boundary for r in found) else start
+    wider_end = end + WHOLE_STEP if any(r.end == end_boundary for r in found) else end
+    if (wider_start, wider_end) == (start, end):
+        return found
+    found = await recordings.search(source.link, source.track, wider_start, wider_end)
+    wider_start_boundary = wider_start.replace(microsecond=0)
+    wider_end_boundary = wider_end.replace(microsecond=0)
+    whole_start = (
+        start - WHOLE_SPAN
+        if wider_start < start and any(r.start == wider_start_boundary for r in found)
+        else wider_start
+    )
+    whole_end = (
+        end + WHOLE_SPAN
+        if wider_end > end and any(r.end == wider_end_boundary for r in found)
+        else wider_end
+    )
+    # shortcut: a file extending more than WHOLE_SPAN past the period remains cut there.
+    if (whole_start, whole_end) != (wider_start, wider_end):
+        found = await recordings.search(source.link, source.track, whole_start, whole_end)
+    return [r for r in found if r.end > start and r.start < end]
 
 
 async def _search_recordings(call: ServiceCall) -> ServiceResponse:
