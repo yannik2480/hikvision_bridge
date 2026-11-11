@@ -255,19 +255,22 @@ async def _whole_files(source: Any, start: datetime, end: datetime) -> list[reco
     from their listed start, those would come out at the wrong time.
     """
     found = await recordings.search(source.link, source.track, start, end)
-    wider_start = start - WHOLE_STEP if any(r.start <= start for r in found) else start
-    wider_end = end + WHOLE_STEP if any(r.end >= end for r in found) else end
+    start_boundary, end_boundary = start.replace(microsecond=0), end.replace(microsecond=0)
+    wider_start = start - WHOLE_STEP if any(r.start == start_boundary for r in found) else start
+    wider_end = end + WHOLE_STEP if any(r.end == end_boundary for r in found) else end
     if (wider_start, wider_end) == (start, end):
         return found
     found = await recordings.search(source.link, source.track, wider_start, wider_end)
+    wider_start_boundary = wider_start.replace(microsecond=0)
+    wider_end_boundary = wider_end.replace(microsecond=0)
     whole_start = (
         start - WHOLE_SPAN
-        if wider_start < start and any(r.start <= wider_start for r in found)
+        if wider_start < start and any(r.start == wider_start_boundary for r in found)
         else wider_start
     )
     whole_end = (
         end + WHOLE_SPAN
-        if wider_end > end and any(r.end >= wider_end for r in found)
+        if wider_end > end and any(r.end == wider_end_boundary for r in found)
         else wider_end
     )
     # shortcut: a file extending more than WHOLE_SPAN past the period remains cut there.
