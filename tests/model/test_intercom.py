@@ -121,6 +121,58 @@ async def test_read_capabilities(rig):
     assert caps.doors == (1,)
 
 
+INTERCOM_CAPS_NO_CALL_FLAG = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<VideoIntercomCap version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+    "<isSupportRemoteOpenDoor>true</isSupportRemoteOpenDoor>"
+    "<isSupportWorkStatus>true</isSupportWorkStatus>"
+    "</VideoIntercomCap>"
+)
+
+CALL_STATUS_PATH = "/ISAPI/VideoIntercom/callStatus?format=json"
+CALL_STATUS_IDLE = (200, '{"CallStatus": {"status": "idle"}}')
+
+
+async def test_read_capabilities_probes_call_status_without_flag(rig):
+    device = FakeDevice(
+        overrides={
+            "/ISAPI/VideoIntercom/capabilities": (200, INTERCOM_CAPS_NO_CALL_FLAG),
+            CALL_STATUS_PATH: CALL_STATUS_IDLE,
+        }
+    )
+    caps = await intercom.read_capabilities(await rig(device))
+    assert caps is not None
+    assert caps.has_call_status is True
+    assert caps.doors == (1,)
+
+
+async def test_read_capabilities_without_flag_or_endpoint(rig):
+    device = FakeDevice(
+        overrides={
+            "/ISAPI/VideoIntercom/capabilities": (200, INTERCOM_CAPS_NO_CALL_FLAG),
+            CALL_STATUS_PATH: (404, ""),
+        }
+    )
+    caps = await intercom.read_capabilities(await rig(device))
+    assert caps is not None
+    assert caps.has_call_status is False
+
+
+async def test_read_capabilities_respects_explicit_false(rig):
+    device = FakeDevice(
+        overrides={
+            "/ISAPI/VideoIntercom/capabilities": (
+                200,
+                INTERCOM_CAPS.replace("<isSupportCallStatus>true", "<isSupportCallStatus>false"),
+            ),
+            CALL_STATUS_PATH: CALL_STATUS_IDLE,
+        }
+    )
+    caps = await intercom.read_capabilities(await rig(device))
+    assert caps is not None
+    assert caps.has_call_status is False
+
+
 async def test_read_call_status(rig):
     device = FakeDevice(
         overrides={

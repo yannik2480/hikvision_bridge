@@ -50,7 +50,19 @@ async def read_capabilities(link: IsapiLink) -> IntercomCapabilities | None:
     door_doc = await link.read_xml(
         "/ISAPI/AccessControl/RemoteControl/door/capabilities", optional=True
     )
-    return parse_capabilities(intercom_doc, door_doc)
+    caps = parse_capabilities(intercom_doc, door_doc)
+    # Some door stations (Safire SF-VI111, firmware V2.2.53) answer callStatus
+    # without advertising isSupportCallStatus, so an absent flag is settled by
+    # asking the endpoint itself. An explicit false is taken at its word.
+    if (
+        caps is not None
+        and not caps.has_call_status
+        and intercom_doc is not None
+        and intercom_doc.flag("isSupportCallStatus") is None
+        and await read_call_status(link) is not None
+    ):
+        caps.has_call_status = True
+    return caps
 
 
 def canonical_call_status(raw: str | None) -> str:
