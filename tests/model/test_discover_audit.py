@@ -1,6 +1,7 @@
 """Discovery, audit findings and switching against simulated devices."""
 
 import aiohttp
+from aiohttp import web
 from aiohttp.test_utils import TestServer
 import pytest
 
@@ -110,6 +111,66 @@ async def test_switch_changes_only_enabled_and_verifies(link_to) -> None:
     method, path, body = device.writes[-1]
     assert (method, path) == ("PUT", "/ISAPI/Smart/LineDetection/1")
     assert body == before.replace("<enabled>false</enabled>", "<enabled>true</enabled>", 1)
+
+
+MOTION_PATH = "/ISAPI/System/Video/inputs/channels/1/motionDetection"
+OK = "<ResponseStatus><statusCode>1</statusCode><statusString>OK</statusString></ResponseStatus>"
+BAD_XML = (
+    "<ResponseStatus><statusCode>6</statusCode><statusString>Invalid XML Content</statusString>"
+    "<subStatusCode>badXmlContent</subStatusCode></ResponseStatus>"
+)
+
+
+def motion_firmware(device: FakeDevice, before: str, *, short_document: str) -> None:
+    """Answer the motion resource like firmware that merges, ignores or refuses a short PUT."""
+    state = {"text": before}
+
+    def respond(method: str, body: str) -> web.Response:
+        if method == "GET":
+            return web.Response(text=state["text"], content_type="application/xml")
+        if "<Grid>" in body:
+            state["text"] = body
+        elif short_document == "refuse":
+            return web.Response(status=400, text=BAD_XML, content_type="application/xml")
+        elif short_document == "merge":
+            value = "true" if "<enabled>true</enabled>" in body else "false"
+            state["text"] = before.replace(
+                "<enabled>true</enabled>", f"<enabled>{value}</enabled>", 1
+            )
+        return web.Response(text=OK, content_type="application/xml")
+
+    device.responders[MOTION_PATH] = respond
+
+
+async def test_motion_switch_sends_only_enabled(link_to) -> None:
+    device = FakeDevice(profile="camera_g3")
+    link = await link_to(device)
+    before = (await link.call("GET", MOTION_PATH)).text
+    motion_firmware(device, before, short_document="merge")
+    state = await detection.switch(link, Kind.MOTION, "1", False)
+    assert state.enabled is False
+    assert state.target_filter == ("human", "vehicle")
+    puts = [body for method, _path, body in device.writes if method == "PUT"]
+    assert len(puts) == 1
+    assert "<enabled>false</enabled>" in puts[0]
+    assert "RegionList" not in puts[0]
+    assert "gridMap" not in puts[0]
+    assert 'xmlns="http://www.hikvision.com/ver20/XMLSchema"' in puts[0]
+
+
+@pytest.mark.parametrize("short_document", ["refuse", "ignore", "replace"])
+async def test_motion_switch_falls_back_to_full_document(link_to, short_document: str) -> None:
+    device = FakeDevice(profile="camera_g3")
+    link = await link_to(device)
+    before = (await link.call("GET", MOTION_PATH)).text
+    if short_document != "replace":  # the plain fake keeps whatever was sent last
+        motion_firmware(device, before, short_document=short_document)
+    state = await detection.switch(link, Kind.MOTION, "1", False)
+    assert state.enabled is False
+    puts = [body for method, _path, body in device.writes if method == "PUT"]
+    assert len(puts) == 2
+    assert puts[1] == before.replace("<enabled>true</enabled>", "<enabled>false</enabled>", 1)
+    assert (await link.call("GET", MOTION_PATH)).text == puts[1]
 
 
 async def test_add_center_linkage(link_to) -> None:

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
+from ...wire.faults import DeviceRejected, Unsupported
 from ...wire.link import IsapiLink
-from ...wire.xmlview import XmlNode, parse
+from ...wire.xmlview import RawDocument, XmlNode, parse
 from ..ids import seg
 from ..vocabulary import Kind
-from . import patch_and_verify
+from . import VerifyMismatch, patch_and_verify
 
 # Where each switchable detection is configured, relative to /ISAPI, per channel.
 _PATHS: dict[Kind, str] = {
@@ -23,6 +25,11 @@ _PATHS: dict[Kind, str] = {
 }
 # Watched by the recorder itself, not by the camera: always configured on the recorder.
 RECORDER_ONLY: frozenset[Kind] = frozenset({Kind.VIDEO_LOSS})
+# Switched with a document that holds nothing but ``enabled``: some firmware redraws the
+# detection area as a full-frame rectangle whenever the layout is written back, even unchanged.
+_ENABLED_ONLY: frozenset[Kind] = frozenset({Kind.MOTION})
+_ROOT_TAG = re.compile(r"<([A-Za-z_][\w.-]*)(?:\s[^<>]*)?>")
+_BETWEEN_TAGS = re.compile(r">\s+<")
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,5 +84,45 @@ async def switch(link: IsapiLink, kind: Kind, channel_id: str, on: bool) -> Dete
     path = config_path(kind, channel_id)
     if path is None:
         raise ValueError(f"{kind} cannot be switched")
-    document = await patch_and_verify(link, path, {"enabled": "true" if on else "false"})
+    value = "true" if on else "false"
+    if kind in _ENABLED_ONLY:
+        document = await _switch_enabled_only(link, path, value)
+    else:
+        document = await patch_and_verify(link, path, {"enabled": value})
     return interpret(kind, parse(document.text))
+
+
+def _same(left: str, right: str) -> bool:
+    return _BETWEEN_TAGS.sub("><", left.strip()) == _BETWEEN_TAGS.sub("><", right.strip())
+
+
+async def _switch_enabled_only(link: IsapiLink, path: str, value: str) -> RawDocument:
+    """Send only ``enabled``; write the complete document when that does not do the job.
+
+    The complete document follows when the device refuses the short one, ignores it or
+    changes anything besides ``enabled``, which also puts those other values back.
+    """
+    wanted = RawDocument((await link.call("GET", path)).text)
+    root = _ROOT_TAG.search(wanted.text)
+    if root is None or not wanted.set("enabled", value):
+        raise Unsupported(f"{path} has no element enabled")
+    short = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        f"{root.group(0)}\n<enabled>{value}</enabled>\n</{root.group(1)}>\n"
+    )
+    try:
+        await link.write_xml(path, short)
+    except (DeviceRejected, Unsupported):
+        pass
+    else:
+        after = (await link.call("GET", path)).text
+        if _same(after, wanted.text):
+            return wanted
+
+    await link.write_xml(path, wanted.text)
+    actual = RawDocument((await link.call("GET", path)).text).get("enabled")
+    if actual is not None and actual.lower() != value:
+        raise VerifyMismatch(
+            f"enabled reads back as {actual!r} instead of {value!r}", 200, "verify"
+        )
+    return wanted
