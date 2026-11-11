@@ -42,10 +42,13 @@ def _plate_recorder(stream_parts: list[bytes]) -> FakeDevice:
 
 async def test_plate_reaches_sensor_pictures_event_and_bus(hass: HomeAssistant, serve) -> None:
     plate_jpg, scene_jpg = b"\xff\xd8plate\xff\xd9", b"\xff\xd8scene\xff\xd9"
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
     device = _plate_recorder(
         [
-            xml_part(anpr_xml(when=now)),
+            lambda: xml_part(anpr_xml(when=now())),
             picture_part(plate_jpg, "licensePlatePicture.jpg"),
             picture_part(scene_jpg, "detectionPicture.jpg"),
         ]

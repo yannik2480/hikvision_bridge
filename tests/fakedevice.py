@@ -34,7 +34,9 @@ class FakeDevice:
     lock_after: int = 5
     require_auth: bool = True
     overrides: dict[str, tuple[int, str]] = field(default_factory=dict)
-    stream_parts: list[bytes] = field(default_factory=list)
+    # Parts of the alert stream; callables are made when the stream is opened (events stamped
+    # then: ones from before the connection are dropped as backlog).
+    stream_parts: list[bytes | Callable[[], bytes]] = field(default_factory=list)
     stream_hold: float = 0.0
     # Pause between parts, so each arrives in its own read (as from a device encoding pictures).
     stream_gap: float = 0.0
@@ -159,7 +161,7 @@ class FakeDevice:
         )
         await response.prepare(request)
         for part in self.stream_parts:
-            await response.write(part)
+            await response.write(part() if callable(part) else part)
             await asyncio.sleep(self.stream_gap)
         if self.stream_hold:
             await asyncio.sleep(self.stream_hold)

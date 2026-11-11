@@ -23,10 +23,12 @@ def _entity_id(hass: HomeAssistant, entry, domain: str, suffix: str) -> str:
 
 
 async def test_line_crossing_turns_sensor_on_and_fires_event(hass: HomeAssistant, serve) -> None:
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
     device = FakeDevice(
         "nvr",
-        stream_parts=[xml_part(event_xml("linedetection", channel="1", when=now))],
+        stream_parts=[lambda: xml_part(event_xml("linedetection", channel="1", when=now()))],
         stream_hold=2,
     )
     server = await serve(device)
@@ -58,10 +60,12 @@ async def test_line_crossing_turns_sensor_on_and_fires_event(hass: HomeAssistant
 
 
 async def test_illegal_login_turns_device_sensor_on(hass: HomeAssistant, serve) -> None:
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
     device = FakeDevice(
         "camera_g3",
-        stream_parts=[xml_part(event_xml("illAccess", channel="1", when=now))],
+        stream_parts=[lambda: xml_part(event_xml("illAccess", channel="1", when=now()))],
         stream_hold=2,
     )
     server = await serve(device)
@@ -89,12 +93,14 @@ async def test_illegal_login_turns_device_sensor_on(hass: HomeAssistant, serve) 
 
 
 async def test_inactive_report_keeps_detection_on_for_the_hold(hass: HomeAssistant, serve) -> None:
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
     device = FakeDevice(
         "nvr",
         stream_parts=[
-            xml_part(event_xml("fielddetection", channel="1", when=now)),
-            xml_part(event_xml("fielddetection", "inactive", channel="1", when=now)),
+            lambda: xml_part(event_xml("fielddetection", channel="1", when=now())),
+            lambda: xml_part(event_xml("fielddetection", "inactive", channel="1", when=now())),
         ],
         stream_hold=2,
     )
