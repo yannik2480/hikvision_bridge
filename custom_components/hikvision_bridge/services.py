@@ -48,6 +48,7 @@ FIELD_SERIAL = "device_serial"
 
 MAX_PERIOD = timedelta(days=1)
 MAX_FILES = 50
+WHOLE_STEP = timedelta(hours=1)
 # How far past the period files running over its ends are searched for their real times.
 WHOLE_SPAN = timedelta(days=1)
 MEDIA_FOLDER = DOMAIN
@@ -254,14 +255,24 @@ async def _whole_files(source: Any, start: datetime, end: datetime) -> list[reco
     from their listed start, those would come out at the wrong time.
     """
     found = await recordings.search(source.link, source.track, start, end)
-    wider = (
-        start - WHOLE_SPAN if any(r.start <= start for r in found) else start,
-        end + WHOLE_SPAN if any(r.end >= end for r in found) else end,
-    )
-    if wider == (start, end):
+    wider_start = start - WHOLE_STEP if any(r.start <= start for r in found) else start
+    wider_end = end + WHOLE_STEP if any(r.end >= end for r in found) else end
+    if (wider_start, wider_end) == (start, end):
         return found
-    # shortcut: a file reaching more than WHOLE_SPAN past the period stays cut there.
-    found = await recordings.search(source.link, source.track, *wider)
+    found = await recordings.search(source.link, source.track, wider_start, wider_end)
+    whole_start = (
+        start - WHOLE_SPAN
+        if wider_start < start and any(r.start <= wider_start for r in found)
+        else wider_start
+    )
+    whole_end = (
+        end + WHOLE_SPAN
+        if wider_end > end and any(r.end >= wider_end for r in found)
+        else wider_end
+    )
+    # shortcut: a file extending more than WHOLE_SPAN past the period remains cut there.
+    if (whole_start, whole_end) != (wider_start, wider_end):
+        found = await recordings.search(source.link, source.track, whole_start, whole_end)
     return [r for r in found if r.end > start and r.start < end]
 
 

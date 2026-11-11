@@ -345,11 +345,25 @@ async def test_files_over_the_period_ends(
         (START - timedelta(hours=1), START + timedelta(minutes=30), "timing", "a"),
         (START + timedelta(minutes=30), START + timedelta(minutes=90), "timing", "b"),
     ]
-    device.responders[recordings.SEARCH_PATH] = clipping(files)
+    respond = clipping(files)
+    searches: list[tuple[datetime, datetime]] = []
+
+    def search(method: str, body: str) -> web.Response:
+        start, end = map(recordings.parse_time, re.findall(r"<(?:start|end)Time>([^<]+)", body))
+        searches.append((start, end))
+        return respond(method, body)
+
+    device.responders[recordings.SEARCH_PATH] = search
+    start, end = START + timedelta(minutes=10), START + timedelta(hours=1)
+    expected_searches = [
+        (start, end),
+        (start - timedelta(hours=1), end + timedelta(hours=1)),
+        (start - timedelta(days=1), end + timedelta(hours=1)),
+    ]
     period = {
         "device_id": _device_id(hass, entry),
-        "start": START + timedelta(minutes=10),
-        "end": START + timedelta(hours=1),
+        "start": start,
+        "end": end,
     }
     found = await hass.services.async_call(
         DOMAIN, "search_recordings", period, blocking=True, return_response=True
@@ -357,6 +371,8 @@ async def test_files_over_the_period_ends(
     assert [(r["start"], r["end"]) for r in found["recordings"]] == [
         (s.isoformat(), e.isoformat()) for s, e, _, _ in files
     ]
+    assert searches == expected_searches
+    searches.clear()
     trims = []
     ffmpeg_args = playback.ffmpeg_args
 
@@ -370,6 +386,22 @@ async def test_files_over_the_period_ends(
     )
     # From 70 minutes into the first file on; the first 30 minutes of the second.
     assert trims == [(4200.0, None), (None, 1800.0)]
+    assert searches == expected_searches
+
+    files[:] = [(START + timedelta(minutes=20), START + timedelta(minutes=150), "timing", "c")]
+    searches.clear()
+    right_searches = [
+        (start, end),
+        (start, end + timedelta(hours=1)),
+        (start, end + timedelta(days=1)),
+    ]
+    found = await hass.services.async_call(
+        DOMAIN, "search_recordings", period, blocking=True, return_response=True
+    )
+    assert [(r["start"], r["end"]) for r in found["recordings"]] == [
+        (s.isoformat(), e.isoformat()) for s, e, _, _ in files
+    ]
+    assert searches == right_searches
 
 
 def _device_id(hass: HomeAssistant, entry) -> str:
