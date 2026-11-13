@@ -305,6 +305,11 @@
         "name": "Ovikello soi"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Hälytyssireeni"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Liiketunnistus"

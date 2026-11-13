@@ -305,6 +305,11 @@
         "name": "Dzwonek dzwoni"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Syrena alarmowa"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Wykrywanie ruchu"

@@ -305,6 +305,11 @@
         "name": "Dörrklockan ringer"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Larmsiren"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Rörelsedetektering"

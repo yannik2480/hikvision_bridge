@@ -305,6 +305,11 @@
         "name": "Bel pintu berbunyi"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirene alarm"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Deteksi gerakan"

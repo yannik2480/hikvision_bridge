@@ -305,6 +305,11 @@
         "name": "Campainha a tocar"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirene de alarme"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Deteção de movimento"

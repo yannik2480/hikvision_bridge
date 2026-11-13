@@ -305,6 +305,11 @@
         "name": "门铃正在响"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "警报器"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "移动侦测"

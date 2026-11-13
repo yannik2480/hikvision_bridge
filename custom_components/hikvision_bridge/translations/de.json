@@ -305,6 +305,11 @@
         "name": "Türklingel läutet"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Alarmsirene"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Erkennung Bewegung"

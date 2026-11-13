@@ -305,6 +305,11 @@
         "name": "Dørklokke ringer"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Alarmsirene"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Bevægelsesregistrering"

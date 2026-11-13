@@ -305,6 +305,11 @@
         "name": "초인종 울림"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "경보 사이렌"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "동작 감지"

@@ -305,6 +305,11 @@
         "name": "डोरबेल बज रही है"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "अलार्म सायरन"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "गति पहचान"

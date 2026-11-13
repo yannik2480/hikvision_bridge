@@ -45,7 +45,7 @@
 | Plate recognition (ANPR) | On channels that report plate events: last plate as a sensor (country, direction, confidence, plate and vehicle colour, allow/block list as attributes), vehicle picture and plate close-up (close-up disabled by default); the plate details are also on the event entity and the `hikvision_bridge_event` bus event |
 | Switches | Detections on/off including video loss on recorders (only the `enabled` flag is written back, everything else stays byte-identical); alarm outputs; arm/disarm alarm inputs; privacy mask on/off for cameras whose mask covers the whole frame (drawing it stays on the device) |
 | Image settings | Day/night, supplement light, colour, WDR and more per channel (see below) |
-| Deterrence and audio | Strobe light duration and frequency, siren sound, volume and repeats, speaker and microphone volume (cameras that have them) |
+| Deterrence and audio | Strobe light duration and frequency, alarm siren on/off, siren sound, volume and repeats, speaker and microphone volume (cameras that have them) |
 | Cameras | Main/sub stream per channel, snapshots, codec and resolution as attributes |
 | PTZ | Pan/tilt/zoom step buttons and a preset select per PTZ channel (also through a recorder); motorised zoom lenses get the zoom buttons only. Park action: switch, idle time, action type (preset, patrol, pattern, scans) and its number, chosen from the stored presets, patrols 1–8 or patterns 1–4 (none for scans) |
 | Recorder | One HA device per channel below the recorder, channel connected, recording per channel, storage status/free/capacity, alarm inputs |
@@ -79,7 +79,7 @@ entity list when you need them).
 | Exposure | Exposure mode, shutter, gain limit, overexposure suppression | select, number, switch |
 | Other | Power line frequency, image flip and direction, image stabilization, lens distortion correction | select, switch |
 | Strobe light | **Strobe light duration**, **strobe light frequency** (high, medium, low, steady on) | number, select |
-| Siren | **Siren sound** (names as the camera reports them), **siren volume**, siren repeats | select, number |
+| Siren | **Alarm siren** (on plays the siren sound until turned off; cameras with an audible alarm), **siren sound** (names as the camera reports them), **siren volume**, siren repeats | siren, select, number |
 | Two-way audio | **Speaker volume**, **microphone volume** | number |
 
 How it behaves:

@@ -305,6 +305,11 @@
         "name": "Chuông cửa đang reo"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Còi báo động"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Phát hiện chuyển động"

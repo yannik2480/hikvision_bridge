@@ -16,6 +16,9 @@
       "recording": { "default": "mdi:record-rec" },
       "doorbell_ringing": { "default": "mdi:bell-ring" }
     },
+    "siren": {
+      "alarm": { "default": "mdi:bullhorn-outline" }
+    },
     "switch": {
       "park_action": { "default": "mdi:parking" },
       "motion_detection": { "default": "mdi:motion-sensor" },

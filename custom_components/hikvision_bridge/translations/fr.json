@@ -305,6 +305,11 @@
         "name": "Sonnette retentit"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirène d’alarme"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Détection de mouvement"

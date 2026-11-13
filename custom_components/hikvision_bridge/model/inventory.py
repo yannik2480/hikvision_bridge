@@ -93,6 +93,11 @@ class ChannelProfile:
     def main_stream(self) -> StreamSpec | None:
         return min(self.streams, key=lambda s: s.rank, default=None)
 
+    @property
+    def siren(self) -> bool:
+        """The camera has an audible alarm: its AudioAlarm capabilities listed a sound or level."""
+        return any(key.startswith("siren_") for key in self.image)
+
 
 @dataclass(slots=True)
 class IoPort:

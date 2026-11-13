@@ -305,6 +305,11 @@
         "name": "Kapı zili çalıyor"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Alarm sireni"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Hareket algılama"

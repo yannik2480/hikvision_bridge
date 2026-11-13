@@ -305,6 +305,11 @@
         "name": "جرس الباب يرن"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "صفارة الإنذار"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "اكتشاف الحركة"

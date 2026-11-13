@@ -305,6 +305,11 @@
         "name": "Sonerie sunând"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirenă de alarmă"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Detecție mișcare"

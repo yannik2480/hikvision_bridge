@@ -305,6 +305,11 @@
         "name": "ডোরবেল বাজছে"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "অ্যালার্ম সাইরেন"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "গতি শনাক্তকরণ"

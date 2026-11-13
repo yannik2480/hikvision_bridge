@@ -305,6 +305,11 @@
         "name": "Zvonek zvoní"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Poplachová siréna"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Detekce pohybu"

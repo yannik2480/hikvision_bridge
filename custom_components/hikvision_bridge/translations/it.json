@@ -305,6 +305,11 @@
         "name": "Campanello che suona"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirena d’allarme"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Rilevamento movimento"

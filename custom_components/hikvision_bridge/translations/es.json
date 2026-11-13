@@ -305,6 +305,11 @@
         "name": "Timbre sonando"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Sirena de alarma"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Detección de movimiento"

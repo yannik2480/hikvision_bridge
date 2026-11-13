@@ -305,6 +305,11 @@
         "name": "Doorbell ringing"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Alarm siren"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Motion detection"

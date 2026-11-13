@@ -305,6 +305,11 @@
         "name": "Дзвінок лунає"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Сирена тривоги"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Детектор руху"

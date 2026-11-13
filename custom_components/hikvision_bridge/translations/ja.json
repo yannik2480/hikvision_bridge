@@ -305,6 +305,11 @@
         "name": "ドアホン鳴動中"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "警報サイレン"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "動体検知"

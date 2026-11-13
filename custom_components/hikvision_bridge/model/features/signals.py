@@ -1,14 +1,16 @@
 """Strobe light and audible alarm of cameras with a deterrence light and speaker.
 
 Both are JSON resources. The strobe light is per channel and also answered by recorders for
-their channels; the audible alarm is a camera setting and needs a direct connection. The
-capability documents give ranges, the strobe frequencies and the list of built-in sounds.
+their channels; the audible alarm is a camera setting and needs a direct connection, and the
+camera plays its sound on request. The capability documents give ranges, the strobe frequencies
+and the list of built-in sounds.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from ...wire.faults import Unsupported
 from ...wire.link import IsapiLink
 from ..ids import seg
 from . import patch_json_and_verify
@@ -177,6 +179,25 @@ async def write_strobe(link: IsapiLink, channel_id: str, key: str, field: str, v
         STROBE_PATH.format(ch=seg(channel_id)) + JSON,
         "WhiteLightAlarm",
         {field: _typed(key, value)},
+    )
+
+
+async def trigger_siren(link: IsapiLink) -> None:
+    """Play the siren sound the camera is set to once (``PUT .../AudioAlarm/<id>/test``).
+
+    The id is the one the siren sound setting shows, so the sound played is the one listed
+    there. The camera has no request that stops a sound, so a siren that stays on is one
+    that keeps being triggered.
+    """
+    document = await link.read_json(SIREN_PATH + JSON)
+    sound = parse_values(document, "AudioAlarm", SIREN, {"siren_sound"}).get("siren_sound")
+    if sound is None:
+        raise Unsupported(f"{SIREN_PATH} has no siren sound")
+    await link.call(
+        "PUT",
+        f"{SIREN_PATH}/{seg(sound.value)}/test{JSON}",
+        body="{}",
+        content_type="application/json",
     )
 
 

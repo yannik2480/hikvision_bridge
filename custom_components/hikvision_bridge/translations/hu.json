@@ -305,6 +305,11 @@
         "name": "Csengő szól"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Riasztó sziréna"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Mozgásérzékelés"

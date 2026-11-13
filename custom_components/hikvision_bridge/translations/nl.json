@@ -305,6 +305,11 @@
         "name": "Deurbel gaat"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "Alarmsirene"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "Bewegingsdetectie"

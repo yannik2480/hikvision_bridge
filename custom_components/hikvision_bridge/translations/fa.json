@@ -305,6 +305,11 @@
         "name": "زنگ در به صدا درآمده"
       }
     },
+    "siren": {
+      "alarm": {
+        "name": "آژیر هشدار"
+      }
+    },
     "switch": {
       "motion_detection": {
         "name": "تشخیص حرکت"
