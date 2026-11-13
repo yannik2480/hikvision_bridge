@@ -142,39 +142,33 @@ seconds; if the player gives up, jump again. Devices added before 0.9.20 keep *M
 choose *Seekable* in the options to use it.
 
 The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can browse and play
-these recordings through its `folders` with the Home Assistant media browser as source (support in the
-card is still growing, so details may change). A channel's folder is
-`media-source://hikvision_bridge/<config entry id>/<device id>`, named by the channel's Home Assistant
-device; day folders are named by date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days
-with recordings of several kinds have one more level: *All* and one folder per kind.
-
-Since a camera entity knows its config entry and device, one `folders` entry finds the recordings of
-whichever camera the card shows. With the `enddate` parser
-([advanced-camera-card#2868](https://github.com/dermotduffy/advanced-camera-card/pull/2868)) they show
-on the timeline too:
+these recordings through its `folders` with the Home Assistant media browser as source. A channel's
+folder is `media-source://hikvision_bridge/<config entry id>/<channel's device id>`; day folders are named by
+date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days with recordings of several kinds
+have one more level: *All* and one folder per kind.
 
 ```yaml
 type: custom:advanced-camera-card
-cameras_global:
-  media: { type: folder, folders: [recordings] }
+profiles: [scrubbing]
 cameras:
   - camera_entity: camera.front_yard_main
+    media: { type: folder }
 folders:
   - type: ha
-    id: recordings
     title: Recordings
     ha:
       path:
         - id: media-source://hikvision_bridge
-        - matchers:
-            - type: template
-              value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | config_entry_id)) }}"
+        - {}
         - matchers:
             - type: template
               value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | device_id)) }}"
-        - parsers: [{ type: date, format: yyyy-MM-dd }]
+        - parsers:
+            - type: date
+              format: yyyy-MM-dd
         - parsers:
             - { type: startdate, regexp: '^(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
+            # Needs the card's enddate parser (advanced-camera-card#2868).
             - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
 ```
 
