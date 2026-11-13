@@ -11,13 +11,13 @@ from homeassistant.components import media_source
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.hikvision_bridge.const import DOMAIN, OPT_PLAYBACK, PLAYBACK_SEEKABLE
+from custom_components.hikvision_bridge.const import OPT_PLAYBACK, PLAYBACK_SEEKABLE
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import sessions, vod
 from custom_components.hikvision_bridge.views import encode_token
 from tests.model.test_recordings import program_stream
 from tests.test_panel import _script
-from tests.test_playback import START, _setup
+from tests.test_playback import START, _channel_media, _setup
 
 URI = (
     f"rtsp://192.0.2.10:554/Streaming/tracks/101/?starttime={recordings.compact(START)}"
@@ -63,10 +63,7 @@ async def test_seekable_playback(
         f'cp {tmp_path / "pieces"}/* "$dir/"\nexec sleep 30\n',
     )
     played = await media_source.async_resolve_media(
-        hass,
-        f"media-source://{DOMAIN}/{entry.entry_id}/{entry.runtime_data.device_ids['1']}"
-        f"/card/clip/{encode_token(URI)}",
-        None,
+        hass, f"{_channel_media(entry)}/card/clip/{encode_token(URI)}", None
     )
     assert played.mime_type == "application/x-mpegURL"
     path = played.url.split("?", 1)[0]

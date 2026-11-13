@@ -361,15 +361,8 @@ def _path(bridge: DeviceBridge, channel_id: str) -> str:
 
 
 def _channel_of(bridge: DeviceBridge, device_id: str) -> str | None:
-    """The channel of a Home Assistant device id of the bridge, if it is one."""
-    return next(
-        (
-            c
-            for c, d in bridge.device_ids.items()
-            if d == device_id and c in bridge.profile.channels
-        ),
-        None,
-    )
+    """The channel whose Home Assistant device id this is, if any."""
+    return next((c for c in bridge.profile.channels if bridge.ha_device_id(c) == device_id), None)
 
 
 def _midnight(day: date) -> datetime:
