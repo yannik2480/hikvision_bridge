@@ -149,10 +149,12 @@ have one more level: *All* and one folder per kind.
 
 ```yaml
 type: custom:advanced-camera-card
-profiles: [scrubbing]
+profiles:
+  - scrubbing
 cameras:
   - camera_entity: camera.front_yard_main
-    media: { type: folder }
+    media:
+      type: folder
 folders:
   - type: ha
     title: Recordings
@@ -167,8 +169,12 @@ folders:
             - type: date
               format: yyyy-MM-dd
         - parsers:
-            - { type: startdate, regexp: '(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
-            - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
+            - type: startdate
+              regexp: '(?<value>\d{2}:\d{2}:\d{2}) -'
+              format: HH:mm:ss
+            - type: enddate
+              regexp: '- (?<value>\d{2}:\d{2}:\d{2})'
+              format: HH:mm:ss
 ```
 
 When the sidebar player cannot download efficiently from the selected time, it falls
