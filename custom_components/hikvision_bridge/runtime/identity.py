@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import re
 
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from ..const import DOMAIN
@@ -76,3 +79,27 @@ def entity_device_identifier(profile: DeviceProfile, channel_id: str | None) -> 
     if channel_id is not None and uses_channel_devices(profile):
         return (DOMAIN, channel_key(profile, channel_id))
     return (DOMAIN, device_key(profile))
+
+
+def channel_name(
+    hass: HomeAssistant, entry_id: str, profile: DeviceProfile, channel: ChannelProfile
+) -> str:
+    """The name the user gave the channel in Home Assistant, else the hardware name.
+
+    Read on every call, so renames apply without a restart. The device name comes first, then
+    the name set on the channel's camera entity.
+    """
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        entity_device_identifier(profile, channel.channel_id), entry_id
+    )
+    if device is not None and device.name_by_user:
+        return device.name_by_user
+    entities = er.async_get(hass)
+    for feature in ("stream_1", "stream_2"):
+        entity_id = entities.async_get_entity_id(
+            Platform.CAMERA, DOMAIN, entity_uid(profile, channel.channel_id, feature)
+        )
+        entry = entities.async_get(entity_id) if entity_id else None
+        if entry is not None and entry.name:
+            return entry.name
+    return channel.name

@@ -8,7 +8,9 @@ from pathlib import Path
 import stat
 
 from aiohttp import web
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 import pytest
@@ -17,7 +19,7 @@ from custom_components.hikvision_bridge.const import DOMAIN
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.model.features.scrambling import ProgramStream
-from custom_components.hikvision_bridge.runtime import playback, sessions
+from custom_components.hikvision_bridge.runtime import identity, playback, sessions
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -256,6 +258,54 @@ async def test_cameras_and_timeline(hass: HomeAssistant, serve, hass_ws_client) 
         days | {"entry_id": entry.entry_id, "channel_id": "9", "month": 1}
     )
     assert (await client.receive_json())["error"]["code"] == "not_found"
+
+
+async def _nvr(hass: HomeAssistant, serve):
+    device = FakeDevice("nvr")
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+async def test_cameras_use_the_names_given_in_home_assistant(
+    hass: HomeAssistant, serve, hass_ws_client
+) -> None:
+    entry = await _nvr(hass, serve)
+    profile = entry.runtime_data.profile
+    client = await hass_ws_client(hass)
+
+    async def names() -> dict[str, str]:
+        await client.send_json_auto_id({"type": f"{DOMAIN}/cameras"})
+        answer = await client.receive_json()
+        assert answer["success"]
+        return {c["channel_id"]: c["name"] for c in answer["result"]["cameras"]}
+
+    hardware = profile.channels["1"].name
+    assert (await names())["1"] == hardware
+
+    # A name given to the channel's device wins; renames apply without a restart.
+    devices = dr.async_get(hass)
+    device = devices.async_get_device_by_identifier(
+        identity.entity_device_identifier(profile, "1"), entry.entry_id
+    )
+    devices.async_update_device(device.id, name_by_user="Porteiro")
+    assert (await names())["1"] == "Porteiro"
+
+    # Without one, the name of the camera entity counts.
+    devices.async_update_device(device.id, name_by_user=None)
+    entities = er.async_get(hass)
+    entity_id = entities.async_get_entity_id(
+        Platform.CAMERA, DOMAIN, identity.entity_uid(profile, "1", "stream_1")
+    )
+    assert entity_id is not None
+    entities.async_update_entity(entity_id, name="Rua")
+    assert (await names())["1"] == "Rua"
+
+    entities.async_update_entity(entity_id, name=None)
+    assert (await names())["1"] == hardware
 
 
 async def test_recorded_days_while_device_busy(hass: HomeAssistant, serve, hass_ws_client) -> None:
