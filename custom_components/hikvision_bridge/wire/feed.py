@@ -12,7 +12,7 @@ import re
 import time
 from typing import Any
 
-from .faults import BadCredentials, BridgeFault, LockedOut
+from .faults import BadCredentials, BridgeFault, LockedOut, Unsupported
 from .link import IsapiLink
 from .scrub import scrubbed_logger
 from .xmlview import XmlError, XmlNode, decode, parse
@@ -442,6 +442,26 @@ class FeedStats:
     last_frame: float | None = None
     connected_since: datetime | None = None
     last_error: str | None = None
+
+
+PROBE_TIMEOUT = 15.0
+
+
+async def stream_missing(link: IsapiLink, path: str = STREAM_PATH) -> bool:
+    """True only when the firmware has no event stream at all (it answers 404).
+
+    Busy, refused or silent streams count as present: the feed keeps retrying those.
+    The wait is bounded, since the stream request has no read timeout and setup awaits it.
+    """
+    try:
+        async with asyncio.timeout(PROBE_TIMEOUT), link.open_stream(path):
+            return False
+    except (BadCredentials, LockedOut):
+        raise
+    except Unsupported as err:
+        return str(err).startswith("HTTP 404")
+    except (BridgeFault, TimeoutError):
+        return False
 
 
 class AlarmFeed:

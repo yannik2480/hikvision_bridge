@@ -9,7 +9,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_ENTRY_KIND, KIND_CLOUD
-from .entity import BridgeEntity, add_entities
+from .entity import BridgeEntity, add_entities, drop_entities
 from .model.vocabulary import SMART, Kind
 from .runtime.bridge import DeviceBridge
 from .runtime.router import Hit, signal_trigger
@@ -26,14 +26,18 @@ async def async_setup_entry(
         await async_setup_cloud_events(hass, entry, async_add_entities)
         return
     bridge: DeviceBridge = entry.runtime_data
+    channels = bridge.profile.channels.values()
     entities: list[EventEntity] = [
         DetectionEvents(bridge, channel.channel_id, sorted(channel.kinds & SMART))
-        for channel in bridge.profile.channels.values()
-        if channel.kinds & SMART
+        for channel in channels
+        if channel.kinds & SMART and bridge.receives_events
     ]
     if bridge.profile.intercom and bridge.profile.intercom.has_call_status:
         entities.append(DoorbellEvent(bridge))
     add_entities(bridge, async_add_entities, entities)
+    if not bridge.receives_events:
+        stale = ((channel.channel_id, "detection_events") for channel in channels)
+        drop_entities(hass, bridge, "event", stale)
 
 
 class DetectionEvents(BridgeEntity, EventEntity):

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import aiohttp
 from aiohttp import web
 from aiohttp.test_utils import TestServer
 import pytest
 
-from custom_components.hikvision_bridge.wire import faults
+from custom_components.hikvision_bridge.wire import faults, feed
+from custom_components.hikvision_bridge.wire.feed import stream_missing
 from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
 from tests.fakedevice import FakeDevice
 
@@ -17,6 +20,7 @@ NOT_SUPPORTED = (
     "<ResponseStatus><statusCode>4</statusCode><subStatusCode>notSupport</subStatusCode>"
     "</ResponseStatus>"
 )
+BUSY = "<ResponseStatus><subStatusCode>serviceUnavailable</subStatusCode></ResponseStatus>"
 BAD_REQUEST = (
     "<ResponseStatus><statusCode>6</statusCode><subStatusCode>badXmlContent</subStatusCode>"
     "</ResponseStatus>"
@@ -154,6 +158,38 @@ async def test_stream_refused_by_device(open_link) -> None:
     with pytest.raises(faults.Unsupported):
         async with link.open_stream("/ISAPI/Other/stream"):
             pass
+
+
+@pytest.mark.parametrize(
+    ("answer", "missing"),
+    [
+        # T1-STVI16/S on firmware V3.1.8 has no event stream at all.
+        ((404, "Can't locate the url"), True),
+        # A busy stream (no free connection slot) is there; the feed retries it.
+        ((503, BUSY), False),
+        (None, False),
+    ],
+)
+async def test_stream_missing_only_on_404(open_link, answer, missing) -> None:
+    path = "/ISAPI/Event/notification/alertStream"
+    device = FakeDevice(overrides={path: answer} if answer else {})
+    link = await open_link(device.app(), device.username, device.password)
+    assert await stream_missing(link) is missing
+
+
+async def test_silent_stream_counts_as_present(open_link, monkeypatch) -> None:
+    monkeypatch.setattr(feed, "PROBE_TIMEOUT", 0.2)
+
+    # Accepts the connection but never sends headers; setup must not wait for it forever.
+    async def handler(request: web.Request) -> web.Response:
+        if request.path == "/ISAPI/Event/notification/alertStream":
+            await asyncio.Event().wait()
+        return web.Response(text="<ok/>", content_type="application/xml")
+
+    app = web.Application()
+    app.router.add_route("*", "/{tail:.*}", handler)
+    link = await open_link(app)
+    assert await stream_missing(link) is False
 
 
 async def test_lock_reported_mid_session_stops_everything(open_link) -> None:
