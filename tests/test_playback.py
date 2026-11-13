@@ -10,6 +10,7 @@ from types import MappingProxyType
 
 from aiohttp import web
 from homeassistant.components import media_source
+from homeassistant.components.media_player import BrowseError
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -116,7 +117,18 @@ async def test_browse_and_play(hass: HomeAssistant, serve, hass_client, fake_ffm
     root = await media_source.async_browse_media(hass, f"media-source://{DOMAIN}")
     assert [c.title for c in root.children] == [entry.title]
     channels = await media_source.async_browse_media(hass, root.children[0].media_content_id)
-    assert len(channels.children) == 1
+    # The channel's folder is named by its Home Assistant device id.
+    assert [c.media_content_id for c in channels.children] == [_channel_media(entry)]
+    # Channel numbers and unknown devices are not channels.
+    for other in ("1", "0123456789abcdef"):
+        with pytest.raises(BrowseError):
+            await media_source.async_browse_media(
+                hass, f"media-source://{DOMAIN}/{entry.entry_id}/{other}"
+            )
+        with pytest.raises(media_source.Unresolvable):
+            await media_source.async_resolve_media(
+                hass, f"media-source://{DOMAIN}/{entry.entry_id}/{other}/card/clip/eA", None
+            )
     # One source only (the memory card): the channel lists days directly.
     days = await media_source.async_browse_media(hass, channels.children[0].media_content_id)
     assert len(days.children) == 1
@@ -191,7 +203,7 @@ async def test_files_past_midnight(hass: HomeAssistant, serve) -> None:
         return respond(method, body)
 
     device.responders[recordings.SEARCH_PATH] = search
-    days = f"media-source://{DOMAIN}/{entry.entry_id}/1/card"
+    days = f"{_channel_media(entry)}/card"
     yesterday = await media_source.async_browse_media(
         hass, f"{days}/{(midnight - timedelta(days=1)).date()}"
     )
@@ -219,7 +231,7 @@ async def test_h264_playback_option(hass: HomeAssistant, serve) -> None:
     _, entry = await _setup(hass, serve, program_stream(), **{OPT_PLAYBACK: "h264"})
     token = "cnRzcDovL3gvU3RyZWFtaW5nL3RyYWNrcy8xMDEvP3N0YXJ0dGltZT0x"
     played = await media_source.async_resolve_media(
-        hass, f"media-source://{DOMAIN}/{entry.entry_id}/1/card/clip/{token}", None
+        hass, f"{_channel_media(entry)}/card/clip/{token}", None
     )
     assert "/h264/" in played.url
 
@@ -433,6 +445,11 @@ async def test_files_over_the_period_ends(
     ]
 
 
+def _channel_media(entry) -> str:
+    """The media source id of channel 1's folder."""
+    return f"media-source://{DOMAIN}/{entry.entry_id}/{entry.runtime_data.device_ids['1']}"
+
+
 def _device_id(hass: HomeAssistant, entry) -> str:
     return dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)[0].id
 
@@ -472,9 +489,7 @@ async def test_recorder_or_memory_card(hass: HomeAssistant, serve) -> None:
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    channel = await media_source.async_browse_media(
-        hass, f"media-source://{DOMAIN}/{entry.entry_id}/1"
-    )
+    channel = await media_source.async_browse_media(hass, _channel_media(entry))
     assert [c.media_content_id.rsplit("/", 1)[-1] for c in channel.children] == [
         "recorder",
         "card",

@@ -1,7 +1,8 @@
 """Recordings of recorders and memory cards in the media browser.
 
-Identifiers: ``entry/channel/source/day/kind`` for folders (later parts optional) and
-``entry/channel/source/clip/token`` for one recorded file.
+Identifiers: ``entry/device/source/day/kind`` for folders (later parts optional) and
+``entry/device/source/clip/token`` for one recorded file; ``device`` is the channel's Home
+Assistant device id, which a dashboard can look up from a camera entity.
 """
 
 from __future__ import annotations
@@ -133,8 +134,8 @@ class BridgeMediaSource(MediaSource):
             bridge = self._bridge(parts[0])
             if len(parts) == 1:
                 return self._device(bridge)
-            channel_id = parts[1]
-            if channel_id not in bridge.profile.channels:
+            channel_id = _channel_of(bridge, parts[1])
+            if channel_id is None:
                 raise BrowseError("Unknown channel")
             if len(parts) == 2:
                 return await self._channel(bridge, channel_id, labels)
@@ -165,7 +166,7 @@ class BridgeMediaSource(MediaSource):
         base = _folder(bridge.entry.entry_id, bridge.entry.title)
         base.children = [
             _folder(
-                f"{bridge.entry.entry_id}/{cid}",
+                _path(bridge, cid),
                 bridge.profile.channels[cid].name,
                 thumbnail=self._camera_thumbnail(bridge, cid),
             )
@@ -179,12 +180,10 @@ class BridgeMediaSource(MediaSource):
         available = sources(bridge, channel_id)
         if len(available) == 1:
             return await self._days(bridge, channel_id, available[0], labels)
-        base = _folder(
-            f"{bridge.entry.entry_id}/{channel_id}", bridge.profile.channels[channel_id].name
-        )
+        base = _folder(_path(bridge, channel_id), bridge.profile.channels[channel_id].name)
         base.children = [
             _folder(
-                f"{bridge.entry.entry_id}/{channel_id}/{source.key}",
+                f"{_path(bridge, channel_id)}/{source.key}",
                 labels.get(f"recording_source.options.{source.key}", source.key),
             )
             for source in available
@@ -198,7 +197,7 @@ class BridgeMediaSource(MediaSource):
         source: PlaybackSource,
         labels: dict[str, str],
     ) -> BrowseMediaSource:
-        prefix = f"{bridge.entry.entry_id}/{channel_id}/{source.key}"
+        prefix = f"{_path(bridge, channel_id)}/{source.key}"
         title = bridge.profile.channels[channel_id].name
         if len(sources(bridge, channel_id)) > 1:
             label = labels.get(f"recording_source.options.{source.key}", source.key)
@@ -233,7 +232,7 @@ class BridgeMediaSource(MediaSource):
         kind: str | None,
         labels: dict[str, str],
     ) -> BrowseMediaSource:
-        prefix = f"{bridge.entry.entry_id}/{channel_id}/{source.key}/{day.isoformat()}"
+        prefix = f"{_path(bridge, channel_id)}/{source.key}/{day.isoformat()}"
         start, end = _midnight(day), _midnight(day + timedelta(days=1))
         # Devices cut files at the ends of a search, playback URIs too. From a second before
         # midnight on, the file running into the day starts before it and is left out.
@@ -277,7 +276,7 @@ class BridgeMediaSource(MediaSource):
         base = _folder(f"{prefix}/{kind}" if kind else prefix, title)
         base.children_media_class = MediaClass.VIDEO
         thumbnails = len(found) <= MAX_THUMBNAILS
-        clip_prefix = f"{bridge.entry.entry_id}/{channel_id}/{source.key}/clip"
+        clip_prefix = f"{_path(bridge, channel_id)}/{source.key}/clip"
         base.children = [
             BrowseMediaSource(
                 domain=DOMAIN,
@@ -303,12 +302,15 @@ class BridgeMediaSource(MediaSource):
         parts = (item.identifier or "").split("/")
         if len(parts) != 5 or parts[3] != "clip":
             raise Unresolvable("Not a recording")
-        entry_id, channel_id, source_key, _, token = parts
+        entry_id, device_id, source_key, _, token = parts
         uri = decode_token(token)
         try:
             bridge = self._bridge(entry_id)
         except BrowseError as err:
             raise Unresolvable(str(err)) from err
+        channel_id = _channel_of(bridge, device_id)
+        if channel_id is None:
+            raise Unresolvable("Unknown channel")
         source = pick_source(bridge, channel_id, source_key)
         if uri is None or source is None:
             raise Unresolvable("Unknown recording")
@@ -351,6 +353,16 @@ class BridgeMediaSource(MediaSource):
         stream.add_provider(HLS_PROVIDER)
         await stream.start()
         return PlayMedia(stream.endpoint_url(HLS_PROVIDER), PLAY_HLS)
+
+
+def _path(bridge: DeviceBridge, channel_id: str) -> str:
+    """``entry/device``: the folder of a channel."""
+    return f"{bridge.entry.entry_id}/{bridge.ha_device_id(channel_id)}"
+
+
+def _channel_of(bridge: DeviceBridge, device_id: str) -> str | None:
+    """The channel whose Home Assistant device id this is, if any."""
+    return next((c for c in bridge.profile.channels if bridge.ha_device_id(c) == device_id), None)
 
 
 def _midnight(day: date) -> datetime:

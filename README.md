@@ -142,25 +142,39 @@ seconds; if the player gives up, jump again. Devices added before 0.9.20 keep *M
 choose *Seekable* in the options to use it.
 
 The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can browse and play
-these recordings through its `folders` with the Home Assistant media browser as source (support in the
-card is still growing, so details may change). A channel's folder is
-`media-source://hikvision_bridge/<config entry id>/<channel>/<recorder or card>`; day folders are named by
+these recordings through its `folders` with the Home Assistant media browser as source. A channel's
+folder is `media-source://hikvision_bridge/<config entry id>/<channel's device id>`; day folders are named by
 date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days with recordings of several kinds
 have one more level: *All* and one folder per kind.
 
 ```yaml
 type: custom:advanced-camera-card
+profiles:
+  - scrubbing
 cameras:
   - camera_entity: camera.front_yard_main
+    media:
+      type: folder
 folders:
   - type: ha
-    title: Front yard recordings
+    title: Recordings
     ha:
       path:
-        - id: media-source://hikvision_bridge/<config entry id>/1/recorder
+        - id: media-source://hikvision_bridge
+        - {}
+        - matchers:
+            - type: template
+              value_template: "{{ (acc.camera | device_id) in acc.media.id }}"
         - parsers:
             - type: date
               format: yyyy-MM-dd
+        - parsers:
+            - type: startdate
+              regexp: '(?<value>\d{2}:\d{2}:\d{2}) -'
+              format: HH:mm:ss
+            - type: enddate
+              regexp: '- (?<value>\d{2}:\d{2}:\d{2})'
+              format: HH:mm:ss
 ```
 
 When the sidebar player cannot download efficiently from the selected time, it falls
