@@ -8,6 +8,7 @@ from aiohttp.test_utils import TestServer
 import pytest
 
 from custom_components.hikvision_bridge.wire import faults
+from custom_components.hikvision_bridge.wire.feed import stream_missing
 from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
 from tests.fakedevice import FakeDevice
 
@@ -17,6 +18,7 @@ NOT_SUPPORTED = (
     "<ResponseStatus><statusCode>4</statusCode><subStatusCode>notSupport</subStatusCode>"
     "</ResponseStatus>"
 )
+BUSY = "<ResponseStatus><subStatusCode>serviceUnavailable</subStatusCode></ResponseStatus>"
 BAD_REQUEST = (
     "<ResponseStatus><statusCode>6</statusCode><subStatusCode>badXmlContent</subStatusCode>"
     "</ResponseStatus>"
@@ -154,6 +156,23 @@ async def test_stream_refused_by_device(open_link) -> None:
     with pytest.raises(faults.Unsupported):
         async with link.open_stream("/ISAPI/Other/stream"):
             pass
+
+
+@pytest.mark.parametrize(
+    ("answer", "missing"),
+    [
+        # T1-STVI16/S on firmware V3.1.8 has no event stream at all.
+        ((404, "Can't locate the url"), True),
+        # A busy stream (no free connection slot) is there; the feed retries it.
+        ((503, BUSY), False),
+        (None, False),
+    ],
+)
+async def test_stream_missing_only_on_404(open_link, answer, missing) -> None:
+    path = "/ISAPI/Event/notification/alertStream"
+    device = FakeDevice(overrides={path: answer} if answer else {})
+    link = await open_link(device.app(), device.username, device.password)
+    assert await stream_missing(link) is missing
 
 
 async def test_lock_reported_mid_session_stops_everything(open_link) -> None:

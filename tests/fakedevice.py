@@ -121,7 +121,7 @@ class FakeDevice:
         if denied is not None:
             return denied
         path = request.path_qs
-        if request.path == "/ISAPI/Event/notification/alertStream":
+        if request.path == "/ISAPI/Event/notification/alertStream" and path not in self.overrides:
             return await self._stream(request)
         if request.path in self.responders:
             body = await request.text()

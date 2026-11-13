@@ -40,10 +40,11 @@ from ..model.features import adjust, detection, health, intercom, io, ptz, stora
 from ..model.inventory import CloudLinkState, DeviceProfile, DeviceShape
 from ..model.vocabulary import Kind
 from ..wire.faults import BadCredentials, BridgeFault, LockedOut
-from ..wire.feed import AlarmFeed
+from ..wire.feed import AlarmFeed, stream_missing
 from ..wire.link import Endpoint, IsapiLink
 from ..wire.scrub import scrubbed_logger
 from . import identity
+from .hookin import webhook_wanted
 from .live import LiveRelay
 from .refresh import StatusRefresher
 from .router import EventRouter, Origin
@@ -199,6 +200,12 @@ class DeviceBridge:
         direct connection are reported and skipped; refused logins on the main link raise.
         """
         profile = self.profile
+        if self._wants_stream() and await stream_missing(self.link):
+            profile.has_alert_stream = False
+            _LOGGER.warning(
+                "%s has no event stream (HTTP 404); event entities are left out",
+                self.link.endpoint.host,
+            )
         records = profile.shape.records
         profile.health = await health.read_status(self.link, memory_in_mb=records) is not None
         if records:
@@ -268,11 +275,21 @@ class DeviceBridge:
         route = self.routes.get(channel_id)
         return route.subentry_id if route else None
 
+    def _wants_stream(self) -> bool:
+        return (
+            self.profile.shape != DeviceShape.INTERCOM
+            and self.entry.options.get(OPT_EVENT_PATH, EVENT_PATH_STREAM) != EVENT_PATH_WEBHOOK
+        )
+
+    @property
+    def receives_events(self) -> bool:
+        """False for firmware without an event stream, unless a webhook stands in for it."""
+        # shortcut: device-wide; channels with their own camera link lose events too on such
+        # firmware. Make it per channel if a DVR without a stream ever has camera links.
+        return self.profile.has_alert_stream or webhook_wanted(self.entry)
+
     def start_feeds(self) -> None:
-        if self.profile.shape == DeviceShape.INTERCOM:
-            return
-        path = self.entry.options.get(OPT_EVENT_PATH, EVENT_PATH_STREAM)
-        if path == EVENT_PATH_WEBHOOK:
+        if not self._wants_stream() or not self.profile.has_alert_stream:
             return
         camera_channels = frozenset(
             cid for cid, route in self.routes.items() if route.events_from_camera and route.healthy

@@ -13,7 +13,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_ENTRY_KIND, KIND_CLOUD, OPT_TARGET_SENSORS
-from .entity import PolledEntity, PushEntity, add_entities
+from .entity import PolledEntity, PushEntity, add_entities, drop_entities
 from .model.features.storage import HEALTHY
 from .model.inventory import DeviceShape, IoPort
 from .model.vocabulary import Kind
@@ -48,18 +48,20 @@ async def async_setup_entry(
         return
     bridge: DeviceBridge = entry.runtime_data
     profile = bridge.profile
+    events = bridge.receives_events
     entities: list[BinarySensorEntity] = []
     for channel in profile.channels.values():
-        for kind in sorted(channel.kinds & _CHANNEL_KINDS.keys()):
-            entities.append(DetectionSensor(bridge, channel.channel_id, kind))
-        if entry.options.get(OPT_TARGET_SENSORS) and channel.kinds & {
-            Kind.INTRUSION,
-            Kind.LINE_CROSSING,
-            Kind.REGION_ENTRANCE,
-            Kind.REGION_EXITING,
-            Kind.MOTION,
-        }:
-            entities.extend(TargetSensor(bridge, channel.channel_id, t) for t in _TARGETS)
+        if events:
+            for kind in sorted(channel.kinds & _CHANNEL_KINDS.keys()):
+                entities.append(DetectionSensor(bridge, channel.channel_id, kind))
+            if entry.options.get(OPT_TARGET_SENSORS) and channel.kinds & {
+                Kind.INTRUSION,
+                Kind.LINE_CROSSING,
+                Kind.REGION_ENTRANCE,
+                Kind.REGION_EXITING,
+                Kind.MOTION,
+            }:
+                entities.extend(TargetSensor(bridge, channel.channel_id, t) for t in _TARGETS)
         if profile.shape.records:
             entities.append(ChannelOnlineSensor(bridge, channel.channel_id))
         if profile.recording:
@@ -67,15 +69,34 @@ async def async_setup_entry(
     entities.extend(AlarmInputSensor(bridge, port) for port in profile.inputs.values())
     if profile.storage:
         entities.append(StorageProblemSensor(bridge))
-    if any(trigger.kind == Kind.ILLEGAL_ACCESS for trigger in profile.triggers):
+    if events and any(trigger.kind == Kind.ILLEGAL_ACCESS for trigger in profile.triggers):
         entities.append(IllegalLoginSensor(bridge))
     if profile.cloud is not None:
         entities.append(StreamEncryptionSensor(bridge))
     if profile.intercom and profile.intercom.has_call_status:
         entities.append(DoorbellRingingSensor(bridge))
-    if profile.shape != DeviceShape.INTERCOM:
+    if events and profile.shape != DeviceShape.INTERCOM:
         entities.append(EventLinkSensor(bridge))
     add_entities(bridge, async_add_entities, entities)
+    if not events:
+        # Left over from versions that created them before finding the stream missing.
+        drop_entities(
+            hass,
+            bridge,
+            "binary_sensor",
+            [
+                *(
+                    (channel.channel_id, feature)
+                    for channel in profile.channels.values()
+                    for feature in (
+                        *(f"event_{kind.value}" for kind in _CHANNEL_KINDS),
+                        *(f"target_{target}" for target in _TARGETS),
+                    )
+                ),
+                (None, "illegal_login"),
+                (None, "event_link"),
+            ],
+        )
 
 
 class DetectionSensor(PushEntity, BinarySensorEntity):

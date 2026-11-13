@@ -59,6 +59,38 @@ async def test_line_crossing_turns_sensor_on_and_fires_event(hass: HomeAssistant
     await hass.async_block_till_done()
 
 
+async def test_firmware_without_event_stream_gets_no_event_entities(
+    hass: HomeAssistant, serve
+) -> None:
+    device = FakeDevice("nvr")
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert _entity_id(hass, entry, "binary_sensor", "_ch1_event_line_crossing")
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Old DVR firmware answers 404; its event entities would go unavailable for good.
+    device.overrides["/ISAPI/Event/notification/alertStream"] = (404, "Can't locate the url")
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    uids = {
+        item.unique_id
+        for item in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    }
+    gone = ("_event_", "_target_", "_detection_events", "_illegal_login", "_license_plate")
+    assert not [uid for uid in uids if any(part in uid for part in gone)]
+    assert not [uid for uid in uids if uid.endswith(("_event_link", "_event_latency"))]
+    assert any(uid.endswith("_ch1_online") for uid in uids)  # polled entities stay
+    assert not entry.runtime_data.feeds  # no endless reconnects
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 async def test_illegal_login_turns_device_sensor_on(hass: HomeAssistant, serve) -> None:
     def now() -> str:
         return datetime.now(UTC).isoformat(timespec="seconds")

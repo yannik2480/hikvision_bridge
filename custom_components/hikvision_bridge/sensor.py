@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .entity import PolledEntity, PushEntity, add_entities
+from .entity import PolledEntity, PushEntity, add_entities, drop_entities
 from .model.features.health import DeviceHealth
 from .model.inventory import StorageUnit
 from .model.vocabulary import Kind
@@ -56,15 +56,26 @@ async def async_setup_entry(
             for channel_id in profile.channels
             if bridge.channel_address(channel_id)
         )
-    entities.append(EventLatency(bridge))
-    entities.extend(
-        LicensePlate(bridge, channel.channel_id)
-        for channel in profile.channels.values()
-        if Kind.ANPR in channel.kinds
-    )
+    if bridge.receives_events:
+        entities.append(EventLatency(bridge))
+        entities.extend(
+            LicensePlate(bridge, channel.channel_id)
+            for channel in profile.channels.values()
+            if Kind.ANPR in channel.kinds
+        )
     if profile.intercom and profile.intercom.has_call_status:
         entities.append(IntercomCallStatus(bridge))
     add_entities(bridge, async_add_entities, entities)
+    if not bridge.receives_events:
+        drop_entities(
+            hass,
+            bridge,
+            "sensor",
+            [
+                (None, "event_latency"),
+                *((channel_id, "license_plate") for channel_id in profile.channels),
+            ],
+        )
 
 
 class _StorageBase(PolledEntity, SensorEntity):

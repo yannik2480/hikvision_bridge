@@ -146,7 +146,10 @@ def add_entities(
 
 @callback
 def drop_entities(
-    hass: HomeAssistant, bridge: DeviceBridge, platform: str, features: Iterable[tuple[str, str]]
+    hass: HomeAssistant,
+    bridge: DeviceBridge,
+    platform: str,
+    features: Iterable[tuple[str | None, str]],
 ) -> None:
     """Remove entities of features a channel turned out not to have (channel, feature)."""
     registry = er.async_get(hass)
