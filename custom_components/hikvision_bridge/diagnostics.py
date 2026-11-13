@@ -97,6 +97,7 @@ async def async_get_config_entry_diagnostics(
             **asdict(feed.stats),
             "connected": feed.connected,
             "clock_offset_s": feed.clock_offset.total_seconds(),
+            "clock_offset_source": feed.clock_offset_source,
         }
         for name, feed in bridge.feeds.items()
     }

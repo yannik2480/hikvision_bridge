@@ -25,6 +25,9 @@ SILENCE_LIMIT = 60.0
 BACKOFF_FIRST = 5.0
 BACKOFF_MAX = 300.0
 BACKLOG_TOLERANCE = timedelta(seconds=5)
+# Devices replay their backlog right after connecting. Without heartbeats the device clock is
+# unknown, so a frame arriving later than this into a connection is taken as live.
+REPLAY_WINDOW = 3.0
 # How long a frame waits for the pictures it announces (ANPR sends plate and scene pictures).
 PICTURE_WAIT = 2.0
 # Values plate cameras report when they saw a vehicle but could not read its plate.
@@ -481,6 +484,8 @@ class AlarmFeed:
         self._task: asyncio.Task[None] | None = None
         self._connected = False
         self._clock_offset = timedelta(0)
+        # Where the offset came from: None (unknown), "heartbeat" or "event".
+        self._offset_source: str | None = None
         self.stats = FeedStats()
 
     @property
@@ -489,8 +494,12 @@ class AlarmFeed:
 
     @property
     def clock_offset(self) -> timedelta:
-        """Device clock minus local clock, learnt from heartbeats."""
+        """Device clock minus local clock, learnt from heartbeats (or live events without)."""
         return self._clock_offset
+
+    @property
+    def clock_offset_source(self) -> str | None:
+        return self._offset_source
 
     def start(self, create_task: Callable[..., asyncio.Task[None]]) -> None:
         if self._task is None:
@@ -620,6 +629,7 @@ class AlarmFeed:
                         if item.device_time is not None:
                             # Heartbeats are "now" on the device clock: track the offset.
                             self._clock_offset = item.device_time - item.received
+                            self._offset_source = "heartbeat"
                         continue
                     # Hold the frame briefly: a picture part may follow it.
                     pending = item
@@ -635,9 +645,18 @@ class AlarmFeed:
     def _deliver(self, frame: FeedFrame, connected_at: datetime) -> None:
         host = self._link.endpoint.host
         if frame.device_time is not None:
+            live = (
+                self._offset_source != "heartbeat"
+                and (frame.received - connected_at).total_seconds() > REPLAY_WINDOW
+            )
+            if live:
+                # No heartbeats (door stations): the replay is over, so this frame is live and
+                # shows the device clock. A clock behind Home Assistant no longer drops events.
+                self._clock_offset = frame.device_time - frame.received
+                self._offset_source = "event"
             # Events stamped before the connection existed are replays of a device backlog.
             local_time = frame.device_time - self._clock_offset
-            if local_time < connected_at - BACKLOG_TOLERANCE:
+            if not live and local_time < connected_at - BACKLOG_TOLERANCE:
                 self.stats.backlog_dropped += 1
                 # Without heartbeats the clock offset stays unknown: a device clock behind
                 # Home Assistant shows up here as every event being dropped.

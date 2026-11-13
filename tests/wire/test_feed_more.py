@@ -221,3 +221,49 @@ async def test_backlog_drop_logs_device_clock_offset(run_feed, monkeypatch, capl
     assert frames == []
     assert "dropped VMD stamped" in caplog.text
     assert "(clock offset 0 s)" in caplog.text
+
+
+async def test_door_station_clock_behind_still_delivers_live_events(run_feed, monkeypatch) -> None:
+    # No heartbeats and a device clock an hour behind: the replay right after connecting is
+    # dropped, a later event is live, teaches the offset, and the next ones pass as well.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    monkeypatch.setattr(feed, "REPLAY_WINDOW", 0.2)
+
+    def behind(seconds: float = 0.0):
+        return lambda: xml_part(
+            event_xml(
+                "tamperdetection",
+                when=(datetime.now(UTC) - timedelta(hours=1, seconds=seconds)).isoformat(
+                    timespec="seconds"
+                ),
+            )
+        )
+
+    device = FakeDevice(stream_parts=[behind(), behind(), behind()])
+    device.stream_gap = 0.4
+    alarm, frames, _ = await run_feed(device)
+    await _until(lambda: len(frames) == 2)
+    assert alarm.stats.backlog_dropped == 1
+    assert alarm.clock_offset_source == "event"
+    assert -3605 < alarm.clock_offset.total_seconds() < -3595
+
+
+async def test_heartbeat_devices_keep_dropping_old_events_late_in_a_connection(
+    run_feed, monkeypatch
+) -> None:
+    # With a heartbeat the offset is known: a late old event is still a stale replay.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    monkeypatch.setattr(feed, "REPLAY_WINDOW", 0.2)
+    old = (datetime.now(UTC) - timedelta(hours=1)).isoformat(timespec="seconds")
+    device = FakeDevice(
+        stream_parts=[
+            lambda: xml_part(event_xml("videoloss", "inactive", channel="1", when=_now())),
+            xml_part(event_xml("VMD", when=old)),
+            lambda: xml_part(event_xml("VMD", when=_now())),
+        ]
+    )
+    device.stream_gap = 0.3
+    alarm, frames, _ = await run_feed(device)
+    await _until(lambda: len(frames) == 1)
+    await _until(lambda: alarm.stats.backlog_dropped == 1)
+    assert alarm.clock_offset_source == "heartbeat"
