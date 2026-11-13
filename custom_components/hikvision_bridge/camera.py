@@ -48,6 +48,8 @@ async def async_setup_entry(
 
 
 class ChannelCamera(BridgeEntity, Camera):
+    _needs_video = True
+
     def __init__(self, bridge: DeviceBridge, channel_id: str, stream: StreamSpec) -> None:
         BridgeEntity.__init__(self, bridge, channel_id, f"stream_{stream.rank}")
         Camera.__init__(self)
