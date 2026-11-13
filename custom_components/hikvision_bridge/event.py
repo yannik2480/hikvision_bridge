@@ -40,6 +40,7 @@ class DetectionEvents(BridgeEntity, EventEntity):
     _attr_translation_key = "detection"
     _attr_device_class = EventDeviceClass.MOTION
     _attr_should_poll = False
+    _needs_video = True
 
     def __init__(self, bridge: DeviceBridge, channel_id: str, kinds: list[Kind]) -> None:
         super().__init__(bridge, channel_id, "detection_events")

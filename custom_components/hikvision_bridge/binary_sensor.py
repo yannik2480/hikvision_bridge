@@ -86,7 +86,7 @@ class DetectionSensor(PushEntity, BinarySensorEntity):
         self._attr_device_class = _CHANNEL_KINDS[kind]
         if kind in (Kind.DEFOCUS, Kind.AUDIO_EXCEPTION, Kind.SCENE_CHANGE):
             self._attr_entity_registry_enabled_default = False
-        self._needs_video = kind != Kind.VIDEO_LOSS
+        self._needs_video = kind not in (Kind.VIDEO_LOSS, Kind.AUDIO_EXCEPTION, Kind.PIR)
 
     @property
     def is_on(self) -> bool:
@@ -97,6 +97,7 @@ class DetectionSensor(PushEntity, BinarySensorEntity):
 
 class TargetSensor(PushEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.OCCUPANCY
+    _needs_video = True
 
     def __init__(self, bridge: DeviceBridge, channel_id: str, target: str) -> None:
         super().__init__(bridge, channel_id, f"target_{target}")

@@ -29,8 +29,9 @@ class BridgeEntity(Entity):
     """Entity bound to one device entry; never sets an entity_id."""
 
     _attr_has_entity_name = True
-    # Entities that report video loss themselves stay available while the channel has none.
-    _needs_video = True
+    # Entities that show or analyze the picture go unavailable while the channel has video loss;
+    # settings, connection and recording state stay readable.
+    _needs_video = False
 
     def __init__(self, bridge: DeviceBridge, channel_id: str | None, feature: str) -> None:
         self.bridge = bridge

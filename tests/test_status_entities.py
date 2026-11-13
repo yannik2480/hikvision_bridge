@@ -116,10 +116,13 @@ async def test_channel_unavailable_during_video_loss(hass: HomeAssistant, serve)
     refresher = entry.runtime_data.refresher
     lost = {
         _entity(hass, entry, "camera", "_ch1_stream_1").entity_id,
-        _entity(hass, entry, "binary_sensor", "_ch1_recording").entity_id,
         _entity(hass, entry, "binary_sensor", "_ch1_event_motion").entity_id,
     }
+    # Settings, connection and recording state do not need a picture.
     kept = {
+        _entity(hass, entry, "binary_sensor", "_ch1_recording").entity_id,
+        _entity(hass, entry, "binary_sensor", "_ch1_online").entity_id,
+        _entity(hass, entry, "switch", "_ch1_switch_motion").entity_id,
         _entity(hass, entry, "binary_sensor", "_ch2_recording").entity_id,
         _entity(hass, entry, "sensor", "_network_address").entity_id,
     }
