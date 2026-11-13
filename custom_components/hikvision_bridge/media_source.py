@@ -1,9 +1,10 @@
 """Recordings of recorders and memory cards in the media browser.
 
 One folder per device, named by its config entry id, then one per channel with recordings, named
-by the channel's Home Assistant device id, then its days: ``entry/device/day`` lists the files that
-start on the day, ``entry/device/day/kind`` those of one kind, ``entry/device/clip/token`` is one
-recorded file. A recorder's channels play from the recorder, cameras from their memory card.
+by the channel's Home Assistant device id, then its store (recorder or memory card; shown only for
+channels with both), then its days: ``entry/device/store/day`` lists the files that start on the
+day, ``entry/device/store/day/kind`` those of one kind, ``entry/device/store/clip/token`` is one
+recorded file.
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ from .runtime.playback import (
     FORMAT_MP4,
     MIME,
     PlaybackSource,
+    pick_source,
     rtsp_url,
     sources,
 )
@@ -128,15 +130,16 @@ class BridgeMediaSource(MediaSource):
             if len(parts) == 1:
                 return self._device(parts[0], channels)
             bridge, channel_id = _channel(channels, parts[0], parts[1])
-            if len(parts) > 4:
-                raise BrowseError("Unknown media item")
-            folder = f"{parts[0]}/{parts[1]}"
-            # The recorder if the device records, else the camera's own memory card.
-            source = sources(bridge, channel_id)[0]
             if len(parts) == 2:
+                return await self._stores(f"{parts[0]}/{parts[1]}", bridge, channel_id)
+            source = pick_source(bridge, channel_id, parts[2])
+            if source is None or len(parts) > 5:
+                raise BrowseError("Unknown media item")
+            folder = "/".join(parts[:3])
+            if len(parts) == 3:
                 return await self._days(folder, bridge, channel_id, source)
-            day = date.fromisoformat(parts[2])
-            kind = parts[3] if len(parts) == 4 else None
+            day = date.fromisoformat(parts[3])
+            kind = parts[4] if len(parts) == 5 else None
             if kind not in (None, *recordings.KINDS):
                 raise BrowseError("Unknown media item")
             return await self._day(folder, bridge, channel_id, source, day, kind)
@@ -169,10 +172,34 @@ class BridgeMediaSource(MediaSource):
         ]
         return base
 
+    async def _stores(
+        self, folder: str, bridge: DeviceBridge, channel_id: str
+    ) -> BrowseMediaSource:
+        """The days of the channel's one store, else a folder per store."""
+        available = sources(bridge, channel_id)
+        if len(available) == 1:
+            return await self._days(
+                f"{folder}/{available[0].key}", bridge, channel_id, available[0]
+            )
+        labels = await self._labels()
+        base = _folder(folder, bridge.profile.channels[channel_id].name)
+        base.children = [
+            _folder(
+                f"{folder}/{source.key}",
+                labels.get(f"recording_source.options.{source.key}", source.key),
+            )
+            for source in available
+        ]
+        return base
+
     async def _days(
         self, folder: str, bridge: DeviceBridge, channel_id: str, source: PlaybackSource
     ) -> BrowseMediaSource:
-        base = _folder(folder, bridge.profile.channels[channel_id].name)
+        title = bridge.profile.channels[channel_id].name
+        if len(sources(bridge, channel_id)) > 1:
+            labels = await self._labels()
+            title = f"{title} - {labels.get(f'recording_source.options.{source.key}', source.key)}"
+        base = _folder(folder, title)
         today = dt_util.now().date()
         days: list[date] = []
         months = {(today.year, today.month)}
@@ -270,17 +297,17 @@ class BridgeMediaSource(MediaSource):
 
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         parts = (item.identifier or "").split("/")
-        if len(parts) != 4 or parts[2] != "clip":
+        if len(parts) != 5 or parts[3] != "clip":
             raise Unresolvable("Not a recording")
-        entry_id, device_id, _, token = parts
+        entry_id, device_id, source_key, _, token = parts
         uri = decode_token(token)
         try:
             bridge, channel_id = _channel(self._channels(), entry_id, device_id)
         except BrowseError as err:
             raise Unresolvable("Unknown recording") from err
-        if uri is None:
+        source = pick_source(bridge, channel_id, source_key)
+        if uri is None or source is None:
             raise Unresolvable("Unknown recording")
-        source = sources(bridge, channel_id)[0]
         mode = bridge.entry.options.get(OPT_PLAYBACK, FORMAT_MP4)
         if mode == PLAYBACK_SEEKABLE:
             return PlayMedia(recording_url(entry_id, channel_id, source.key, mode, uri), PLAY_HLS)
