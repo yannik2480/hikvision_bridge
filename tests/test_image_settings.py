@@ -227,3 +227,63 @@ async def test_linked_channel_device_belongs_to_its_subentry(hass: HomeAssistant
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_white_light_switches_the_supplement_light(hass: HomeAssistant, serve) -> None:
+    device = _image_device()
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    light = _entity_id(hass, entry, "light", "_ch1_white_light")
+    state = hass.states.get(light)
+    assert state.state == "off"
+    assert state.attributes["supported_color_modes"] == ["brightness"]
+
+    device.writes.clear()
+    await hass.services.async_call("light", "turn_on", {"entity_id": light}, blocking=True)
+    method, path, body = device.writes[0]
+    assert (method, path) == ("PUT", f"{BASE}/supplementLight")
+    assert "<supplementLightMode>colorVuWhiteLight</supplementLightMode>" in body
+    assert "<irLightBrightness>30</irLightBrightness>" in body
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_white_light_off_goes_back_to_another_mode(hass: HomeAssistant, serve) -> None:
+    white = LIGHT.replace(">irLight<", ">colorVuWhiteLight<").replace(
+        "<irLightBrightness>30</irLightBrightness>",
+        "<whiteLightBrightness>40</whiteLightBrightness>",
+    )
+    device = _image_device()
+    device.documents[f"{BASE}/supplementLight"] = white
+    device.documents[BASE] = IMAGE.replace(LIGHT.split("?>", 1)[1], white.split("?>", 1)[1])
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    light = _entity_id(hass, entry, "light", "_ch1_white_light")
+    state = hass.states.get(light)
+    assert state.state == "on"
+    assert state.attributes["brightness"] == 102
+
+    device.writes.clear()
+    await hass.services.async_call(
+        "light", "turn_on", {"entity_id": light, "brightness": 255}, blocking=True
+    )
+    assert len(device.writes) == 1  # already white: only the brightness
+    assert "<whiteLightBrightness>100</whiteLightBrightness>" in device.writes[0][2]
+
+    device.writes.clear()
+    await hass.services.async_call("light", "turn_off", {"entity_id": light}, blocking=True)
+    body = device.writes[0][2]
+    # No mode from before is known (it was on already): the IR light, the camera has no smart mode.
+    assert "<supplementLightMode>irLight</supplementLightMode>" in body
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

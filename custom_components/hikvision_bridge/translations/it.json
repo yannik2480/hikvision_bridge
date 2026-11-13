@@ -127,6 +127,8 @@
           "stream_key": "Codice di verifica (video cifrato)",
           "sidebar_panel": "Mostra il pannello Hikvision nella barra laterale",
           "panel_admin_only": "Solo gli amministratori vedono il pannello",
+          "panel_title": "Titolo del pannello",
+          "panel_header": "Mostra la barra del titolo nel pannello",
           "hidden_channels": "Telecamere nascoste nel pannello laterale",
           "try_encrypted_stream": "Prova lo streaming live anche con crittografia attiva"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Serve a decifrare le registrazioni e il video live H.264 locale mantenendo attiva la cifratura dello stream. Inserisci qui il codice di verifica del dispositivo per attivare la decifratura live; l'audio e il video live H.265 cifrato non sono supportati. Le registrazioni possono usare anche il codice letto dal dispositivo.",
           "sidebar_panel": "Vale per tutti i dispositivi e gli account di questa integrazione. La scheda della dashboard resta disponibile.",
           "panel_admin_only": "Gli utenti senza diritti di amministratore non vedono più il pannello. Vale per tutti i dispositivi e gli account.",
+          "panel_title": "Nome del pannello nella barra laterale e nella sua barra del titolo. Lascia vuoto per 'Hikvision'. Vale per tutti i dispositivi e gli account.",
+          "panel_header": "Disattiva per dare più spazio alle telecamere. Sugli schermi stretti la barra resta, contiene il pulsante del menu.",
           "hidden_channels": "Le telecamere selezionate qui non compaiono nel pannello Hikvision nella barra laterale. Registrazioni ed entità restano invariate; la scheda della dashboard le mostra ancora.",
           "try_encrypted_stream": "Prova a riprodurre il video RTSP locale anche se il dispositivo segnala la crittografia Hik-Connect. Molti registratori crittografano solo i flussi cloud."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Campanello che suona"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Luce bianca"
       }
     },
     "siren": {

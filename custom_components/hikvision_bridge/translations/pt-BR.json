@@ -127,6 +127,8 @@
           "stream_key": "Código de verificação (vídeo criptografado)",
           "sidebar_panel": "Mostrar o painel Hikvision na barra lateral",
           "panel_admin_only": "Somente administradores veem o painel",
+          "panel_title": "Título do painel",
+          "panel_header": "Mostrar a barra de título no painel",
           "hidden_channels": "Câmeras ocultas no painel lateral",
           "try_encrypted_stream": "Tentar transmissão ao vivo mesmo com criptografia ativada"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Usado para descriptografar gravações e vídeo ao vivo H.264 local mantendo a criptografia do stream ativada. Digite aqui o código de verificação do dispositivo para ativar a descriptografia ao vivo; áudio e vídeo ao vivo H.265 criptografado não são suportados. As gravações também podem usar o código lido do dispositivo.",
           "sidebar_panel": "Vale para todos os dispositivos e contas desta integração. O cartão do dashboard continua disponível.",
           "panel_admin_only": "Usuários sem direitos de administrador deixam de ver o painel. Vale para todos os dispositivos e contas.",
+          "panel_title": "Nome do painel na barra lateral e na sua barra de título. Deixe vazio para 'Hikvision'. Vale para todos os dispositivos e contas.",
+          "panel_header": "Desative para dar mais espaço às câmeras. Em telas estreitas a barra continua, ela contém o botão do menu.",
           "hidden_channels": "As câmeras selecionadas aqui não aparecem no painel Hikvision da barra lateral. Gravações e entidades continuam como estão; o cartão do painel ainda as mostra.",
           "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte criptografia Hik-Connect ativada."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Campainha tocando"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Luz branca"
       }
     },
     "siren": {

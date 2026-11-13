@@ -127,6 +127,8 @@
           "stream_key": "验证码（加密视频）",
           "sidebar_panel": "在侧边栏显示 Hikvision 面板",
           "panel_admin_only": "仅管理员可见面板",
+          "panel_title": "面板标题",
+          "panel_header": "在面板中显示标题栏",
           "hidden_channels": "侧边栏面板中隐藏的摄像头",
           "try_encrypted_stream": "即使启用加密也尝试实时流"
         },
@@ -138,6 +140,8 @@
           "stream_key": "用于在保持码流加密开启的同时解密录像和本地 H.264 实时视频。在此输入设备的验证码以启用实时解密；不支持音频和加密的 H.265 实时视频。录像也可以使用从设备读取的验证码。",
           "sidebar_panel": "适用于此集成的所有设备和账户。仪表盘卡片仍可使用。",
           "panel_admin_only": "没有管理员权限的用户将不再看到面板。适用于所有设备和账户。",
+          "panel_title": "侧边栏及面板标题栏中显示的面板名称。留空则为 'Hikvision'。适用于所有设备和账户。",
+          "panel_header": "关闭后摄像机画面可占用更多空间。在窄屏幕上标题栏会保留，因为其中有菜单按钮。",
           "hidden_channels": "在此选择的摄像头不会显示在侧边栏的 Hikvision 面板中。录像和实体保持不变；仪表板卡片仍会显示它们。",
           "try_encrypted_stream": "即使设备报告启用了 Hik-Connect 流加密，也尝试播放本地 RTSP 视频。许多录像机仅加密云端流。"
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "门铃正在响"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "白光灯"
       }
     },
     "siren": {

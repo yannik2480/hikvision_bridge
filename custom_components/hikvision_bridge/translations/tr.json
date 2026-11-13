@@ -127,6 +127,8 @@
           "stream_key": "Doğrulama kodu (şifreli video)",
           "sidebar_panel": "Hikvision panelini kenar çubuğunda göster",
           "panel_admin_only": "Paneli yalnızca yöneticiler görsün",
+          "panel_title": "Panel başlığı",
+          "panel_header": "Panelde başlık çubuğunu göster",
           "hidden_channels": "Kenar çubuğu panelinde gizlenen kameralar",
           "try_encrypted_stream": "Şifreleme açıkken bile canlı akışı dene"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Akış şifrelemesi açık kalırken kayıtların ve yerel H.264 canlı videonun şifresini çözmek için kullanılır. Canlı şifre çözmeyi etkinleştirmek için cihazın doğrulama kodunu buraya girin; ses ve şifreli H.265 canlı video desteklenmez. Kayıtlar cihazdan okunan kodu da kullanabilir.",
           "sidebar_panel": "Bu entegrasyonun tüm cihazları ve hesapları için geçerlidir. Gösterge paneli kartı kullanılabilir kalır.",
           "panel_admin_only": "Yönetici yetkisi olmayan kullanıcılar paneli artık görmez. Tüm cihazlar ve hesaplar için geçerlidir.",
+          "panel_title": "Panelin kenar çubuğundaki ve başlık çubuğundaki adı. 'Hikvision' için boş bırakın. Tüm cihazlar ve hesaplar için geçerlidir.",
+          "panel_header": "Kameralara daha fazla yer açmak için kapatın. Dar ekranlarda çubuk kalır, menü düğmesi oradadır.",
           "hidden_channels": "Burada seçilen kameralar kenar çubuğundaki Hikvision panelinde gösterilmez. Kayıtları ve varlıkları değişmez; pano kartı yine de gösterir.",
           "try_encrypted_stream": "Cihaz Hik-Connect akış şifrelemesini bildirse bile yerel RTSP videosunu oynatmayı deneyin."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Kapı zili çalıyor"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Beyaz ışık"
       }
     },
     "siren": {

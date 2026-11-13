@@ -127,6 +127,8 @@
           "stream_key": "Kod weryfikacyjny (szyfrowane wideo)",
           "sidebar_panel": "Pokaż panel Hikvision na pasku bocznym",
           "panel_admin_only": "Panel widzą tylko administratorzy",
+          "panel_title": "Tytuł panelu",
+          "panel_header": "Pokaż pasek tytułu w panelu",
           "hidden_channels": "Kamery ukryte w panelu bocznym",
           "try_encrypted_stream": "Spróbuj transmisji na żywo nawet przy włączonym szyfrowaniu"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Służy do odszyfrowywania nagrań i lokalnego wideo na żywo H.264 przy włączonym szyfrowaniu strumienia. Wpisz tutaj kod weryfikacyjny urządzenia, aby włączyć odszyfrowywanie na żywo; dźwięk i szyfrowane wideo na żywo H.265 nie są obsługiwane. Nagrania mogą też używać kodu odczytanego z urządzenia.",
           "sidebar_panel": "Dotyczy wszystkich urządzeń i kont tej integracji. Karta pulpitu pozostaje dostępna.",
           "panel_admin_only": "Użytkownicy bez uprawnień administratora nie widzą już panelu. Dotyczy wszystkich urządzeń i kont.",
+          "panel_title": "Nazwa panelu na pasku bocznym i na jego pasku tytułu. Pozostaw puste, aby użyć 'Hikvision'. Dotyczy wszystkich urządzeń i kont.",
+          "panel_header": "Wyłącz, aby dać kamerom więcej miejsca. Na wąskich ekranach pasek pozostaje, zawiera przycisk menu.",
           "hidden_channels": "Kamery wybrane tutaj nie są pokazywane w panelu Hikvision na pasku bocznym. Ich nagrania i encje pozostają bez zmian; karta na pulpicie nadal je wyświetla.",
           "try_encrypted_stream": "Spróbuj odtworzyć lokalne wideo RTSP, nawet jeśli urządzenie zgłasza szyfrowanie Hik-Connect."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Dzwonek dzwoni"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Białe światło"
       }
     },
     "siren": {

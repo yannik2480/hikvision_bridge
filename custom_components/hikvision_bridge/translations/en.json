@@ -127,6 +127,8 @@
           "stream_key": "Verification code (encrypted video)",
           "sidebar_panel": "Show the Hikvision panel in the sidebar",
           "panel_admin_only": "Only administrators see the panel",
+          "panel_title": "Panel title",
+          "panel_header": "Show the title bar in the panel",
           "hidden_channels": "Cameras hidden in the sidebar panel",
           "try_encrypted_stream": "Try the live stream even with encryption on"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Used to decrypt recordings and local H.264 live video while keeping stream encryption enabled. Enter the device's verification code here to enable live decryption; audio and encrypted H.265 live video are not supported. Recordings can also use the code read from the device.",
           "sidebar_panel": "Applies to all devices and accounts of this integration. The dashboard card stays available.",
           "panel_admin_only": "Users without administrator rights no longer see the panel. Applies to all devices and accounts.",
+          "panel_title": "Name of the panel in the sidebar and in its title bar. Leave empty for 'Hikvision'. Applies to all devices and accounts.",
+          "panel_header": "Turn off to give the cameras more room. On narrow screens the bar stays, it holds the menu button.",
           "hidden_channels": "Cameras selected here are left out of the Hikvision panel in the sidebar. Their recordings and entities stay as they are; the dashboard card still shows them.",
           "try_encrypted_stream": "Try playing local RTSP live video even if the device reports Hik-Connect stream encryption as enabled. Many recorders only encrypt cloud streams, leaving local RTSP streams unencrypted."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Doorbell ringing"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "White light"
       }
     },
     "siren": {

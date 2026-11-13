@@ -16,6 +16,9 @@
       "recording": { "default": "mdi:record-rec" },
       "doorbell_ringing": { "default": "mdi:bell-ring" }
     },
+    "light": {
+      "white_light": { "default": "mdi:light-flood-down" }
+    },
     "siren": {
       "alarm": { "default": "mdi:bullhorn-outline" }
     },

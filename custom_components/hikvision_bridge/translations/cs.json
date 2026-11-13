@@ -127,6 +127,8 @@
           "stream_key": "Ověřovací kód (šifrované video)",
           "sidebar_panel": "Zobrazit panel Hikvision v postranním panelu",
           "panel_admin_only": "Panel vidí jen správci",
+          "panel_title": "Název panelu",
+          "panel_header": "Zobrazit v panelu záhlaví",
           "hidden_channels": "Kamery skryté v postranním panelu",
           "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Slouží k dešifrování záznamů a místního živého videa H.264 při zapnutém šifrování streamu. Zadejte sem ověřovací kód zařízení, abyste zapnuli živé dešifrování; zvuk a šifrované živé video H.265 nejsou podporovány. Záznamy mohou použít i kód načtený ze zařízení.",
           "sidebar_panel": "Platí pro všechna zařízení a účty této integrace. Karta na nástěnce zůstává dostupná.",
           "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty.",
+          "panel_title": "Název panelu v postranním panelu a v jeho záhlaví. Ponechte prázdné pro 'Hikvision'. Platí pro všechna zařízení a účty.",
+          "panel_header": "Vypněte, aby kamery měly více místa. Na úzkých obrazovkách záhlaví zůstává, obsahuje tlačítko nabídky.",
           "hidden_channels": "Kamery vybrané zde se nezobrazí v postranním panelu Hikvision. Jejich nahrávky a entity zůstanou beze změny; karta na přehledu je dál zobrazuje.",
           "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Zvonek zvoní"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Bílé světlo"
       }
     },
     "siren": {

@@ -127,6 +127,8 @@
           "stream_key": "Código de verificação (vídeo encriptado)",
           "sidebar_panel": "Mostrar o painel Hikvision na barra lateral",
           "panel_admin_only": "Apenas os administradores veem o painel",
+          "panel_title": "Título do painel",
+          "panel_header": "Mostrar a barra de título no painel",
           "hidden_channels": "Câmaras ocultas no painel lateral",
           "try_encrypted_stream": "Tentar transmissão em direto mesmo com encriptação ativada"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Usado para desencriptar gravações e vídeo em direto H.264 local, mantendo a encriptação do stream ativa. Introduza aqui o código de verificação do dispositivo para ativar a desencriptação em direto; áudio e vídeo em direto H.265 encriptado não são suportados. As gravações também podem usar o código lido do dispositivo.",
           "sidebar_panel": "Aplica-se a todos os dispositivos e contas desta integração. O cartão do painel de controlo continua disponível.",
           "panel_admin_only": "Os utilizadores sem direitos de administrador deixam de ver o painel. Aplica-se a todos os dispositivos e contas.",
+          "panel_title": "Nome do painel na barra lateral e na sua barra de título. Deixe vazio para 'Hikvision'. Aplica-se a todos os dispositivos e contas.",
+          "panel_header": "Desative para dar mais espaço às câmaras. Em ecrãs estreitos a barra mantém-se, contém o botão do menu.",
           "hidden_channels": "As câmaras selecionadas aqui não aparecem no painel Hikvision da barra lateral. As gravações e entidades mantêm-se; o cartão do painel continua a mostrá-las.",
           "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte encriptação Hik-Connect ativada."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Campainha a tocar"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Luz branca"
       }
     },
     "siren": {

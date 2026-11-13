@@ -127,6 +127,8 @@
           "stream_key": "Vahvistuskoodi (salattu video)",
           "sidebar_panel": "Näytä Hikvision-paneeli sivupalkissa",
           "panel_admin_only": "Vain ylläpitäjät näkevät paneelin",
+          "panel_title": "Paneelin otsikko",
+          "panel_header": "Näytä paneelin otsikkopalkki",
           "hidden_channels": "Sivupalkin paneelista piilotetut kamerat",
           "try_encrypted_stream": "Kokeile suoraa lähetystä salauksen ollessa päällä"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Käytetään tallenteiden ja paikallisen H.264-livevideon salauksen purkuun niin, että virran salaus pysyy päällä. Syötä laitteen vahvistuskoodi tähän ottaaksesi livepurun käyttöön; ääntä ja salattua H.265-livevideota ei tueta. Tallenteet voivat käyttää myös laitteesta luettua koodia.",
           "sidebar_panel": "Koskee kaikkia tämän integraation laitteita ja tilejä. Kojelaudan kortti pysyy käytettävissä.",
           "panel_admin_only": "Käyttäjät ilman ylläpitäjän oikeuksia eivät enää näe paneelia. Koskee kaikkia laitteita ja tilejä.",
+          "panel_title": "Paneelin nimi sivupalkissa ja sen otsikkopalkissa. Jätä tyhjäksi, niin nimi on 'Hikvision'. Koskee kaikkia laitteita ja tilejä.",
+          "panel_header": "Poista käytöstä, niin kameroille jää enemmän tilaa. Kapeilla näytöillä palkki jää näkyviin, siinä on valikkopainike.",
           "hidden_channels": "Tässä valitut kamerat jätetään pois Hikvision-paneelista sivupalkissa. Tallenteet ja kohteet pysyvät ennallaan; kojelautakortti näyttää ne edelleen.",
           "try_encrypted_stream": "Kokeile toistaa paikallista RTSP-videota, vaikka laite ilmoittaisi Hik-Connect-suojauksen olevan käytössä."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Ovikello soi"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Valkoinen valo"
       }
     },
     "siren": {

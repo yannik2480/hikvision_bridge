@@ -127,6 +127,8 @@
           "stream_key": "Kode verifikasi (video terenkripsi)",
           "sidebar_panel": "Tampilkan panel Hikvision di bilah samping",
           "panel_admin_only": "Hanya administrator yang melihat panel",
+          "panel_title": "Judul panel",
+          "panel_header": "Tampilkan bilah judul di panel",
           "hidden_channels": "Kamera yang disembunyikan di panel samping",
           "try_encrypted_stream": "Coba streaming langsung meskipun enkripsi aktif"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Digunakan untuk mendekripsi rekaman dan video langsung H.264 lokal sambil tetap mengaktifkan enkripsi stream. Masukkan kode verifikasi perangkat di sini untuk mengaktifkan dekripsi langsung; audio dan video langsung H.265 terenkripsi tidak didukung. Rekaman juga dapat menggunakan kode yang dibaca dari perangkat.",
           "sidebar_panel": "Berlaku untuk semua perangkat dan akun integrasi ini. Kartu dasbor tetap tersedia.",
           "panel_admin_only": "Pengguna tanpa hak administrator tidak lagi melihat panel. Berlaku untuk semua perangkat dan akun.",
+          "panel_title": "Nama panel di bilah samping dan di bilah judulnya. Biarkan kosong untuk 'Hikvision'. Berlaku untuk semua perangkat dan akun.",
+          "panel_header": "Matikan agar kamera mendapat ruang lebih. Di layar sempit bilah tetap ada, karena berisi tombol menu.",
           "hidden_channels": "Kamera yang dipilih di sini tidak ditampilkan di panel Hikvision di sidebar. Rekaman dan entitasnya tetap; kartu dasbor tetap menampilkannya.",
           "try_encrypted_stream": "Coba putar video RTSP lokal meskipun perangkat melaporkan enkripsi streaming Hik-Connect aktif."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Bel pintu berbunyi"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Lampu putih"
       }
     },
     "siren": {

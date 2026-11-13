@@ -127,6 +127,8 @@
           "stream_key": "Cod de verificare (video criptat)",
           "sidebar_panel": "Afișează panoul Hikvision în bara laterală",
           "panel_admin_only": "Doar administratorii văd panoul",
+          "panel_title": "Titlul panoului",
+          "panel_header": "Afișează bara de titlu în panou",
           "hidden_channels": "Camere ascunse în panoul lateral",
           "try_encrypted_stream": "Încearcă fluxul live chiar și cu criptarea activată"
         },
@@ -138,6 +140,8 @@
           "stream_key": "Folosit pentru a decripta înregistrările și video live H.264 local, păstrând criptarea fluxului activată. Introduceți aici codul de verificare al dispozitivului pentru a activa decriptarea live; sunetul și video live H.265 criptat nu sunt acceptate. Înregistrările pot folosi și codul citit de pe dispozitiv.",
           "sidebar_panel": "Se aplică tuturor dispozitivelor și conturilor acestei integrări. Cardul de pe tabloul de bord rămâne disponibil.",
           "panel_admin_only": "Utilizatorii fără drepturi de administrator nu mai văd panoul. Se aplică tuturor dispozitivelor și conturilor.",
+          "panel_title": "Numele panoului în bara laterală și în bara sa de titlu. Lăsați gol pentru 'Hikvision'. Se aplică tuturor dispozitivelor și conturilor.",
+          "panel_header": "Dezactivați pentru a lăsa mai mult loc camerelor. Pe ecrane înguste bara rămâne, conține butonul de meniu.",
           "hidden_channels": "Camerele selectate aici nu apar în panoul Hikvision din bara laterală. Înregistrările și entitățile rămân neschimbate; cardul de pe tablou le afișează în continuare.",
           "try_encrypted_stream": "Încearcă redarea fluxului video RTSP local chiar dacă dispozitivul raportează criptarea fluxului Hik-Connect activată. Multe NVR-uri criptează doar fluxurile din cloud."
         }
@@ -303,6 +307,11 @@
       },
       "doorbell_ringing": {
         "name": "Sonerie sunând"
+      }
+    },
+    "light": {
+      "white_light": {
+        "name": "Lumină albă"
       }
     },
     "siren": {

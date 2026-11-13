@@ -109,26 +109,32 @@ class ImageSettingEntity(PolledEntity):
         return super().available and self.current is not None
 
     async def async_write_value(self, value: str) -> None:
-        current = self.current
-        if current is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="setting_inactive")
-        link, remote = self.bridge.route(self.channel_id)
-        try:
-            await adjust.write(link, remote, self.capability.key, current.field, value)
-        except BridgeFault as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="write_failed",
-                translation_placeholders={"reason": type(err).__name__},
-            ) from err
-        values = dict(self.coordinator.data.image.get(self.channel_id, {}))
-        values[self.capability.key] = ImageValue(current.field, value)
-        self.coordinator.data.image[self.channel_id] = values
-        # Settings that follow this one (the park action number) show the change at once.
-        self.coordinator.async_update_listeners()
-        # Other settings depend on modes (e.g. light brightness); read them all again.
-        self.bridge.refresher.request_full()
-        await self.bridge.refresher.async_request_refresh()
+        await async_write_setting(self.bridge, self.channel_id, self.capability.key, value)
+
+
+async def async_write_setting(bridge: DeviceBridge, channel_id: str, key: str, value: str) -> None:
+    """Write one adjustable setting of a channel and show the new value at once."""
+    refresher = bridge.refresher
+    current = refresher.data.image.get(channel_id, {}).get(key)
+    if current is None:
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="setting_inactive")
+    link, remote = bridge.route(channel_id)
+    try:
+        await adjust.write(link, remote, key, current.field, value)
+    except BridgeFault as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="write_failed",
+            translation_placeholders={"reason": type(err).__name__},
+        ) from err
+    values = dict(refresher.data.image.get(channel_id, {}))
+    values[key] = ImageValue(current.field, value)
+    refresher.data.image[channel_id] = values
+    # Settings that follow this one (the park action number) show the change at once.
+    refresher.async_update_listeners()
+    # Other settings depend on modes (e.g. light brightness); read them all again.
+    refresher.request_full()
+    await refresher.async_request_refresh()
 
 
 def add_entities(
