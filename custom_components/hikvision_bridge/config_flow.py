@@ -54,6 +54,8 @@ from .const import (
     OPT_HIDDEN_CHANNELS,
     OPT_HOLD_SECONDS,
     OPT_PANEL_ADMIN_ONLY,
+    OPT_PANEL_HEADER,
+    OPT_PANEL_TITLE,
     OPT_PLAYBACK,
     OPT_RECORDING_CLOCK,
     OPT_RTSP_PORT,
@@ -599,6 +601,11 @@ def _panel_fields(hass: HomeAssistant) -> dict[Any, Any]:
     return {
         vol.Required(OPT_SIDEBAR_PANEL, default=current[OPT_SIDEBAR_PANEL]): bool,
         vol.Required(OPT_PANEL_ADMIN_ONLY, default=current[OPT_PANEL_ADMIN_ONLY]): bool,
+        # Optional, so that an emptied title goes back to the default one.
+        vol.Optional(
+            OPT_PANEL_TITLE, description={"suggested_value": current[OPT_PANEL_TITLE]}
+        ): str,
+        vol.Required(OPT_PANEL_HEADER, default=current[OPT_PANEL_HEADER]): bool,
     }
 
 
@@ -652,10 +659,10 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
             )
         if user_input is not None and not errors:
             user_input = dict(user_input)
-            await async_set_panel_settings(
-                self.hass,
-                {key: user_input.pop(key) for key in PANEL_DEFAULTS if key in user_input},
-            )
+            panel = {key: user_input.pop(key) for key in PANEL_DEFAULTS if key in user_input}
+            # Browsers leave out an emptied text field: back to the default title.
+            panel.setdefault(OPT_PANEL_TITLE, "")
+            await async_set_panel_settings(self.hass, panel)
             if choices is not None:
                 # Browsers leave out an emptied multi-select: nothing hidden any more.
                 user_input.setdefault(OPT_HIDDEN_CHANNELS, [])

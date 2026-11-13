@@ -25,6 +25,8 @@ from custom_components.hikvision_bridge.const import (
     KIND_CLOUD,
     KIND_DEVICE,
     OPT_PANEL_ADMIN_ONLY,
+    OPT_PANEL_HEADER,
+    OPT_PANEL_TITLE,
     OPT_PLAYBACK,
     OPT_RTSP_PORT,
     OPT_SIDEBAR_PANEL,
@@ -291,20 +293,39 @@ async def test_panel_options_apply_to_the_sidebar(hass: HomeAssistant, hass_stor
     entry = MockConfigEntry(domain=DOMAIN, data={CONF_ENTRY_KIND: KIND_CLOUD}, title="Cloud")
     entry.add_to_hass(hass)
 
-    async def configure(**values: bool) -> None:
+    async def configure(**values: object) -> None:
         form = await hass.config_entries.options.async_init(entry.entry_id)
-        assert set(form["data_schema"].schema) == {OPT_SIDEBAR_PANEL, OPT_PANEL_ADMIN_ONLY}
+        assert set(form["data_schema"].schema) == {
+            OPT_SIDEBAR_PANEL,
+            OPT_PANEL_ADMIN_ONLY,
+            OPT_PANEL_TITLE,
+            OPT_PANEL_HEADER,
+        }
         result = await hass.config_entries.options.async_configure(form["flow_id"], values)
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"] == {}
 
     await configure(sidebar_panel=True, panel_admin_only=True)
     assert hass.data[DATA_PANELS][panel.PANEL_PATH].require_admin
+    assert hass.data[DATA_PANELS][panel.PANEL_PATH].sidebar_title == "Hikvision"
+
+    await configure(
+        sidebar_panel=True, panel_admin_only=True, panel_title="  My   house ", panel_header=False
+    )
+    registered = hass.data[DATA_PANELS][panel.PANEL_PATH]
+    assert registered.sidebar_title == "My house"
+    assert registered.config["title"] == "My house"
+    assert registered.config["header"] is False
+    # An emptied title field is left out by the browser: back to the default.
+    await configure(sidebar_panel=True, panel_admin_only=True, panel_header=True)
+    assert hass.data[DATA_PANELS][panel.PANEL_PATH].sidebar_title == "Hikvision"
     await configure(sidebar_panel=False, panel_admin_only=True)
     assert panel.PANEL_PATH not in hass.data[DATA_PANELS]
     assert hass_storage[panel.STORE_KEY]["data"] == {
         OPT_SIDEBAR_PANEL: False,
         OPT_PANEL_ADMIN_ONLY: True,
+        OPT_PANEL_TITLE: "Hikvision",
+        OPT_PANEL_HEADER: True,
     }
 
     # After a restart the stored choice holds.

@@ -1672,6 +1672,19 @@ class HikvisionBridgePanel extends HTMLElement {
     this.toggleAttribute("narrow", Boolean(value));
   }
 
+  // Title and title bar as set in the integration options.
+  set panel(panel) {
+    this._panel = panel;
+    this._applyConfig();
+  }
+
+  _applyConfig() {
+    const config = (this._panel && this._panel.config) || {};
+    this.toggleAttribute("no-header", config.header === false);
+    const title = this.shadowRoot.querySelector("header h1");
+    if (title) title.textContent = config.title || "Hikvision";
+  }
+
   connectedCallback() {
     if (this._hass && !this.viewer) this._build();
   }
@@ -1713,6 +1726,18 @@ class HikvisionBridgePanel extends HTMLElement {
         .legend, .hint { background: var(--hb-surface); }
         .empty { padding: 24px; color: var(--hb-muted); }
         header .spacer { flex: 1; }
+        .aside-head { display: flex; align-items: center; }
+        .aside-head h2 { flex: 1; }
+        .aside-head .layout-toggle { display: none; margin-right: 4px; }
+        /* Without the title bar: the layout toggle sits by the camera list. On narrow
+           screens the bar stays, it holds the button that opens the sidebar. */
+        :host([no-header]:not([narrow])) header { display: none; }
+        :host([no-header]:not([narrow])) .layout { grid-template-rows: minmax(0, 1fr); }
+        :host([no-header]:not([narrow])) .aside-head .layout-toggle { display: inline-flex; }
+        :host([no-header][cams-top]:not([narrow])) .layout { grid-template-rows: auto minmax(0, 1fr); }
+        :host([no-header][cams-top]:not([narrow])) aside { display: flex; align-items: center; }
+        :host([no-header][cams-top]:not([narrow])) .list { flex: 1; min-width: 0; overflow-x: auto; }
+        :host([no-header][cams-top]:not([narrow])) .aside-head { order: 2; position: sticky; right: 0; }
         /* Cameras above the video, in a row: chosen, or on narrow screens. */
         :host([cams-top]) .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px auto minmax(0, 1fr); }
         :host([cams-top]) aside { border-right: 0; border-bottom: 1px solid var(--hb-line); overflow-x: auto; overflow-y: hidden; }
@@ -1725,6 +1750,10 @@ class HikvisionBridgePanel extends HTMLElement {
           .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 48px auto minmax(0, 1fr); }
           header { padding: 0 4px; }
           header .layout-toggle { display: none; }
+          :host([no-header]) header { display: flex; }
+          :host([no-header]) .layout { grid-template-rows: 48px auto minmax(0, 1fr); }
+          :host([no-header]) aside { display: block; }
+          :host([no-header]) .aside-head .layout-toggle { display: none; }
           aside { border-right: 0; border-bottom: 1px solid var(--hb-line); overflow-x: auto; overflow-y: hidden; }
           aside h2 { display: none; }
           .list { display: flex; }
@@ -1750,7 +1779,7 @@ class HikvisionBridgePanel extends HTMLElement {
           <span class="spacer"></span>
           <button class="icon-button layout-toggle"></button>
         </header>
-        <aside><h2></h2><div class="list"></div></aside>
+        <aside><div class="aside-head"><h2></h2><button class="icon-button layout-toggle"></button></div><div class="list"></div></aside>
         <main></main>
       </div>`;
     this.shadowRoot.querySelector(".menu").addEventListener("click", () => {
@@ -1759,15 +1788,18 @@ class HikvisionBridgePanel extends HTMLElement {
     this.viewer = new Viewer(this.shadowRoot.querySelector("main"), this._hass);
     this.texts = makeTranslator({});
     this._camsTop(this._stored("hikvision-bridge-cams") === "top");
-    this.shadowRoot.querySelector(".layout-toggle").addEventListener("click", () => {
-      const top = !this.hasAttribute("cams-top");
-      this._camsTop(top);
-      try {
-        localStorage.setItem("hikvision-bridge-cams", top ? "top" : "left");
-      } catch (_err) {
-        /* private mode */
-      }
-    });
+    this._applyConfig();
+    this.shadowRoot.querySelectorAll(".layout-toggle").forEach((toggle) =>
+      toggle.addEventListener("click", () => {
+        const top = !this.hasAttribute("cams-top");
+        this._camsTop(top);
+        try {
+          localStorage.setItem("hikvision-bridge-cams", top ? "top" : "left");
+        } catch (_err) {
+          /* private mode */
+        }
+      }),
+    );
     loadTexts(this._hass).then((r) => {
       this.texts = makeTranslator(r);
       this.shadowRoot.querySelector("aside h2").textContent = this.texts.ui("cameras");
@@ -1824,11 +1856,12 @@ class HikvisionBridgePanel extends HTMLElement {
   // Cameras in a row above the video, or in a column beside it.
   _camsTop(top) {
     this.toggleAttribute("cams-top", top);
-    const button = this.shadowRoot.querySelector(".layout-toggle");
     const label = this.texts.ui(top ? "cameras_left" : "cameras_top");
-    button.innerHTML = top ? ICONS.camsLeft : ICONS.camsTop;
-    button.title = label;
-    button.setAttribute("aria-label", label);
+    this.shadowRoot.querySelectorAll(".layout-toggle").forEach((button) => {
+      button.innerHTML = top ? ICONS.camsLeft : ICONS.camsTop;
+      button.title = label;
+      button.setAttribute("aria-label", label);
+    });
   }
 
   _select(index) {

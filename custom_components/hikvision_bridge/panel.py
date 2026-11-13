@@ -10,7 +10,13 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, OPT_PANEL_ADMIN_ONLY, OPT_SIDEBAR_PANEL
+from .const import (
+    DOMAIN,
+    OPT_PANEL_ADMIN_ONLY,
+    OPT_PANEL_HEADER,
+    OPT_PANEL_TITLE,
+    OPT_SIDEBAR_PANEL,
+)
 from .runtime import sessions
 
 URL_BASE = "/hikvision_bridge_static"
@@ -20,7 +26,21 @@ FOLDER = Path(__file__).parent / "frontend"
 # The panel is one for all entries, so its settings are kept apart from any entry.
 STORE_KEY = f"{DOMAIN}.panel"
 DATA_PANEL = f"{DOMAIN}_panel"
-PANEL_DEFAULTS: dict[str, bool] = {OPT_SIDEBAR_PANEL: True, OPT_PANEL_ADMIN_ONLY: False}
+DEFAULT_TITLE = "Hikvision"
+TITLE_LENGTH = 40
+PANEL_DEFAULTS: dict[str, Any] = {
+    OPT_SIDEBAR_PANEL: True,
+    OPT_PANEL_ADMIN_ONLY: False,
+    OPT_PANEL_TITLE: DEFAULT_TITLE,
+    OPT_PANEL_HEADER: True,
+}
+
+
+def _clean(key: str, value: Any) -> Any:
+    """A stored or entered setting in its type; an empty title is the default one."""
+    if key == OPT_PANEL_TITLE:
+        return " ".join(str(value or "").split())[:TITLE_LENGTH] or DEFAULT_TITLE
+    return bool(value)
 
 
 def _fingerprint() -> str:
@@ -40,15 +60,15 @@ def _state(hass: HomeAssistant) -> _PanelState:
     return hass.data[DATA_PANEL]
 
 
-def panel_settings(hass: HomeAssistant) -> dict[str, bool]:
-    """Whether the sidebar panel is shown and whether only administrators see it."""
+def panel_settings(hass: HomeAssistant) -> dict[str, Any]:
+    """Whether the panel is shown, to whom, its title and whether it has a title bar."""
     return dict(_state(hass).settings)
 
 
 async def async_set_panel_settings(hass: HomeAssistant, settings: dict[str, Any]) -> None:
     """Keep new panel settings and apply them to the sidebar at once."""
     state = _state(hass)
-    changed = {key: bool(settings.get(key, value)) for key, value in state.settings.items()}
+    changed = {key: _clean(key, settings.get(key, value)) for key, value in state.settings.items()}
     if changed == state.settings:
         return
     state.settings = changed
@@ -69,10 +89,14 @@ async def _async_apply(hass: HomeAssistant) -> None:
         hass,
         frontend_url_path=PANEL_PATH,
         webcomponent_name="hikvision-bridge-panel",
-        sidebar_title="Hikvision",
+        sidebar_title=state.settings[OPT_PANEL_TITLE],
         sidebar_icon="mdi:cctv",
         module_url=state.url,
         require_admin=state.settings[OPT_PANEL_ADMIN_ONLY],
+        config={
+            "title": state.settings[OPT_PANEL_TITLE],
+            "header": state.settings[OPT_PANEL_HEADER],
+        },
     )
 
 
@@ -85,7 +109,7 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _stop_sessions)
     state = _state(hass)
     if stored := await state.store.async_load():
-        state.settings.update({k: bool(stored[k]) for k in PANEL_DEFAULTS if k in stored})
+        state.settings.update({k: _clean(k, stored[k]) for k in PANEL_DEFAULTS if k in stored})
     if "frontend" not in hass.config.components:
         return
     from homeassistant.components import frontend  # noqa: PLC0415

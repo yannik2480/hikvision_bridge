@@ -45,7 +45,7 @@
 | Plate recognition (ANPR) | On channels that report plate events: last plate as a sensor (country, direction, confidence, plate and vehicle colour, allow/block list as attributes), vehicle picture and plate close-up (close-up disabled by default); the plate details are also on the event entity and the `hikvision_bridge_event` bus event |
 | Switches | Detections on/off including video loss on recorders (only the `enabled` flag is written back, everything else stays byte-identical); alarm outputs; arm/disarm alarm inputs; privacy mask on/off for cameras whose mask covers the whole frame (drawing it stays on the device) |
 | Image settings | Day/night, supplement light, colour, WDR and more per channel (see below) |
-| Deterrence and audio | Strobe light duration and frequency, alarm siren on/off, siren sound, volume and repeats, speaker and microphone volume (cameras that have them) |
+| Deterrence and audio | White light as a light entity (switches the supplement light to white light and back, with brightness), strobe light duration and frequency, alarm siren on/off, siren sound, volume and repeats, speaker and microphone volume (cameras that have them) |
 | Cameras | Main/sub stream per channel, snapshots, codec and resolution as attributes |
 | PTZ | Pan/tilt/zoom step buttons and a preset select per PTZ channel (also through a recorder); motorised zoom lenses get the zoom buttons only. Park action: switch, idle time, action type (preset, patrol, pattern, scans) and its number, chosen from the stored presets, patrols 1–8 or patterns 1–4 (none for scans) |
 | Recorder | One HA device per channel below the recorder, channel connected, recording per channel, storage status/free/capacity, alarm inputs |
@@ -193,7 +193,10 @@ jump in time, scroll to zoom from 24 hours down to 15 minutes; the buttons step 
 recording that is playing.
 
 The options *Show the Hikvision panel in the sidebar* and *Only administrators see the panel*
-(see [Options](#options)) remove the entry or limit it to administrators.
+(see [Options](#options)) remove the entry or limit it to administrators. *Panel title* renames the
+sidebar entry and the panel's title bar, and *Show the title bar in the panel* turned off leaves more room
+for the picture (the camera layout button then sits next to the camera list; on narrow screens the bar
+stays, it holds the menu button).
 
 Quality defaults to **Auto**:
 
@@ -347,6 +350,8 @@ restored. Deleted areas remove their panel.
 | Recording times | Automatic | The clock the device gives its recording times on: most devices use their own clock, some older cameras real UTC. *Automatic* finds it out from recordings in progress and from the recordings events started |
 | Show the Hikvision panel in the sidebar | on | Removes the sidebar entry when off; the dashboard card keeps working. Applies to all entries of the integration |
 | Only administrators see the panel | off | Hides the sidebar entry from users without administrator rights. Applies to all entries of the integration |
+| Panel title | Hikvision | Name of the sidebar entry and of the panel's title bar. Empty goes back to *Hikvision*. Applies to all entries of the integration |
+| Show the title bar in the panel | on | Off gives the cameras more vertical room. On narrow screens the bar stays, it holds the menu button. Applies to all entries of the integration |
 | Cameras hidden in the sidebar panel | none | Cameras selected here are left out of the panel's camera list, for example IP cameras that do not record or unused recorder inputs. The dashboard card and the entities are not affected. Cameras are named as in Home Assistant, so renames show in the panel |
 
 When *Webhook* or *Both* is chosen, the next step shows the address `/api/webhook/<id>` where
