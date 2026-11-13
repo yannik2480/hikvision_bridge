@@ -126,3 +126,63 @@ async def test_patch_falls_back_when_element_missing(rig) -> None:
         link, "/ISAPI/Thing", {"enabled": "true"}, fallback_path="/ISAPI/Thing/alt"
     )
     assert "<enabled>true</enabled>" in device.documents["/ISAPI/Thing/alt"]
+
+
+HOST_WITH_PROTOCOL = (
+    "<HttpHostNotification><url>/</url><protocolType>HTTP</protocolType>"
+    "<portNo>80</portNo></HttpHostNotification>"
+)
+
+
+def _device_keeps(device: FakeDevice, path: str, keep) -> None:
+    """Store something other than what is written to ``path``, as some devices do."""
+    original = device.handle
+
+    async def answer(request):
+        response = await original(request)
+        if request.method == "PUT" and request.path == path:
+            device.documents[path] = keep(device.documents[path])
+        return response
+
+    device.handle = answer
+
+
+async def test_patch_accepts_protocol_in_other_case(rig) -> None:
+    device = FakeDevice(documents={"/ISAPI/Host": HOST_WITH_PROTOCOL})
+    _device_keeps(device, "/ISAPI/Host", lambda text: text.replace("HTTP<", "http<"))
+    link = await rig(device)
+    await patch_and_verify(link, "/ISAPI/Host", {"protocolType": "HTTP", "portNo": "8123"})
+
+
+async def test_patch_skips_element_the_device_does_not_echo(rig) -> None:
+    device = FakeDevice(documents={"/ISAPI/Host": HOST_WITH_PROTOCOL})
+    _device_keeps(
+        device,
+        "/ISAPI/Host",
+        lambda text: text.replace("<protocolType>HTTP</protocolType>", ""),
+    )
+    link = await rig(device)
+    await patch_and_verify(link, "/ISAPI/Host", {"protocolType": "HTTP", "portNo": "8123"})
+    assert "<portNo>8123</portNo>" in device.documents["/ISAPI/Host"]
+
+
+async def test_patch_names_protocol_the_device_kept(rig) -> None:
+    device = FakeDevice(documents={"/ISAPI/Host": HOST_WITH_PROTOCOL})
+    _device_keeps(device, "/ISAPI/Host", lambda text: text.replace("HTTP<", "HTTPS<"))
+    link = await rig(device)
+    with pytest.raises(VerifyMismatch) as caught:
+        await patch_and_verify(link, "/ISAPI/Host", {"protocolType": "HTTP"})
+    assert caught.value.element == "protocolType"
+    assert caught.value.actual == "HTTPS"
+    assert "HTTPS" in str(caught.value)
+
+
+async def test_patch_hides_value_of_webhook_address(rig) -> None:
+    device = FakeDevice(documents={"/ISAPI/Host": HOST_WITH_PROTOCOL})
+    _device_keeps(device, "/ISAPI/Host", lambda _text: HOST_WITH_PROTOCOL)
+    link = await rig(device)
+    with pytest.raises(VerifyMismatch) as caught:
+        await patch_and_verify(link, "/ISAPI/Host", {"url": "/api/webhook/secret-id"})
+    assert caught.value.element == "url"
+    assert caught.value.actual is None
+    assert "secret-id" not in str(caught.value)

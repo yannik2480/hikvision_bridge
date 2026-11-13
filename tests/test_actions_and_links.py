@@ -5,17 +5,24 @@ from __future__ import annotations
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
+from aiohttp import web
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.entity_platform import async_get_platforms
 import pytest
 
 from custom_components.hikvision_bridge import repairs
-from custom_components.hikvision_bridge.const import DOMAIN, SUBENTRY_CHANNEL_LINK
+from custom_components.hikvision_bridge.const import (
+    DOMAIN,
+    EVENT_PATH_BOTH,
+    OPT_EVENT_PATH,
+    OPT_WEBHOOK_ID,
+    SUBENTRY_CHANNEL_LINK,
+)
 from custom_components.hikvision_bridge.runtime.bridge import direct_rtsp_port
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
@@ -115,6 +122,67 @@ async def test_notification_host_needs_webhook(hass: HomeAssistant, recorder) ->
             return_response=True,
         )
     assert device.writes == []
+
+
+NOTIFICATION_HOST = (
+    '<HttpHostNotification version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+    "<id>1</id><url>/</url><protocolType>HTTP</protocolType>"
+    "<addressingFormatType>ipaddress</addressingFormatType><ipAddress>0.0.0.0</ipAddress>"
+    "<portNo>80</portNo></HttpHostNotification>"
+)
+WRITE_OK = (
+    "<ResponseStatus><statusCode>1</statusCode><statusString>OK</statusString>"
+    "<subStatusCode>ok</subStatusCode></ResponseStatus>"
+)
+
+
+def _notification_slot(device: FakeDevice, keep) -> None:
+    """A notification host slot that stores what it is written, changed by ``keep``."""
+    stored = {"doc": NOTIFICATION_HOST}
+
+    def respond(method: str, body: str) -> web.Response:
+        if method == "PUT":
+            stored["doc"] = keep(body)
+            return web.Response(text=WRITE_OK, content_type="application/xml")
+        return web.Response(text=stored["doc"], content_type="application/xml")
+
+    device.responders["/ISAPI/Event/notification/httpHosts/1"] = respond
+
+
+async def _set_notification_host(hass: HomeAssistant, entry) -> dict:
+    hass.config.internal_url = "http://192.0.2.5:8123"
+    hass.config_entries.async_update_entry(
+        entry,
+        options={**entry.options, OPT_WEBHOOK_ID: "hookid", OPT_EVENT_PATH: EVENT_PATH_BOTH},
+    )
+    return await hass.services.async_call(
+        DOMAIN,
+        "set_notification_host",
+        {"device_id": _main_device(hass, entry), "slot": 1, "confirm_write": True},
+        blocking=True,
+        return_response=True,
+    )
+
+
+async def test_notification_host_accepts_protocol_in_other_case(
+    hass: HomeAssistant, recorder
+) -> None:
+    device, entry = recorder
+    _notification_slot(device, lambda body: body.replace("HTTP<", "http<"))
+    done = await _set_notification_host(hass, entry)
+    assert done["target"] == "http://192.0.2.5:8123/api/webhook/***"
+
+
+async def test_notification_host_names_the_protocol_the_device_kept(
+    hass: HomeAssistant, recorder
+) -> None:
+    device, entry = recorder
+    _notification_slot(device, lambda body: body.replace("HTTP<", "HTTPS<"))
+    with pytest.raises(HomeAssistantError) as err:
+        await _set_notification_host(hass, entry)
+    assert err.value.translation_key == "write_failed"
+    assert "protocolType reads back as 'HTTPS'" in err.value.translation_placeholders["reason"]
+    assert "hookid" not in err.value.translation_placeholders["reason"]
 
 
 async def test_center_link_repair_writes_only_after_confirmation(

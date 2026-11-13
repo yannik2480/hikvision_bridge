@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
+import asyncio
+from datetime import UTC, datetime
 import json
+import logging
 
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import async_capture_events
 
+from custom_components.hikvision_bridge.const import BUS_EVENT
 from custom_components.hikvision_bridge.model.vocabulary import Kind, canonical
 from custom_components.hikvision_bridge.runtime.bridge import MAIN_FEED, DeviceBridge
 from custom_components.hikvision_bridge.runtime.router import DEVICE_SCOPE
 from custom_components.hikvision_bridge.wire.feed import frame_from_json, frame_from_xml
 from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
-from tests.fakedevice import FakeDevice
+from tests.fakedevice import FakeDevice, event_xml, xml_part
 
 DEVICE_INFO_INTERCOM = (
     '<?xml version="1.0" encoding="UTF-8"?>'
@@ -223,6 +228,56 @@ def test_access_controller_event_feed() -> None:
         }
     }
     assert frame_from_json(other_json) is None
+
+
+async def test_door_station_stream_delivers_tamper_and_motion(
+    hass: HomeAssistant, serve, caplog
+) -> None:
+    # The door station of the report: its tamper alarm and motion come over the event stream.
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
+    caplog.set_level(logging.DEBUG, logger="custom_components.hikvision_bridge.wire.feed")
+    device = FakeDevice(
+        "camera_g2",
+        stream_parts=[
+            lambda: xml_part(event_xml("tamperdetection", channel=None, when=now())),
+            lambda: xml_part(event_xml("VMD", channel="1", when=now())),
+        ],
+        stream_hold=3,
+    )
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+            "/ISAPI/VideoIntercom/callStatus?format=json": json.dumps(
+                {"CallStatus": {"status": "idle"}}
+            ),
+        }
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    bus = async_capture_events(hass, BUS_EVENT)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    for _ in range(150):
+        if {"tamper", "motion"} <= {event.data["kind"] for event in bus}:
+            break
+        await asyncio.sleep(0.02)
+    await hass.async_block_till_done()
+
+    kinds = {event.data["kind"] for event in bus}
+    assert {"tamper", "motion"} <= kinds
+    assert _entity(hass, entry, "binary_sensor", "_event_link")
+    link = hass.states.get(_entity(hass, entry, "binary_sensor", "_event_link").entity_id)
+    assert link.state == STATE_ON
+    assert "delivered tamperdetection" in caplog.text
+    assert "delivered VMD" in caplog.text
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 async def test_intercom_multi_door(hass: HomeAssistant, serve) -> None:

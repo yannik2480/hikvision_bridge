@@ -12,7 +12,7 @@ import re
 import time
 from typing import Any
 
-from .faults import BadCredentials, BridgeFault, LockedOut, Unsupported
+from .faults import BadCredentials, BridgeFault, LockedOut, Unsupported, detail
 from .link import IsapiLink
 from .scrub import scrubbed_logger
 from .xmlview import XmlError, XmlNode, decode, parse
@@ -531,6 +531,12 @@ class AlarmFeed:
                 return
             except BridgeFault as err:
                 self.stats.last_error = type(err).__name__
+                _LOGGER.debug(
+                    "Event stream of %s failed: %s; retrying in %d s",
+                    self._link.endpoint.host,
+                    detail(err),
+                    delay,
+                )
                 await self._set_state(False, err)
             except asyncio.CancelledError:
                 raise
@@ -545,11 +551,21 @@ class AlarmFeed:
 
     async def _session(self) -> bool:
         """Run one connection; True when it ended because the device went quiet."""
+        host = self._link.endpoint.host
         async with self._link.open_stream(self._path) as response:
             connected_at = datetime.now(UTC)
             self.stats.connects += 1
             self.stats.connected_since = connected_at
-            splitter = MultipartSplitter(boundary_of(response.headers.get("Content-Type", "")))
+            content_type = response.headers.get("Content-Type", "")
+            boundary = boundary_of(content_type)
+            splitter = MultipartSplitter(boundary)
+            frames_before = self.stats.frames
+            _LOGGER.debug(
+                "Event stream of %s connected (%s, %s)",
+                host,
+                content_type or "no content type",
+                "multipart boundary" if boundary else "no multipart boundary",
+            )
             await self._set_state(True, None)
             pending: FeedFrame | None = None
             pending_until = 0.0
@@ -568,12 +584,19 @@ class AlarmFeed:
                         pending = None
                         continue
                     _LOGGER.debug(
-                        "Event stream of %s went silent; reconnecting", self._link.endpoint.host
+                        "Event stream of %s went silent after %d frame(s); reconnecting",
+                        host,
+                        self.stats.frames - frames_before,
                     )
                     return True
                 if not chunk:
                     if pending is not None:
                         self._deliver(pending, connected_at)
+                    _LOGGER.debug(
+                        "Event stream of %s closed by the device after %d frame(s); reconnecting",
+                        host,
+                        self.stats.frames - frames_before,
+                    )
                     return False
                 last_chunk = time.monotonic()
                 for part in splitter.push(chunk):
@@ -610,13 +633,32 @@ class AlarmFeed:
                     pending = None
 
     def _deliver(self, frame: FeedFrame, connected_at: datetime) -> None:
+        host = self._link.endpoint.host
         if frame.device_time is not None:
             # Events stamped before the connection existed are replays of a device backlog.
             local_time = frame.device_time - self._clock_offset
             if local_time < connected_at - BACKLOG_TOLERANCE:
                 self.stats.backlog_dropped += 1
+                # Without heartbeats the clock offset stays unknown: a device clock behind
+                # Home Assistant shows up here as every event being dropped.
+                _LOGGER.debug(
+                    "Event stream of %s dropped %s stamped %s before the connection "
+                    "(clock offset %.0f s)",
+                    host,
+                    frame.raw_type,
+                    frame.device_time.isoformat(),
+                    self._clock_offset.total_seconds(),
+                )
                 return
         self.stats.frames += 1
+        _LOGGER.debug(
+            "Event stream of %s delivered %s (%s, channel %s, port %s)",
+            host,
+            frame.raw_type,
+            frame.state,
+            frame.channel_id,
+            frame.port_id,
+        )
         try:
             self._on_frame(frame)
         except Exception:

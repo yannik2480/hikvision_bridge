@@ -9,6 +9,10 @@ from ...wire.faults import DeviceRejected, Unsupported
 from ...wire.link import IsapiLink
 from ...wire.xmlview import RawDocument
 
+# Elements whose read-back value may be shown when it differs: protocol and addressing names.
+# Everything else can hold a secret (a webhook id, an address) and is only named.
+SHOWN_ON_MISMATCH = frozenset({"protocoltype", "addressingformattype", "portno"})
+
 
 class VerifyMismatch(DeviceRejected):
     """The device accepted a write but reads back a different value."""
@@ -16,17 +20,27 @@ class VerifyMismatch(DeviceRejected):
     translation_key = "verify_mismatch"
 
     def __init__(
-        self, message: str, status: int, sub_status: str | None = None, *, element: str = ""
+        self,
+        message: str,
+        status: int,
+        sub_status: str | None = None,
+        *,
+        element: str = "",
+        actual: str | None = None,
     ) -> None:
         super().__init__(message, status, sub_status)
-        # Name of the element that did not stick; never its value (it may hold a secret).
+        # Name of the element that did not stick, and what the device reads back for it when
+        # that value is shown (SHOWN_ON_MISMATCH only).
         self.element = element
+        self.actual = actual
 
 
 def _reads_back_as(actual: str, value: str) -> bool:
     """Whether the device kept ``value``.
 
-    A path is accepted when the device reads it back as a full address ending in it.
+    Case does not count (``HTTP`` reads back as ``http``). A path is accepted when the device
+    reads it back as a full address ending in it. Any other difference, empty values included,
+    is a mismatch.
     """
     actual, value = actual.strip().lower(), value.lower()
     if actual == value:
@@ -61,11 +75,15 @@ async def patch_and_verify(
     for element, value in edits.items():
         actual = check.get(element)
         if actual is not None and not _reads_back_as(actual, value):
+            shown = actual if element.lower() in SHOWN_ON_MISMATCH else None
             raise VerifyMismatch(
-                f"{element} reads back as {actual!r} instead of {value!r}",
+                f"{element} did not stick"
+                if shown is None
+                else f"{element} reads back as {shown!r} instead of {value!r}",
                 200,
                 "verify",
                 element=element,
+                actual=shown,
             )
     return document
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 
 import aiohttp
@@ -169,3 +169,55 @@ async def test_failing_handler_does_not_end_stream(run_feed) -> None:
     alarm._on_frame = handler
     await _until(lambda: len(seen) == 2)
     assert seen == ["VMD", "linedetection"]
+
+
+FEED_LOGGER = "custom_components.hikvision_bridge.wire.feed"
+
+
+async def test_stream_logs_connect_delivery_and_close(run_feed, monkeypatch, caplog) -> None:
+    # A door station that closes the stream after an event: each step shows in the debug log.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    caplog.set_level("DEBUG", logger=FEED_LOGGER)
+    device = FakeDevice(stream_parts=[xml_part(event_xml("tamperdetection", when=_now()))])
+    _, frames, _ = await run_feed(device)
+    await _until(lambda: "closed by the device" in caplog.text)
+    assert "connected (multipart/mixed; boundary=boundary, multipart boundary)" in caplog.text
+    assert "delivered tamperdetection (active, channel 1" in caplog.text
+    assert "closed by the device after 1 frame(s)" in caplog.text
+    assert frames[0].raw_type == "tamperdetection"
+
+
+async def test_failing_stream_logs_why_and_when_it_retries(run_feed, monkeypatch, caplog) -> None:
+    # Without a log line, a stream refused on every try looks like one that never connected.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    caplog.set_level("DEBUG", logger=FEED_LOGGER)
+    device = FakeDevice()
+    device.overrides[feed.STREAM_PATH] = (
+        403,
+        "<ResponseStatus><statusCode>4</statusCode>"
+        "<subStatusCode>notSupport</subStatusCode></ResponseStatus>",
+    )
+    alarm, frames, states = await run_feed(device)
+    await _until(lambda: "failed: Unsupported" in caplog.text)
+    assert "retrying in 30 s" in caplog.text
+    assert alarm.stats.connects == 0
+    assert alarm.stats.last_error == "Unsupported"
+    assert frames == []
+    # Down, but not reported as an authentication fault (that would ask for new credentials).
+    assert states
+    assert not any(up for up, _ in states)
+    assert not any(isinstance(fault, faults.BadCredentials) for _, fault in states)
+
+
+async def test_backlog_drop_logs_device_clock_offset(run_feed, monkeypatch, caplog) -> None:
+    # Door stations send no heartbeats, so the clock offset stays 0: an event stamped by a device
+    # clock behind Home Assistant is taken for a backlog replay. The log says so.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    caplog.set_level("DEBUG", logger=FEED_LOGGER)
+    stamp = (datetime.now(UTC) - timedelta(hours=1)).isoformat(timespec="seconds")
+    device = FakeDevice(stream_parts=[xml_part(event_xml("VMD", when=stamp))])
+    alarm, frames, _ = await run_feed(device)
+    await _until(lambda: alarm.stats.backlog_dropped == 1)
+    assert frames == []
+    assert "dropped VMD stamped" in caplog.text
+    assert "(clock offset 0 s)" in caplog.text

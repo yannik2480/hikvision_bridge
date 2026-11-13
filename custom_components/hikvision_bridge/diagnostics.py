@@ -92,7 +92,14 @@ async def async_get_config_entry_diagnostics(
         channel: {"healthy": route.healthy, "events_from_camera": route.events_from_camera}
         for channel, route in bridge.routes.items()
     }
-    result["feeds"] = {name: asdict(feed.stats) for name, feed in bridge.feeds.items()}
+    result["feeds"] = {
+        name: {
+            **asdict(feed.stats),
+            "connected": feed.connected,
+            "clock_offset_s": feed.clock_offset.total_seconds(),
+        }
+        for name, feed in bridge.feeds.items()
+    }
     result["events"] = {
         "recent": {scope: list(items) for scope, items in bridge.router.recent.items()},
         "unknown_channels": bridge.router.unknown_channels,

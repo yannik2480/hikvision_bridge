@@ -85,6 +85,8 @@ def _fail(err: BridgeFault, key: str = "write_failed") -> HomeAssistantError:
     reason = type(err).__name__
     if isinstance(err, VerifyMismatch) and err.element:
         reason = f"{reason}: {err.element}"
+        if err.actual is not None:
+            reason = f"{reason} reads back as {err.actual!r}"
     return HomeAssistantError(
         translation_domain=DOMAIN,
         translation_key=key,
