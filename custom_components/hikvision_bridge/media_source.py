@@ -1,9 +1,9 @@
 """Recordings of recorders and memory cards in the media browser.
 
-One folder per channel, named by the channel's Home Assistant device id, then its days:
-``device/day`` lists the files that start on the day, ``device/day/kind`` those of one kind,
-``device/clip/token`` is one recorded file. A recorder's channels play from the recorder,
-cameras from their memory card.
+One folder per device, named by its config entry id, then one per channel with recordings, named
+by the channel's Home Assistant device id, then its days: ``entry/device/day`` lists the files that
+start on the day, ``entry/device/day/kind`` those of one kind, ``entry/device/clip/token`` is one
+recorded file. A recorder's channels play from the recorder, cameras from their memory card.
 """
 
 from __future__ import annotations
@@ -125,18 +125,21 @@ class BridgeMediaSource(MediaSource):
             channels = self._channels()
             if not parts:
                 return self._root(channels)
-            if parts[0] not in channels or len(parts) > 3:
+            if len(parts) == 1:
+                return self._device(parts[0], channels)
+            bridge, channel_id = _channel(channels, parts[0], parts[1])
+            if len(parts) > 4:
                 raise BrowseError("Unknown media item")
-            bridge, channel_id = channels[parts[0]]
+            folder = f"{parts[0]}/{parts[1]}"
             # The recorder if the device records, else the camera's own memory card.
             source = sources(bridge, channel_id)[0]
-            if len(parts) == 1:
-                return await self._days(parts[0], bridge, channel_id, source)
-            day = date.fromisoformat(parts[1])
-            kind = parts[2] if len(parts) == 3 else None
+            if len(parts) == 2:
+                return await self._days(folder, bridge, channel_id, source)
+            day = date.fromisoformat(parts[2])
+            kind = parts[3] if len(parts) == 4 else None
             if kind not in (None, *recordings.KINDS):
                 raise BrowseError("Unknown media item")
-            return await self._day(parts[0], bridge, channel_id, source, day, kind)
+            return await self._day(folder, bridge, channel_id, source, day, kind)
         except BridgeFault as err:
             raise BrowseError(f"Device not reachable ({type(err).__name__})") from err
         except ValueError as err:
@@ -145,20 +148,31 @@ class BridgeMediaSource(MediaSource):
     def _root(self, channels: dict[str, tuple[DeviceBridge, str]]) -> BrowseMediaSource:
         base = _folder("", self.name)
         base.identifier = None
+        entries = {bridge.entry.entry_id: bridge.entry.title for bridge, _ in channels.values()}
+        base.children = [_folder(entry_id, title) for entry_id, title in entries.items()]
+        return base
+
+    def _device(
+        self, entry_id: str, channels: dict[str, tuple[DeviceBridge, str]]
+    ) -> BrowseMediaSource:
+        own = {d: c for d, c in channels.items() if c[0].entry.entry_id == entry_id}
+        if not own:
+            raise BrowseError("Unknown media item")
+        base = _folder(entry_id, next(iter(own.values()))[0].entry.title)
         base.children = [
             _folder(
-                device_id,
+                f"{entry_id}/{device_id}",
                 bridge.profile.channels[channel_id].name,
                 thumbnail=self._camera_thumbnail(bridge, channel_id),
             )
-            for device_id, (bridge, channel_id) in channels.items()
+            for device_id, (bridge, channel_id) in own.items()
         ]
         return base
 
     async def _days(
-        self, device_id: str, bridge: DeviceBridge, channel_id: str, source: PlaybackSource
+        self, folder: str, bridge: DeviceBridge, channel_id: str, source: PlaybackSource
     ) -> BrowseMediaSource:
-        base = _folder(device_id, bridge.profile.channels[channel_id].name)
+        base = _folder(folder, bridge.profile.channels[channel_id].name)
         today = dt_util.now().date()
         days: list[date] = []
         months = {(today.year, today.month)}
@@ -174,14 +188,14 @@ class BridgeMediaSource(MediaSource):
         if not calendar:
             days = [today - timedelta(days=n) for n in range(DAYS_WITHOUT_CALENDAR)]
         base.children = [
-            _folder(f"{device_id}/{day.isoformat()}", day.isoformat())
+            _folder(f"{folder}/{day.isoformat()}", day.isoformat())
             for day in sorted(days, reverse=True)[:MAX_DAYS]
         ]
         return base
 
     async def _day(
         self,
-        device_id: str,
+        folder: str,
         bridge: DeviceBridge,
         channel_id: str,
         source: PlaybackSource,
@@ -190,7 +204,7 @@ class BridgeMediaSource(MediaSource):
     ) -> BrowseMediaSource:
         """The files that start on ``day``; with several kinds, a folder per kind as well."""
         labels = await self._labels()
-        prefix = f"{device_id}/{day.isoformat()}"
+        prefix = f"{folder}/{day.isoformat()}"
         start, end = _midnight(day), _midnight(day + timedelta(days=1))
         # Devices cut files at the ends of a search, playback URIs too. From a second before
         # midnight on, the file running into the day starts before it and is left out.
@@ -236,7 +250,7 @@ class BridgeMediaSource(MediaSource):
         base.children = folders + [
             BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{device_id}/clip/{encode_token(r.playback_uri)}",
+                identifier=f"{folder}/clip/{encode_token(r.playback_uri)}",
                 media_class=MediaClass.VIDEO,
                 media_content_type=MIME[FORMAT_MP4],
                 title=_clip_title(r, labels, show_kind=bool(folders)),
@@ -256,15 +270,16 @@ class BridgeMediaSource(MediaSource):
 
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         parts = (item.identifier or "").split("/")
-        if len(parts) != 3 or parts[1] != "clip":
+        if len(parts) != 4 or parts[2] != "clip":
             raise Unresolvable("Not a recording")
-        device_id, _, token = parts
+        entry_id, device_id, _, token = parts
         uri = decode_token(token)
-        channel = self._channels().get(device_id)
-        if uri is None or channel is None:
+        try:
+            bridge, channel_id = _channel(self._channels(), entry_id, device_id)
+        except BrowseError as err:
+            raise Unresolvable("Unknown recording") from err
+        if uri is None:
             raise Unresolvable("Unknown recording")
-        bridge, channel_id = channel
-        entry_id = bridge.entry.entry_id
         source = sources(bridge, channel_id)[0]
         mode = bridge.entry.options.get(OPT_PLAYBACK, FORMAT_MP4)
         if mode == PLAYBACK_SEEKABLE:
@@ -305,6 +320,16 @@ class BridgeMediaSource(MediaSource):
         stream.add_provider(HLS_PROVIDER)
         await stream.start()
         return PlayMedia(stream.endpoint_url(HLS_PROVIDER), PLAY_HLS)
+
+
+def _channel(
+    channels: dict[str, tuple[DeviceBridge, str]], entry_id: str, device_id: str
+) -> tuple[DeviceBridge, str]:
+    """The bridge and channel of ``entry_id/device_id``."""
+    found = channels.get(device_id)
+    if found is None or found[0].entry.entry_id != entry_id:
+        raise BrowseError("Unknown media item")
+    return found
 
 
 def _midnight(day: date) -> datetime:

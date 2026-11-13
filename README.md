@@ -95,13 +95,13 @@ How it behaves:
 
 ### Recordings
 
-*Media → Hikvision Bridge* lists every camera with recordings, of all devices: the channels of
-recorders and the cameras with a memory card. Each camera holds its days, newest first, and each day
-the files that start on it (`08:32:15 - 11:26:52`). A file that runs past midnight is listed on the day
-it starts, with its real end (`22:18:51 - 00:50:06`). Days with recordings of several kinds (continuous,
-motion, alarm input, smart event, …) show the kind in front of each file (`Motion · 05:54:10 - 08:26:53`)
-and also hold one folder per kind. Days come from the device's calendar; files show their first picture
-as thumbnail (days with up to 60 files).
+*Media → Hikvision Bridge* lists the devices, and each device its cameras with recordings: the
+channels of recorders and the cameras with a memory card. Each camera holds its days, newest first,
+and each day the files that start on it (`08:32:15 - 11:26:52`). A file that runs past midnight is
+listed on the day it starts, with its real end (`22:18:51 - 00:50:06`). Days with recordings of
+several kinds (continuous, motion, alarm input, smart event, …) show the kind in front of each file
+(`Motion · 05:54:10 - 08:26:53`) and also hold one folder per kind. Days come from the device's
+calendar; files show their first picture as thumbnail (days with up to 60 files).
 
 Recorder channels play from the recorder. The memory card of a camera with a
 [direct camera connection](#cameras-behind-a-recorder) is reached from the
@@ -182,10 +182,13 @@ folders:
     ha:
       path:
         - id: media-source://hikvision_bridge
-        # The selected camera's channel, found through its Home Assistant device.
+        # The selected camera's device, then its channel, found through its config entry and device.
         - matchers:
             - type: template
-              value_template: "{{ acc.media.id == 'media-source://hikvision_bridge/' ~ (acc.camera | device_id) }}"
+              value_template: "{{ acc.media.id == 'media-source://hikvision_bridge/' ~ (acc.camera | config_entry_id) }}"
+        - matchers:
+            - type: template
+              value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | device_id)) }}"
         - parsers: [{ type: date, format: yyyy-MM-dd }]
           matchers: [{ type: date, since: { days: 2 } }]
         # Clips only (kind folders stay out), start and end from the title.
@@ -208,10 +211,11 @@ automations:
 * `cameras`: each channel is a camera on its sub stream (light on the dashboard), with its main
   stream as a dependency. The main-stream camera only serves as substream (`disable_except`) and keeps
   its own media (`type: auto`). The two `automations` switch to it in fullscreen and back.
-* `path` walks the media browser from `media-source://hikvision_bridge`, where every camera with
-  recordings is a folder named by its Home Assistant device id. A camera's main and sub stream belong to
-  the same device. Camera ids default to the `camera_entity`, so `acc.camera | device_id` picks the
-  selected camera's folder. Switching cameras walks the folder again for the new one.
+* `path` walks the media browser from `media-source://hikvision_bridge`, where every device is a folder
+  named by its config entry id, and every camera with recordings in it a folder named by its Home
+  Assistant device id. A camera's main and sub stream belong to the same device. Camera ids default to
+  the `camera_entity`, so `acc.camera | config_entry_id` and `acc.camera | device_id` pick the selected
+  camera's folders. Switching cameras walks the folders again for the new one.
 * The day level reads the date from the folder title (`2026-11-08`) and takes the last two days
   (`since`); raise it for more, at one device search per day.
 * The last level takes only the files (`not acc.media.is_folder` leaves out the kind folders) and

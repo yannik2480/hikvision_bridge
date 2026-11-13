@@ -64,7 +64,8 @@ async def test_seekable_playback(
     )
     played = await media_source.async_resolve_media(
         hass,
-        f"media-source://{DOMAIN}/{entry.runtime_data.device_ids['1']}/clip/{encode_token(URI)}",
+        f"media-source://{DOMAIN}/{entry.entry_id}/{entry.runtime_data.device_ids['1']}"
+        f"/clip/{encode_token(URI)}",
         None,
     )
     assert played.mime_type == "application/x-mpegURL"
