@@ -121,11 +121,7 @@ class BridgeMediaSource(MediaSource):
 
     @staticmethod
     def _channels(bridge: DeviceBridge) -> list[str]:
-        return [
-            cid
-            for cid in bridge.profile.channels
-            if cid in bridge.device_ids and sources(bridge, cid)
-        ]
+        return [cid for cid in bridge.profile.channels if sources(bridge, cid)]
 
     # -------------------------------------------------------------- browse
 
@@ -361,7 +357,7 @@ class BridgeMediaSource(MediaSource):
 
 def _path(bridge: DeviceBridge, channel_id: str) -> str:
     """``entry/device``: the folder of a channel."""
-    return f"{bridge.entry.entry_id}/{bridge.device_ids[channel_id]}"
+    return f"{bridge.entry.entry_id}/{bridge.ha_device_id(channel_id)}"
 
 
 def _channel_of(bridge: DeviceBridge, device_id: str) -> str | None:

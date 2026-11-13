@@ -145,9 +145,8 @@ The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) 
 these recordings through its `folders` with the Home Assistant media browser as source (support in the
 card is still growing, so details may change). A channel's folder is
 `media-source://hikvision_bridge/<config entry id>/<device id>`, named by the channel's Home Assistant
-device; day folders are named by date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`).
-Channels with both a recorder and a memory card have one more level, *Recorder* or *Memory card*, and
-so do days with recordings of several kinds: *All* and one folder per kind.
+device; day folders are named by date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`). Days
+with recordings of several kinds have one more level: *All* and one folder per kind.
 
 Since a camera entity knows its config entry and device, one `folders` entry finds the recordings of
 whichever camera the card shows. With the `enddate` parser
@@ -161,7 +160,8 @@ cameras_global:
 cameras:
   - camera_entity: camera.front_yard_main
 folders:
-  - id: recordings
+  - type: ha
+    id: recordings
     title: Recordings
     ha:
       path:
