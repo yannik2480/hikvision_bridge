@@ -162,7 +162,7 @@ folders:
         - {}
         - matchers:
             - type: template
-              value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | device_id)) }}"
+              value_template: "{{ (acc.camera | device_id) in acc.media.id }}"
         - parsers:
             - type: date
               format: yyyy-MM-dd
