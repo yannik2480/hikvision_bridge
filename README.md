@@ -168,7 +168,6 @@ folders:
               format: yyyy-MM-dd
         - parsers:
             - { type: startdate, regexp: '^(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
-            # Needs the card's enddate parser (advanced-camera-card#2868).
             - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
 ```
 
