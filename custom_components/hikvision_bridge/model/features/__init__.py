@@ -15,6 +15,24 @@ class VerifyMismatch(DeviceRejected):
 
     translation_key = "verify_mismatch"
 
+    def __init__(
+        self, message: str, status: int, sub_status: str | None = None, *, element: str = ""
+    ) -> None:
+        super().__init__(message, status, sub_status)
+        # Name of the element that did not stick; never its value (it may hold a secret).
+        self.element = element
+
+
+def _reads_back_as(actual: str, value: str) -> bool:
+    """Whether the device kept ``value``.
+
+    A path is accepted when the device reads it back as a full address ending in it.
+    """
+    actual, value = actual.strip().lower(), value.lower()
+    if actual == value:
+        return True
+    return value.startswith("/") and "://" in actual and actual.endswith(value)
+
 
 async def patch_and_verify(
     link: IsapiLink,
@@ -42,9 +60,12 @@ async def patch_and_verify(
     check = RawDocument((await link.call("GET", target)).text)
     for element, value in edits.items():
         actual = check.get(element)
-        if actual is not None and actual.lower() != value.lower():
+        if actual is not None and not _reads_back_as(actual, value):
             raise VerifyMismatch(
-                f"{element} reads back as {actual!r} instead of {value!r}", 200, "verify"
+                f"{element} reads back as {actual!r} instead of {value!r}",
+                200,
+                "verify",
+                element=element,
             )
     return document
 

@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import CONF_ENTRY_KIND, KIND_CLOUD, OPT_TARGET_SENSORS
 from .entity import PolledEntity, PushEntity, add_entities
 from .model.features.storage import HEALTHY
-from .model.inventory import DeviceShape, IoPort
+from .model.inventory import IoPort
 from .model.vocabulary import Kind
 from .runtime.bridge import MAIN_FEED, DeviceBridge
 from .runtime.router import DEVICE_SCOPE, signal_state
@@ -73,8 +73,7 @@ async def async_setup_entry(
         entities.append(StreamEncryptionSensor(bridge))
     if profile.intercom and profile.intercom.has_call_status:
         entities.append(DoorbellRingingSensor(bridge))
-    if profile.shape != DeviceShape.INTERCOM:
-        entities.append(EventLinkSensor(bridge))
+    entities.append(EventLinkSensor(bridge))
     add_entities(bridge, async_add_entities, entities)
 
 

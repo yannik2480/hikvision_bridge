@@ -74,8 +74,45 @@ async def test_patch_detects_value_not_taken(rig) -> None:
 
     device.handle = ignore_writes
     link = await rig(device)
-    with pytest.raises(VerifyMismatch):
+    with pytest.raises(VerifyMismatch) as caught:
         await patch_and_verify(link, "/ISAPI/Thing", {"enabled": "true"})
+    assert caught.value.element == "enabled"
+
+
+HOST = "<HttpHostNotification><url>/</url><portNo>80</portNo></HttpHostNotification>"
+
+
+async def test_patch_accepts_path_read_back_as_full_address(rig) -> None:
+    # Door stations read the notification path back with scheme and host in front.
+    device = FakeDevice(documents={"/ISAPI/Host": HOST})
+    original_handle = device.handle
+
+    async def expand_url(request):
+        response = await original_handle(request)
+        device.documents["/ISAPI/Host"] = device.documents["/ISAPI/Host"].replace(
+            "<url>/api/", "<url>http://192.0.2.5:8123/api/"
+        )
+        return response
+
+    device.handle = expand_url
+    link = await rig(device)
+    await patch_and_verify(link, "/ISAPI/Host", {"url": "/api/webhook/abc", "portNo": "8123"})
+
+
+async def test_patch_detects_path_not_taken(rig) -> None:
+    device = FakeDevice(documents={"/ISAPI/Host": HOST})
+    original_handle = device.handle
+
+    async def keep_old(request):
+        response = await original_handle(request)
+        device.documents["/ISAPI/Host"] = HOST.replace("<url>/<", "<url>http://192.0.2.5/<")
+        return response
+
+    device.handle = keep_old
+    link = await rig(device)
+    with pytest.raises(VerifyMismatch) as caught:
+        await patch_and_verify(link, "/ISAPI/Host", {"url": "/api/webhook/abc"})
+    assert caught.value.element == "url"
 
 
 async def test_patch_falls_back_when_element_missing(rig) -> None:

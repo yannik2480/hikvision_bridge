@@ -19,7 +19,7 @@ import voluptuous as vol
 from yarl import URL
 
 from .const import DOMAIN, OPT_WEBHOOK_ID
-from .model.features import linkage, patch_and_verify, ptz, recordings
+from .model.features import VerifyMismatch, linkage, patch_and_verify, ptz, recordings
 from .model.vocabulary import Kind
 from .wire.faults import BridgeFault
 from .wire.scrub import scrub_text
@@ -82,10 +82,13 @@ def _target_of(hass: HomeAssistant, device_id: str) -> tuple[Any, str | None]:
 
 
 def _fail(err: BridgeFault, key: str = "write_failed") -> HomeAssistantError:
+    reason = type(err).__name__
+    if isinstance(err, VerifyMismatch) and err.element:
+        reason = f"{reason}: {err.element}"
     return HomeAssistantError(
         translation_domain=DOMAIN,
         translation_key=key,
-        translation_placeholders={"reason": type(err).__name__},
+        translation_placeholders={"reason": reason},
     )
 
 

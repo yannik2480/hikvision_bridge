@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 
-from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.hikvision_bridge.model.vocabulary import Kind, canonical
-from custom_components.hikvision_bridge.runtime.bridge import DeviceBridge
+from custom_components.hikvision_bridge.runtime.bridge import MAIN_FEED, DeviceBridge
 from custom_components.hikvision_bridge.runtime.router import DEVICE_SCOPE
 from custom_components.hikvision_bridge.wire.feed import frame_from_json, frame_from_xml
 from custom_components.hikvision_bridge.wire.xmlview import parse
@@ -97,6 +97,19 @@ async def test_intercom_entities_setup_and_unlock(hass: HomeAssistant, serve) ->
     bell_event = _entity(hass, entry, "event", "_doorbell")
     assert bell_event is not None
 
+    # Door stations get the event stream too (tamper, motion); the doorbell does not depend on it
+    bridge: DeviceBridge = entry.runtime_data
+    assert MAIN_FEED in bridge.feeds
+    assert _entity(hass, entry, "binary_sensor", "_event_link") is not None
+    bridge.router._feeds_up[MAIN_FEED] = False
+    bridge.router._feeds_down_since[MAIN_FEED] = 0.0
+    assert not bridge.router.feeds_healthy()
+    bridge.refresher.async_update_listeners()
+    await hass.async_block_till_done()
+    assert hass.states.get(bell_event.entity_id).state != STATE_UNAVAILABLE
+    bridge.router._feeds_up[MAIN_FEED] = True
+    bridge.router._feeds_down_since.pop(MAIN_FEED)
+
     # Test unlocking the door via button press
     device.writes.clear()
     await hass.services.async_call(
@@ -112,7 +125,6 @@ async def test_intercom_entities_setup_and_unlock(hass: HomeAssistant, serve) ->
     device.documents["/ISAPI/VideoIntercom/callStatus?format=json"] = json.dumps(
         {"CallStatus": {"status": "ring"}}
     )
-    bridge: DeviceBridge = entry.runtime_data
     await bridge.async_poll_intercom()
     await hass.async_block_till_done()
 

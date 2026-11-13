@@ -128,6 +128,17 @@ async def test_stream_end_reconnects_after_backoff(run_feed, monkeypatch) -> Non
     assert frames
 
 
+async def test_quiet_stream_reconnects_without_dropping(run_feed, monkeypatch) -> None:
+    # Door stations send no heartbeats: a quiet stream is reopened at once, not reported down.
+    monkeypatch.setattr(feed, "SILENCE_LIMIT", 0.1)
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 30.0)
+    device = FakeDevice(stream_parts=[xml_part(event_xml("VMD", when=_now()))], stream_hold=0.5)
+    alarm, _, states = await run_feed(device)
+    await _until(lambda: alarm.stats.connects >= 2)
+    assert states == [(True, None)]
+    assert alarm.connected
+
+
 async def test_wrong_password_stops_feed_for_good(run_feed, monkeypatch) -> None:
     monkeypatch.setattr(feed, "BACKOFF_FIRST", 0.01)
     device = FakeDevice()

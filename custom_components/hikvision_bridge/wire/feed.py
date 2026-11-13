@@ -498,8 +498,12 @@ class AlarmFeed:
         delay = BACKOFF_FIRST
         while True:
             try:
-                await self._session()
+                went_quiet = await self._session()
                 delay = BACKOFF_FIRST
+                if went_quiet:
+                    # Some devices (door stations) send no heartbeats: reconnect right away
+                    # and stay "connected", a failing reconnect still reports the drop.
+                    continue
                 await self._set_state(False, None)
             except (BadCredentials, LockedOut) as err:
                 self.stats.last_error = type(err).__name__
@@ -519,7 +523,8 @@ class AlarmFeed:
             await asyncio.sleep(delay)
             delay = min(delay * 2, BACKOFF_MAX)
 
-    async def _session(self) -> None:
+    async def _session(self) -> bool:
+        """Run one connection; True when it ended because the device went quiet."""
         async with self._link.open_stream(self._path) as response:
             connected_at = datetime.now(UTC)
             self.stats.connects += 1
@@ -545,11 +550,11 @@ class AlarmFeed:
                     _LOGGER.debug(
                         "Event stream of %s went silent; reconnecting", self._link.endpoint.host
                     )
-                    return
+                    return True
                 if not chunk:
                     if pending is not None:
                         self._deliver(pending, connected_at)
-                    return
+                    return False
                 last_chunk = time.monotonic()
                 for part in splitter.push(chunk):
                     item = frame_from_part(part)

@@ -37,7 +37,7 @@ from ..const import (
 from ..model import audit
 from ..model.discover import read_identity_only
 from ..model.features import adjust, detection, health, intercom, io, ptz, storage
-from ..model.inventory import CloudLinkState, DeviceProfile, DeviceShape
+from ..model.inventory import CloudLinkState, DeviceProfile
 from ..model.vocabulary import Kind
 from ..wire.faults import BadCredentials, BridgeFault, LockedOut
 from ..wire.feed import AlarmFeed
@@ -269,8 +269,8 @@ class DeviceBridge:
         return route.subentry_id if route else None
 
     def start_feeds(self) -> None:
-        if self.profile.shape == DeviceShape.INTERCOM:
-            return
+        # Door stations get the stream as well (tamper, motion, inputs). Their doorbell comes
+        # from the call status polling and stays available when the stream drops.
         path = self.entry.options.get(OPT_EVENT_PATH, EVENT_PATH_STREAM)
         if path == EVENT_PATH_WEBHOOK:
             return

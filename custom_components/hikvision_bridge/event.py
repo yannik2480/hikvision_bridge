@@ -88,6 +88,8 @@ class DoorbellEvent(BridgeEntity, EventEntity):
                 self.hass, signal_trigger(self.bridge.entry.entry_id), self._on_hit
             )
         )
+        # Availability follows the polling.
+        self.async_on_remove(self.bridge.refresher.async_add_listener(self.async_write_ha_state))
 
     @callback
     def _on_hit(self, hit: Hit) -> None:
@@ -97,4 +99,5 @@ class DoorbellEvent(BridgeEntity, EventEntity):
 
     @property
     def available(self) -> bool:
-        return self.bridge.router.feeds_healthy()
+        # The ring comes from the call status polling, the event stream only adds to it.
+        return self.bridge.refresher.last_update_success
