@@ -64,6 +64,13 @@ LIGHT = f"""<?xml version="1.0" encoding="UTF-8"?>
 </SupplementLight>
 """
 
+IRCUT = f"""<?xml version="1.0" encoding="UTF-8"?>
+<IrcutFilter {NS}>
+<IrcutFilterType>auto</IrcutFilterType>
+<nightToDayFilterLevel>2</nightToDayFilterLevel>
+</IrcutFilter>
+"""
+
 IMAGE = f"""<?xml version="1.0" encoding="UTF-8"?>
 <ImageChannel {NS}>
 <id>1</id>
@@ -91,6 +98,7 @@ def _image_device(**kwargs) -> FakeDevice:
             BASE: IMAGE,
             f"{BASE}/color": COLOR,
             f"{BASE}/supplementLight": LIGHT,
+            f"{BASE}/IrcutFilter": IRCUT,
         }
     )
     return device
@@ -244,10 +252,32 @@ async def test_white_light_switches_the_supplement_light(hass: HomeAssistant, se
 
     device.writes.clear()
     await hass.services.async_call("light", "turn_on", {"entity_id": light}, blocking=True)
+    # The camera only lights the lamp at night: night mode first, then the white light.
     method, path, body = device.writes[0]
+    assert (method, path) == ("PUT", f"{BASE}/IrcutFilter")
+    assert "<IrcutFilterType>night</IrcutFilterType>" in body
+    method, path, body = device.writes[1]
     assert (method, path) == ("PUT", f"{BASE}/supplementLight")
     assert "<supplementLightMode>colorVuWhiteLight</supplementLightMode>" in body
     assert "<irLightBrightness>30</irLightBrightness>" in body
+
+    # The camera now reports night and white light in its image document too.
+    device.documents[BASE] = (
+        IMAGE.replace(">auto</IrcutFilterType>", ">night</IrcutFilterType>")
+        .replace(">irLight<", ">colorVuWhiteLight<")
+        .replace("<irLightBrightness>30", "<whiteLightBrightness>30")
+        .replace("30</irLightBrightness>", "30</whiteLightBrightness>")
+    )
+    refresher = entry.runtime_data.refresher
+    refresher.request_full()
+    await refresher.async_refresh()
+    assert hass.states.get(light).state == "on"
+
+    device.writes.clear()
+    await hass.services.async_call("light", "turn_off", {"entity_id": light}, blocking=True)
+    bodies = [body for _, _, body in device.writes]
+    assert any("<supplementLightMode>irLight</supplementLightMode>" in b for b in bodies)
+    assert any("<IrcutFilterType>auto</IrcutFilterType>" in b for b in bodies)
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
@@ -276,8 +306,12 @@ async def test_white_light_off_goes_back_to_another_mode(hass: HomeAssistant, se
     await hass.services.async_call(
         "light", "turn_on", {"entity_id": light, "brightness": 255}, blocking=True
     )
-    assert len(device.writes) == 1  # already white: only the brightness
-    assert "<whiteLightBrightness>100</whiteLightBrightness>" in device.writes[0][2]
+    # Already white: night mode and the brightness only.
+    assert [path for _, path, _ in device.writes] == [
+        f"{BASE}/IrcutFilter",
+        f"{BASE}/supplementLight",
+    ]
+    assert "<whiteLightBrightness>100</whiteLightBrightness>" in device.writes[1][2]
 
     device.writes.clear()
     await hass.services.async_call("light", "turn_off", {"entity_id": light}, blocking=True)
