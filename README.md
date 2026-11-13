@@ -166,10 +166,6 @@ folders:
         - parsers:
             - type: date
               format: yyyy-MM-dd
-          matchers:
-            - type: date
-              since:
-                days: 2
         - parsers:
             - { type: startdate, regexp: '(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
             - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
