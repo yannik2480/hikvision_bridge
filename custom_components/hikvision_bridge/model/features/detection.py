@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 
-from ...wire.faults import DeviceRejected, Unsupported
+from ...wire.faults import BridgeFault, Unsupported
 from ...wire.link import IsapiLink
 from ...wire.xmlview import RawDocument, XmlNode, parse
 from ..ids import seg
@@ -25,11 +24,6 @@ _PATHS: dict[Kind, str] = {
 }
 # Watched by the recorder itself, not by the camera: always configured on the recorder.
 RECORDER_ONLY: frozenset[Kind] = frozenset({Kind.VIDEO_LOSS})
-# Switched with a document that holds nothing but ``enabled``: some firmware redraws the
-# detection area as a full-frame rectangle whenever the layout is written back, even unchanged.
-_ENABLED_ONLY: frozenset[Kind] = frozenset({Kind.MOTION})
-_ROOT_TAG = re.compile(r"<([A-Za-z_][\w.-]*)(?:\s[^<>]*)?>")
-_BETWEEN_TAGS = re.compile(r">\s+<")
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,44 +79,46 @@ async def switch(link: IsapiLink, kind: Kind, channel_id: str, on: bool) -> Dete
     if path is None:
         raise ValueError(f"{kind} cannot be switched")
     value = "true" if on else "false"
-    if kind in _ENABLED_ONLY:
-        document = await _switch_enabled_only(link, path, value)
+    if kind == Kind.MOTION:
+        document = await _switch_motion(link, path, value)
     else:
         document = await patch_and_verify(link, path, {"enabled": value})
     return interpret(kind, parse(document.text))
 
 
-def _same(left: str, right: str) -> bool:
-    return _BETWEEN_TAGS.sub("><", left.strip()) == _BETWEEN_TAGS.sub("><", right.strip())
+async def _draws_polygons(link: IsapiLink, path: str, document: XmlNode) -> bool:
+    """Whether the motion area is a polygon that the device reports under ``regionType`` grid.
 
-
-async def _switch_enabled_only(link: IsapiLink, path: str, value: str) -> RawDocument:
-    """Send only ``enabled``; write the complete document when that does not do the job.
-
-    The complete document follows when the device refuses the short one, ignores it or
-    changes anything besides ``enabled``, which also puts those other values back.
+    Polygon firmware (G3, V5.11) answers ``grid`` but redraws the polygon as the bounding box
+    of ``gridMap`` when that is written back. Its web UI writes ``region`` with an empty
+    ``gridMap`` instead, which the capabilities offer as an option.
     """
-    wanted = RawDocument((await link.call("GET", path)).text)
-    root = _ROOT_TAG.search(wanted.text)
-    if root is None or not wanted.set("enabled", value):
-        raise Unsupported(f"{path} has no element enabled")
-    short = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        f"{root.group(0)}\n<enabled>{value}</enabled>\n</{root.group(1)}>\n"
-    )
+    if (document.text("regionType") or "").lower() != "grid":
+        return False
+    if not _has_points(list(document.walk("RegionCoordinates"))):
+        return False
     try:
-        await link.write_xml(path, short)
-    except (DeviceRejected, Unsupported):
-        pass
-    else:
-        after = (await link.call("GET", path)).text
-        if _same(after, wanted.text):
-            return wanted
+        caps = await link.read_xml(f"{path}/capabilities", optional=True)
+    except BridgeFault:
+        return False
+    node = caps.first("regionType") if caps is not None else None
+    options = node.attrs.get("opt", "") if node is not None else ""
+    return "region" in (option.strip().lower() for option in options.split(","))
 
-    await link.write_xml(path, wanted.text)
+
+async def _switch_motion(link: IsapiLink, path: str, value: str) -> RawDocument:
+    """Write the motion document back the way the camera's web UI does, keeping the area."""
+    document = RawDocument((await link.call("GET", path)).text)
+    if not document.set("enabled", value):
+        raise Unsupported(f"{path} has no element enabled")
+    if await _draws_polygons(link, path, parse(document.text)):
+        document.set("regionType", "region")
+        grid = document.get("MotionDetectionLayout/layout/gridMap") or ""
+        document.set("MotionDetectionLayout/layout/gridMap", "0" * len(grid))
+    await link.write_xml(path, document.text)
     actual = RawDocument((await link.call("GET", path)).text).get("enabled")
     if actual is not None and actual.lower() != value:
         raise VerifyMismatch(
             f"enabled reads back as {actual!r} instead of {value!r}", 200, "verify"
         )
-    return wanted
+    return document

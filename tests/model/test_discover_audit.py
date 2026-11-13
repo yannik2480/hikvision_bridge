@@ -114,63 +114,53 @@ async def test_switch_changes_only_enabled_and_verifies(link_to) -> None:
 
 
 MOTION_PATH = "/ISAPI/System/Video/inputs/channels/1/motionDetection"
-OK = "<ResponseStatus><statusCode>1</statusCode><statusString>OK</statusString></ResponseStatus>"
-BAD_XML = (
-    "<ResponseStatus><statusCode>6</statusCode><statusString>Invalid XML Content</statusString>"
-    "<subStatusCode>badXmlContent</subStatusCode></ResponseStatus>"
-)
+GRID_MAP = "fff000fff000fff800fff800fff800fffc00fffc00fffc00fffe00fffe00fffe00ffff00ffff00ffff00ffff80ffff80ffffc0ffffc0"
 
 
-def motion_firmware(device: FakeDevice, before: str, *, short_document: str) -> None:
-    """Answer the motion resource like firmware that merges, ignores or refuses a short PUT."""
-    state = {"text": before}
+def motion_caps(device: FakeDevice, region_types: str) -> None:
+    caps = (
+        '<MotionDetection version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
+        '<enabled opt="true,false">true</enabled>'
+        f'<regionType opt="{region_types}">grid</regionType></MotionDetection>'
+    )
 
     def respond(method: str, body: str) -> web.Response:
-        if method == "GET":
-            return web.Response(text=state["text"], content_type="application/xml")
-        if "<Grid>" in body:
-            state["text"] = body
-        elif short_document == "refuse":
-            return web.Response(status=400, text=BAD_XML, content_type="application/xml")
-        elif short_document == "merge":
-            value = "true" if "<enabled>true</enabled>" in body else "false"
-            state["text"] = before.replace(
-                "<enabled>true</enabled>", f"<enabled>{value}</enabled>", 1
-            )
-        return web.Response(text=OK, content_type="application/xml")
+        return web.Response(text=caps, content_type="application/xml")
 
-    device.responders[MOTION_PATH] = respond
+    device.responders[f"{MOTION_PATH}/capabilities"] = respond
 
 
-async def test_motion_switch_sends_only_enabled(link_to) -> None:
+async def test_motion_switch_writes_polygon_as_region(link_to) -> None:
+    """Polygon firmware reports grid; writing grid back turns the polygon into a rectangle."""
     device = FakeDevice(profile="camera_g3")
+    motion_caps(device, "grid,region")
     link = await link_to(device)
     before = (await link.call("GET", MOTION_PATH)).text
-    motion_firmware(device, before, short_document="merge")
     state = await detection.switch(link, Kind.MOTION, "1", False)
     assert state.enabled is False
     assert state.target_filter == ("human", "vehicle")
     puts = [body for method, _path, body in device.writes if method == "PUT"]
     assert len(puts) == 1
-    assert "<enabled>false</enabled>" in puts[0]
-    assert "RegionList" not in puts[0]
-    assert "gridMap" not in puts[0]
-    assert 'xmlns="http://www.hikvision.com/ver20/XMLSchema"' in puts[0]
+    assert puts[0] == (
+        before.replace("<enabled>true</enabled>", "<enabled>false</enabled>", 1)
+        .replace("<regionType>grid</regionType>", "<regionType>region</regionType>", 1)
+        .replace(GRID_MAP, "0" * len(GRID_MAP), 1)
+    )
 
 
-@pytest.mark.parametrize("short_document", ["refuse", "ignore", "replace"])
-async def test_motion_switch_falls_back_to_full_document(link_to, short_document: str) -> None:
+@pytest.mark.parametrize("region_types", [None, "grid"])
+async def test_motion_switch_keeps_grid_without_region_option(
+    link_to, region_types: str | None
+) -> None:
     device = FakeDevice(profile="camera_g3")
+    if region_types is not None:
+        motion_caps(device, region_types)
     link = await link_to(device)
     before = (await link.call("GET", MOTION_PATH)).text
-    if short_document != "replace":  # the plain fake keeps whatever was sent last
-        motion_firmware(device, before, short_document=short_document)
     state = await detection.switch(link, Kind.MOTION, "1", False)
     assert state.enabled is False
     puts = [body for method, _path, body in device.writes if method == "PUT"]
-    assert len(puts) == 2
-    assert puts[1] == before.replace("<enabled>true</enabled>", "<enabled>false</enabled>", 1)
-    assert (await link.call("GET", MOTION_PATH)).text == puts[1]
+    assert puts == [before.replace("<enabled>true</enabled>", "<enabled>false</enabled>", 1)]
 
 
 async def test_add_center_linkage(link_to) -> None:
