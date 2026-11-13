@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Vše",
         "continuous": "Nepřetržitý",
         "motion": "Pohyb",
         "alarm": "Alarmový vstup",

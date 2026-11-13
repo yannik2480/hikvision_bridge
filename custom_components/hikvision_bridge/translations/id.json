@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Semua",
         "continuous": "Berkelanjutan",
         "motion": "Gerakan",
         "alarm": "Input alarm",

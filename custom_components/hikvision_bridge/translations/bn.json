@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "সব",
         "continuous": "অবিরত",
         "motion": "গতি",
         "alarm": "অ্যালার্ম ইনপুট",

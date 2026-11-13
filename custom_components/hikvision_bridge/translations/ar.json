@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "الكل",
         "continuous": "مستمر",
         "motion": "الحركة",
         "alarm": "دخل الإنذار",

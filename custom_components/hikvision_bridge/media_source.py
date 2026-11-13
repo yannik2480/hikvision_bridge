@@ -1,10 +1,8 @@
 """Recordings of recorders and memory cards in the media browser.
 
-One folder per device, named by its config entry id, then one per channel with recordings, named
-by the channel's Home Assistant device id, then its store (recorder or memory card; shown only for
-channels with both), then its days: ``entry/device/store/day`` lists the files that start on the
-day, ``entry/device/store/day/kind`` those of one kind, ``entry/device/store/clip/token`` is one
-recorded file.
+Identifiers: ``entry/device/source/day/kind`` for folders (later parts optional) and
+``entry/device/source/clip/token`` for one recorded file; ``device`` is the channel's Home
+Assistant device id, which a dashboard can look up from a camera entity.
 """
 
 from __future__ import annotations
@@ -55,6 +53,7 @@ _LOGGER = scrubbed_logger(__name__)
 
 DAYS_WITHOUT_CALENDAR = 14
 MAX_DAYS = 62
+ALL = "all"
 # Thumbnails cost one download each; continuous recording days have too many files.
 MAX_THUMBNAILS = 60
 # Home Assistant's browser player only plays HLS announced exactly as this type.
@@ -88,20 +87,21 @@ class BridgeMediaSource(MediaSource):
 
     # ------------------------------------------------------------- helpers
 
-    def _channels(self) -> dict[str, tuple[DeviceBridge, str]]:
-        """Channels with recordings of every loaded device, by their device id."""
-        found = {}
+    def _bridges(self) -> list[DeviceBridge]:
+        found = []
         for entry in self.hass.config_entries.async_loaded_entries(DOMAIN):
-            bridge = getattr(entry, "runtime_data", None)
-            if entry.data.get(CONF_ENTRY_KIND) == KIND_CLOUD or not isinstance(
-                bridge, DeviceBridge
-            ):
+            if entry.data.get(CONF_ENTRY_KIND) == KIND_CLOUD:
                 continue
-            for channel_id in bridge.profile.channels:
-                device_id = bridge.device_ids.get(channel_id)
-                if device_id and sources(bridge, channel_id):
-                    found[device_id] = (bridge, channel_id)
+            bridge = getattr(entry, "runtime_data", None)
+            if isinstance(bridge, DeviceBridge):
+                found.append(bridge)
         return found
+
+    def _bridge(self, entry_id: str) -> DeviceBridge:
+        for bridge in self._bridges():
+            if bridge.entry.entry_id == entry_id:
+                return bridge
+        raise BrowseError("Device not loaded")
 
     async def _labels(self) -> dict[str, str]:
         texts = await async_get_translations(
@@ -119,73 +119,75 @@ class BridgeMediaSource(MediaSource):
         entity_id = er.async_get(self.hass).async_get_entity_id(Platform.CAMERA, DOMAIN, uid)
         return f"/api/camera_proxy/{entity_id}" if entity_id else None
 
+    @staticmethod
+    def _channels(bridge: DeviceBridge) -> list[str]:
+        return [
+            cid
+            for cid in bridge.profile.channels
+            if cid in bridge.device_ids and sources(bridge, cid)
+        ]
+
     # -------------------------------------------------------------- browse
 
     async def async_browse_media(self, item: MediaSourceItem) -> BrowseMediaSource:
         parts = item.identifier.split("/") if item.identifier else []
+        labels = await self._labels()
         try:
-            channels = self._channels()
             if not parts:
-                return self._root(channels)
+                return self._root()
+            bridge = self._bridge(parts[0])
             if len(parts) == 1:
-                return self._device(parts[0], channels)
-            bridge, channel_id = _channel(channels, parts[0], parts[1])
+                return self._device(bridge)
+            channel_id = _channel_of(bridge, parts[1])
+            if channel_id is None:
+                raise BrowseError("Unknown channel")
             if len(parts) == 2:
-                return await self._stores(f"{parts[0]}/{parts[1]}", bridge, channel_id)
+                return await self._channel(bridge, channel_id, labels)
             source = pick_source(bridge, channel_id, parts[2])
-            if source is None or len(parts) > 5:
-                raise BrowseError("Unknown media item")
-            folder = "/".join(parts[:3])
+            if source is None:
+                raise BrowseError("Unknown recording source")
             if len(parts) == 3:
-                return await self._days(folder, bridge, channel_id, source)
+                return await self._days(bridge, channel_id, source, labels)
             day = date.fromisoformat(parts[3])
-            kind = parts[4] if len(parts) == 5 else None
-            if kind not in (None, *recordings.KINDS):
-                raise BrowseError("Unknown media item")
-            return await self._day(folder, bridge, channel_id, source, day, kind)
+            kind = parts[4] if len(parts) > 4 else None
+            return await self._day(bridge, channel_id, source, day, kind, labels)
         except BridgeFault as err:
             raise BrowseError(f"Device not reachable ({type(err).__name__})") from err
         except ValueError as err:
             raise BrowseError("Unknown media item") from err
 
-    def _root(self, channels: dict[str, tuple[DeviceBridge, str]]) -> BrowseMediaSource:
+    def _root(self) -> BrowseMediaSource:
         base = _folder("", self.name)
         base.identifier = None
-        entries = {bridge.entry.entry_id: bridge.entry.title for bridge, _ in channels.values()}
-        base.children = [_folder(entry_id, title) for entry_id, title in entries.items()]
-        return base
-
-    def _device(
-        self, entry_id: str, channels: dict[str, tuple[DeviceBridge, str]]
-    ) -> BrowseMediaSource:
-        own = {d: c for d, c in channels.items() if c[0].entry.entry_id == entry_id}
-        if not own:
-            raise BrowseError("Unknown media item")
-        base = _folder(entry_id, next(iter(own.values()))[0].entry.title)
         base.children = [
-            _folder(
-                f"{entry_id}/{device_id}",
-                bridge.profile.channels[channel_id].name,
-                thumbnail=self._camera_thumbnail(bridge, channel_id),
-            )
-            for device_id, (bridge, channel_id) in own.items()
+            _folder(bridge.entry.entry_id, bridge.entry.title)
+            for bridge in self._bridges()
+            if self._channels(bridge)
         ]
         return base
 
-    async def _stores(
-        self, folder: str, bridge: DeviceBridge, channel_id: str
-    ) -> BrowseMediaSource:
-        """The days of the channel's one store, else a folder per store."""
-        available = sources(bridge, channel_id)
-        if len(available) == 1:
-            return await self._days(
-                f"{folder}/{available[0].key}", bridge, channel_id, available[0]
-            )
-        labels = await self._labels()
-        base = _folder(folder, bridge.profile.channels[channel_id].name)
+    def _device(self, bridge: DeviceBridge) -> BrowseMediaSource:
+        base = _folder(bridge.entry.entry_id, bridge.entry.title)
         base.children = [
             _folder(
-                f"{folder}/{source.key}",
+                _path(bridge, cid),
+                bridge.profile.channels[cid].name,
+                thumbnail=self._camera_thumbnail(bridge, cid),
+            )
+            for cid in self._channels(bridge)
+        ]
+        return base
+
+    async def _channel(
+        self, bridge: DeviceBridge, channel_id: str, labels: dict[str, str]
+    ) -> BrowseMediaSource:
+        available = sources(bridge, channel_id)
+        if len(available) == 1:
+            return await self._days(bridge, channel_id, available[0], labels)
+        base = _folder(_path(bridge, channel_id), bridge.profile.channels[channel_id].name)
+        base.children = [
+            _folder(
+                f"{_path(bridge, channel_id)}/{source.key}",
                 labels.get(f"recording_source.options.{source.key}", source.key),
             )
             for source in available
@@ -193,13 +195,18 @@ class BridgeMediaSource(MediaSource):
         return base
 
     async def _days(
-        self, folder: str, bridge: DeviceBridge, channel_id: str, source: PlaybackSource
+        self,
+        bridge: DeviceBridge,
+        channel_id: str,
+        source: PlaybackSource,
+        labels: dict[str, str],
     ) -> BrowseMediaSource:
+        prefix = f"{_path(bridge, channel_id)}/{source.key}"
         title = bridge.profile.channels[channel_id].name
         if len(sources(bridge, channel_id)) > 1:
-            labels = await self._labels()
-            title = f"{title} - {labels.get(f'recording_source.options.{source.key}', source.key)}"
-        base = _folder(folder, title)
+            label = labels.get(f"recording_source.options.{source.key}", source.key)
+            title = f"{title} - {label}"
+        base = _folder(prefix, title)
         today = dt_util.now().date()
         days: list[date] = []
         months = {(today.year, today.month)}
@@ -215,23 +222,21 @@ class BridgeMediaSource(MediaSource):
         if not calendar:
             days = [today - timedelta(days=n) for n in range(DAYS_WITHOUT_CALENDAR)]
         base.children = [
-            _folder(f"{folder}/{day.isoformat()}", day.isoformat())
+            _folder(f"{prefix}/{day.isoformat()}", day.isoformat())
             for day in sorted(days, reverse=True)[:MAX_DAYS]
         ]
         return base
 
     async def _day(
         self,
-        folder: str,
         bridge: DeviceBridge,
         channel_id: str,
         source: PlaybackSource,
         day: date,
         kind: str | None,
+        labels: dict[str, str],
     ) -> BrowseMediaSource:
-        """The files that start on ``day``; with several kinds, a folder per kind as well."""
-        labels = await self._labels()
-        prefix = f"{folder}/{day.isoformat()}"
+        prefix = f"{_path(bridge, channel_id)}/{source.key}/{day.isoformat()}"
         start, end = _midnight(day), _midnight(day + timedelta(days=1))
         # Devices cut files at the ends of a search, playback URIs too. From a second before
         # midnight on, the file running into the day starts before it and is left out.
@@ -258,29 +263,31 @@ class BridgeMediaSource(MediaSource):
             found = [r for r in found if r.end < end] + (later or crossing)
         kinds = sorted({r.kind for r in found}, key=recordings.KINDS.index)
         title = day.isoformat()
-        folders = []
-        if kind is not None:
-            found = [r for r in found if r.kind == kind]
-            prefix = f"{prefix}/{kind}"
-            title = f"{title} - {labels.get(f'recording_kind.options.{kind}', kind)}"
-        elif len(kinds) > 1:
-            folders = [
+        if kind is None and len(kinds) > 1:
+            base = _folder(prefix, title)
+            base.children = [
                 _folder(
                     f"{prefix}/{key}",
                     labels.get(f"recording_kind.options.{key}", key),
                     children_media_class=MediaClass.VIDEO,
                 )
-                for key in kinds
+                for key in (ALL, *kinds)
             ]
-        base = _folder(prefix, title, children_media_class=MediaClass.VIDEO)
+            return base
+        if kind not in (None, ALL):
+            found = [r for r in found if r.kind == kind]
+            title = f"{title} - {labels.get(f'recording_kind.options.{kind}', kind)}"
+        base = _folder(f"{prefix}/{kind}" if kind else prefix, title)
+        base.children_media_class = MediaClass.VIDEO
         thumbnails = len(found) <= MAX_THUMBNAILS
-        base.children = folders + [
+        clip_prefix = f"{_path(bridge, channel_id)}/{source.key}/clip"
+        base.children = [
             BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{folder}/clip/{encode_token(r.playback_uri)}",
+                identifier=f"{clip_prefix}/{encode_token(r.playback_uri)}",
                 media_class=MediaClass.VIDEO,
                 media_content_type=MIME[FORMAT_MP4],
-                title=_clip_title(r, labels, show_kind=bool(folders)),
+                title=_clip_title(r, labels, show_kind=kind == ALL),
                 can_play=True,
                 can_expand=False,
                 thumbnail=thumbnail_url(
@@ -302,9 +309,12 @@ class BridgeMediaSource(MediaSource):
         entry_id, device_id, source_key, _, token = parts
         uri = decode_token(token)
         try:
-            bridge, channel_id = _channel(self._channels(), entry_id, device_id)
+            bridge = self._bridge(entry_id)
         except BrowseError as err:
-            raise Unresolvable("Unknown recording") from err
+            raise Unresolvable(str(err)) from err
+        channel_id = _channel_of(bridge, device_id)
+        if channel_id is None:
+            raise Unresolvable("Unknown channel")
         source = pick_source(bridge, channel_id, source_key)
         if uri is None or source is None:
             raise Unresolvable("Unknown recording")
@@ -349,14 +359,21 @@ class BridgeMediaSource(MediaSource):
         return PlayMedia(stream.endpoint_url(HLS_PROVIDER), PLAY_HLS)
 
 
-def _channel(
-    channels: dict[str, tuple[DeviceBridge, str]], entry_id: str, device_id: str
-) -> tuple[DeviceBridge, str]:
-    """The bridge and channel of ``entry_id/device_id``."""
-    found = channels.get(device_id)
-    if found is None or found[0].entry.entry_id != entry_id:
-        raise BrowseError("Unknown media item")
-    return found
+def _path(bridge: DeviceBridge, channel_id: str) -> str:
+    """``entry/device``: the folder of a channel."""
+    return f"{bridge.entry.entry_id}/{bridge.device_ids[channel_id]}"
+
+
+def _channel_of(bridge: DeviceBridge, device_id: str) -> str | None:
+    """The channel of a Home Assistant device id of the bridge, if it is one."""
+    return next(
+        (
+            c
+            for c, d in bridge.device_ids.items()
+            if d == device_id and c in bridge.profile.channels
+        ),
+        None,
+    )
 
 
 def _midnight(day: date) -> datetime:
@@ -364,12 +381,11 @@ def _midnight(day: date) -> datetime:
 
 
 def _clip_title(recording: recordings.Recording, labels: dict[str, str], *, show_kind: bool) -> str:
-    """``HH:MM:SS - HH:MM:SS`` (an end before the start is on the next day), kind first."""
+    """``HH:MM:SS - HH:MM:SS``; an end before the start is on the next day."""
     start = dt_util.as_local(recording.start)
     # A file still recording is listed up to the end of the search.
     end = dt_util.as_local(min(recording.end, dt_util.utcnow()))
     title = f"{start:%H:%M:%S} - {end:%H:%M:%S}"
     if show_kind:
-        label = labels.get(f"recording_kind.options.{recording.kind}", recording.kind)
-        title = f"{label} · {title}"
+        title += f" · {labels.get(f'recording_kind.options.{recording.kind}', recording.kind)}"
     return title

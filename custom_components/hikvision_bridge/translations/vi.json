@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Tất cả",
         "continuous": "Liên tục",
         "motion": "Chuyển động",
         "alarm": "Ngõ vào báo động",

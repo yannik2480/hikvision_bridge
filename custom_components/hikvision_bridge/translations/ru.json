@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Все",
         "continuous": "Непрерывная",
         "motion": "Движение",
         "alarm": "Тревожный вход",

@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Toate",
         "continuous": "Continuă",
         "motion": "Mișcare",
         "alarm": "Intrare de alarmă",

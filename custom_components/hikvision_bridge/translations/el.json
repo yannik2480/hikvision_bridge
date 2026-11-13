@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Όλες",
         "continuous": "Συνεχής",
         "motion": "Κίνηση",
         "alarm": "Είσοδος συναγερμού",

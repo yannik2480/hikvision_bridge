@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "Tümü",
         "continuous": "Sürekli",
         "motion": "Hareket",
         "alarm": "Alarm girişi",

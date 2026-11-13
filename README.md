@@ -96,9 +96,8 @@ How it behaves:
 ### Recordings
 
 *Media → Hikvision Bridge* lists the recordings of every recorder and of cameras with a memory card:
-device → channel → day → recorded file. Days with recordings of several kinds (continuous, motion,
-alarm input, smart event, …) show the kind in front of each file (`Motion · 05:54:10 - 08:26:53`) and
-also hold one folder per kind. For a recorder channel with a [direct camera connection](#cameras-behind-a-recorder) whose camera has a
+device → channel → day → kind (continuous, motion, alarm input, smart event, …) → recorded file.
+For a recorder channel with a [direct camera connection](#cameras-behind-a-recorder) whose camera has a
 memory card, the channel first asks which store to open: *Recorder* or *Memory card*. Days come from the
 device's calendar; files show their first picture as thumbnail (days with up to 60 files).
 
@@ -142,13 +141,18 @@ recorders that send files only from their start, the first far jump into a file 
 seconds; if the player gives up, jump again. Devices added before 0.9.20 keep *MP4 as recorded*;
 choose *Seekable* in the options to use it.
 
-The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can show these
-recordings in its gallery and on its timeline through its `folders`, with the Home Assistant media
-browser as source (the timeline needs the card's `enddate` parser,
-[advanced-camera-card#2868](https://github.com/dermotduffy/advanced-camera-card/pull/2868)). A
-channel's folder is `media-source://hikvision_bridge/<config entry id>/<device id>`, named by the
-channel's Home Assistant device; day folders are named by date (`2026-11-08`), files by their time
-(`08:32:15 - 11:26:52`). So the same `folders` find the selected camera's recordings on every device:
+The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) can browse and play
+these recordings through its `folders` with the Home Assistant media browser as source (support in the
+card is still growing, so details may change). A channel's folder is
+`media-source://hikvision_bridge/<config entry id>/<device id>`, named by the channel's Home Assistant
+device; day folders are named by date (`2026-11-08`), files by their time (`08:32:15 - 11:26:52`).
+Channels with both a recorder and a memory card have one more level, *Recorder* or *Memory card*, and
+so do days with recordings of several kinds: *All* and one folder per kind.
+
+Since a camera entity knows its config entry and device, one `folders` entry finds the recordings of
+whichever camera the card shows. With the `enddate` parser
+([advanced-camera-card#2868](https://github.com/dermotduffy/advanced-camera-card/pull/2868)) they show
+on the timeline too:
 
 ```yaml
 type: custom:advanced-camera-card
@@ -164,23 +168,15 @@ folders:
         - id: media-source://hikvision_bridge
         - matchers:
             - type: template
-              value_template: "{{ acc.media.id == 'media-source://hikvision_bridge/' ~ (acc.camera | config_entry_id) }}"
+              value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | config_entry_id)) }}"
         - matchers:
             - type: template
               value_template: "{{ acc.media.id.endswith('/' ~ (acc.camera | device_id)) }}"
         - parsers: [{ type: date, format: yyyy-MM-dd }]
-          matchers: [{ type: date, since: { days: 2 } }]
-        # Files only (kind folders stay out), start and end from the title.
-        - matchers:
-            - type: template
-              value_template: "{{ not acc.media.is_folder }}"
-          parsers:
-            - { type: startdate, regexp: '(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
+        - parsers:
+            - { type: startdate, regexp: '^(?<value>\d{2}:\d{2}:\d{2}) -', format: HH:mm:ss }
             - { type: enddate, regexp: '- (?<value>\d{2}:\d{2}:\d{2})', format: HH:mm:ss }
 ```
-
-A channel that asks for its store (*Recorder* or *Memory card*, see above) has one more level, so this
-path leaves it out.
 
 When the sidebar player cannot download efficiently from the selected time, it falls
 back to recorded RTSP playback. With a verification code configured on the local device

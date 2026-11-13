@@ -924,6 +924,7 @@
     },
     "recording_kind": {
       "options": {
+        "all": "すべて",
         "continuous": "常時録画",
         "motion": "動き",
         "alarm": "アラーム入力",
