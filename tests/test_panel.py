@@ -10,12 +10,13 @@ import stat
 from aiohttp import web
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 import pytest
 
-from custom_components.hikvision_bridge.const import DOMAIN
+from custom_components.hikvision_bridge.const import DOMAIN, OPT_HIDDEN_CHANNELS
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.model.features.scrambling import ProgramStream
@@ -306,6 +307,45 @@ async def test_cameras_use_the_names_given_in_home_assistant(
 
     entities.async_update_entity(entity_id, name=None)
     assert (await names())["1"] == hardware
+
+
+async def test_hidden_cameras_leave_the_panel_list(
+    hass: HomeAssistant, serve, hass_ws_client
+) -> None:
+    entry = await _nvr(hass, serve)
+    client = await hass_ws_client(hass)
+
+    async def cameras(**extra) -> list[str]:
+        await client.send_json_auto_id({"type": f"{DOMAIN}/cameras"} | extra)
+        answer = await client.receive_json()
+        assert answer["success"]
+        return [c["channel_id"] for c in answer["result"]["cameras"]]
+
+    all_channels = await cameras()
+    assert "2" in all_channels
+
+    form = await hass.config_entries.options.async_init(entry.entry_id)
+    field = next(v for k, v in form["data_schema"].schema.items() if k == OPT_HIDDEN_CHANNELS)
+    labels = [o["label"] for o in field.config["options"]]
+    assert f"2: {entry.runtime_data.profile.channels['2'].name}" in labels
+    result = await hass.config_entries.options.async_configure(
+        form["flow_id"], {OPT_HIDDEN_CHANNELS: ["2"]}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options[OPT_HIDDEN_CHANNELS] == ["2"]
+
+    assert await cameras() == [c for c in all_channels if c != "2"]
+    # The dashboard card still finds the hidden camera.
+    assert await cameras(include_hidden=True) == all_channels
+
+    # A cleared selection comes back empty, and the browser may leave the field out.
+    form = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(form["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options[OPT_HIDDEN_CHANNELS] == []
+    assert await cameras() == all_channels
 
 
 async def test_recorded_days_while_device_busy(hass: HomeAssistant, serve, hass_ws_client) -> None:

@@ -127,6 +127,7 @@
           "stream_key": "Verifizierungscode (verschlüsseltes Video)",
           "sidebar_panel": "Hikvision-Panel in der Seitenleiste anzeigen",
           "panel_admin_only": "Nur Administratoren sehen das Panel",
+          "hidden_channels": "Im Seitenleisten-Panel ausgeblendete Kameras",
           "try_encrypted_stream": "Livestream auch bei aktivierter Verschlüsselung versuchen"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Entschlüsselt Aufnahmen und lokales H.264-Livevideo, während die Stream-Verschlüsselung eingeschaltet bleibt. Trage hier den Verifizierungscode des Geräts ein, um die Live-Entschlüsselung zu aktivieren; Audio und verschlüsseltes H.265-Livevideo werden nicht unterstützt. Für Aufnahmen kann auch der vom Gerät gelesene Code verwendet werden.",
           "sidebar_panel": "Gilt für alle Geräte und Konten dieser Integration. Die Dashboard-Karte bleibt verfügbar.",
           "panel_admin_only": "Benutzer ohne Administratorrechte sehen das Panel nicht mehr. Gilt für alle Geräte und Konten.",
+          "hidden_channels": "Hier ausgewählte Kameras werden im Hikvision-Panel der Seitenleiste ausgeblendet. Aufnahmen und Entitäten bleiben unverändert; die Dashboard-Karte zeigt sie weiterhin.",
           "try_encrypted_stream": "Spielt den lokalen RTSP-Livestream ab, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams."
         }
       },

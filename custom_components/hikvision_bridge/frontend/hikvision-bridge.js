@@ -1920,7 +1920,8 @@ class HikvisionBridgeCard extends HTMLElement {
   async _pick() {
     let cameras = [];
     try {
-      ({ cameras } = await this._hass.callWS({ type: `${DOMAIN}/cameras` }));
+      // Cameras hidden from the panel still show on dashboards.
+      ({ cameras } = await this._hass.callWS({ type: `${DOMAIN}/cameras`, include_hidden: true }));
     } catch (_err) {
       /* integration not loaded */
     }

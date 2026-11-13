@@ -127,6 +127,7 @@
           "stream_key": "Codice di verifica (video cifrato)",
           "sidebar_panel": "Mostra il pannello Hikvision nella barra laterale",
           "panel_admin_only": "Solo gli amministratori vedono il pannello",
+          "hidden_channels": "Telecamere nascoste nel pannello laterale",
           "try_encrypted_stream": "Prova lo streaming live anche con crittografia attiva"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Serve a decifrare le registrazioni e il video live H.264 locale mantenendo attiva la cifratura dello stream. Inserisci qui il codice di verifica del dispositivo per attivare la decifratura live; l'audio e il video live H.265 cifrato non sono supportati. Le registrazioni possono usare anche il codice letto dal dispositivo.",
           "sidebar_panel": "Vale per tutti i dispositivi e gli account di questa integrazione. La scheda della dashboard resta disponibile.",
           "panel_admin_only": "Gli utenti senza diritti di amministratore non vedono più il pannello. Vale per tutti i dispositivi e gli account.",
+          "hidden_channels": "Le telecamere selezionate qui non compaiono nel pannello Hikvision nella barra laterale. Registrazioni ed entità restano invariate; la scheda della dashboard le mostra ancora.",
           "try_encrypted_stream": "Prova a riprodurre il video RTSP locale anche se il dispositivo segnala la crittografia Hik-Connect. Molti registratori crittografano solo i flussi cloud."
         }
       },

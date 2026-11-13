@@ -127,6 +127,7 @@
           "stream_key": "Ověřovací kód (šifrované video)",
           "sidebar_panel": "Zobrazit panel Hikvision v postranním panelu",
           "panel_admin_only": "Panel vidí jen správci",
+          "hidden_channels": "Kamery skryté v postranním panelu",
           "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Slouží k dešifrování záznamů a místního živého videa H.264 při zapnutém šifrování streamu. Zadejte sem ověřovací kód zařízení, abyste zapnuli živé dešifrování; zvuk a šifrované živé video H.265 nejsou podporovány. Záznamy mohou použít i kód načtený ze zařízení.",
           "sidebar_panel": "Platí pro všechna zařízení a účty této integrace. Karta na nástěnce zůstává dostupná.",
           "panel_admin_only": "Uživatelé bez práv správce panel neuvidí. Platí pro všechna zařízení a účty.",
+          "hidden_channels": "Kamery vybrané zde se nezobrazí v postranním panelu Hikvision. Jejich nahrávky a entity zůstanou beze změny; karta na přehledu je dál zobrazuje.",
           "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect."
         }
       },

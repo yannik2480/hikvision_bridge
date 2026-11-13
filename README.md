@@ -347,6 +347,7 @@ restored. Deleted areas remove their panel.
 | Recording times | Automatic | The clock the device gives its recording times on: most devices use their own clock, some older cameras real UTC. *Automatic* finds it out from recordings in progress and from the recordings events started |
 | Show the Hikvision panel in the sidebar | on | Removes the sidebar entry when off; the dashboard card keeps working. Applies to all entries of the integration |
 | Only administrators see the panel | off | Hides the sidebar entry from users without administrator rights. Applies to all entries of the integration |
+| Cameras hidden in the sidebar panel | none | Cameras selected here are left out of the panel's camera list, for example IP cameras that do not record or unused recorder inputs. The dashboard card and the entities are not affected. Cameras are named as in Home Assistant, so renames show in the panel |
 
 When *Webhook* or *Both* is chosen, the next step shows the address `/api/webhook/<id>` where
 notifications are accepted (local network only, POST or PUT). Point the device there in its web

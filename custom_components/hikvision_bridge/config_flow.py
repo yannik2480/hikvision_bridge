@@ -51,6 +51,7 @@ from .const import (
     KIND_CLOUD,
     KIND_DEVICE,
     OPT_EVENT_PATH,
+    OPT_HIDDEN_CHANNELS,
     OPT_HOLD_SECONDS,
     OPT_PANEL_ADMIN_ONLY,
     OPT_PLAYBACK,
@@ -81,6 +82,7 @@ from .const import (
 from .model.discover import read_identity_only
 from .model.inventory import Identity
 from .panel import PANEL_DEFAULTS, async_set_panel_settings, panel_settings
+from .runtime.identity import channel_name
 from .runtime.tls import device_context
 from .wire import faults
 from .wire.link import Endpoint, IsapiLink
@@ -600,10 +602,46 @@ def _panel_fields(hass: HomeAssistant) -> dict[Any, Any]:
     }
 
 
+def _hidden_channels_field(
+    options: Mapping[str, Any], choices: list[selector.SelectOptionDict] | None
+) -> dict[Any, Any]:
+    """Cameras to leave out of the sidebar panel; none when the entry has no cameras to pick."""
+    if choices is None:
+        return {}
+    known = {c["value"] for c in choices}
+    hidden = [h for h in options.get(OPT_HIDDEN_CHANNELS, []) if h in known]
+    return {
+        vol.Optional(OPT_HIDDEN_CHANNELS, description={"suggested_value": hidden}): (
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=choices, multiple=True, mode=selector.SelectSelectorMode.LIST
+                )
+            )
+        )
+    }
+
+
 class BridgeOptionsFlow(OptionsFlowWithReload):
+    def _channel_choices(self) -> list[selector.SelectOptionDict] | None:
+        """Cameras of a device entry that can be hidden in the panel; None where there are none."""
+        if self.config_entry.data.get(CONF_ENTRY_KIND) == KIND_CLOUD:
+            return None
+        profile = getattr(getattr(self.config_entry, "runtime_data", None), "profile", None)
+        if profile is None:
+            return None
+        entry_id = self.config_entry.entry_id
+        return [
+            selector.SelectOptionDict(
+                value=c.channel_id,
+                label=f"{c.channel_id}: {channel_name(self.hass, entry_id, profile, c)}",
+            )
+            for c in profile.channels.values()
+        ]
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
         errors: dict[str, str] = {}
+        choices = self._channel_choices()
         if user_input is not None:
             errors = field_errors(
                 user_input,
@@ -618,6 +656,9 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                 self.hass,
                 {key: user_input.pop(key) for key in PANEL_DEFAULTS if key in user_input},
             )
+            if choices is not None:
+                # Browsers leave out an emptied multi-select: nothing hidden any more.
+                user_input.setdefault(OPT_HIDDEN_CHANNELS, [])
             options.update(user_input)
             if not user_input.get(OPT_STREAM_KEY):
                 options.pop(OPT_STREAM_KEY, None)
@@ -682,6 +723,7 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                     OPT_TRY_ENCRYPTED_STREAM,
                     default=options.get(OPT_TRY_ENCRYPTED_STREAM, False),
                 ): bool,
+                **_hidden_channels_field(options, choices),
                 **_panel_fields(self.hass),
             }
         )

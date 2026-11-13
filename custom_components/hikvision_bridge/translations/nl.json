@@ -127,6 +127,7 @@
           "stream_key": "Verificatiecode (versleutelde video)",
           "sidebar_panel": "Hikvision-paneel in de zijbalk tonen",
           "panel_admin_only": "Alleen beheerders zien het paneel",
+          "hidden_channels": "Camera's verborgen in het zijpaneel",
           "try_encrypted_stream": "Probeer de livestream zelfs met codering ingeschakeld"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Wordt gebruikt om opnames en lokale H.264-livevideo te ontsleutelen terwijl streamversleuteling aan blijft. Vul hier de verificatiecode van het apparaat in om live-ontsleuteling in te schakelen; audio en versleutelde H.265-livevideo worden niet ondersteund. Opnames kunnen ook de code gebruiken die van het apparaat wordt gelezen.",
           "sidebar_panel": "Geldt voor alle apparaten en accounts van deze integratie. De dashboardkaart blijft beschikbaar.",
           "panel_admin_only": "Gebruikers zonder beheerdersrechten zien het paneel niet meer. Geldt voor alle apparaten en accounts.",
+          "hidden_channels": "Camera's die hier zijn geselecteerd, worden niet getoond in het Hikvision-paneel in de zijbalk. Opnames en entiteiten blijven gelijk; de dashboardkaart toont ze nog wel.",
           "try_encrypted_stream": "Probeer lokale RTSP-video af te spelen, zelfs als het apparaat meldt dat Hik-Connect-streamversleuteling is ingeschakeld."
         }
       },

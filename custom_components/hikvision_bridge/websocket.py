@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import CONF_ENTRY_KIND, DOMAIN, KIND_CLOUD
+from .const import CONF_ENTRY_KIND, DOMAIN, KIND_CLOUD, OPT_HIDDEN_CHANNELS
 from .model.features import recordings
 from .runtime import identity, sessions
 from .runtime.bridge import DeviceBridge
@@ -65,14 +65,23 @@ def _time(value: str) -> datetime:
     return dt_util.as_utc(moment)
 
 
-@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/cameras"})
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/cameras",
+        # The dashboard card finds its camera here, hidden or not; the panel lists visible ones.
+        vol.Optional("include_hidden", default=False): bool,
+    }
+)
 @callback
 def ws_cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
     registry = er.async_get(hass)
     cameras: list[dict[str, Any]] = []
     for bridge in _bridges(hass):
         profile = bridge.profile
+        hidden = set(bridge.entry.options.get(OPT_HIDDEN_CHANNELS, []))
         for channel in profile.channels.values():
+            if channel.channel_id in hidden and not msg["include_hidden"]:
+                continue
             live = {}
             for rank, quality in ((1, "high"), (2, "low")):
                 uid = identity.entity_uid(profile, channel.channel_id, f"stream_{rank}")

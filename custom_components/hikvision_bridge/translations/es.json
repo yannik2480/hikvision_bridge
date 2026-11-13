@@ -127,6 +127,7 @@
           "stream_key": "Código de verificación (vídeo cifrado)",
           "sidebar_panel": "Mostrar el panel de Hikvision en la barra lateral",
           "panel_admin_only": "Solo los administradores ven el panel",
+          "hidden_channels": "Cámaras ocultas en el panel lateral",
           "try_encrypted_stream": "Probar la transmisión en vivo incluso con cifrado activado"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Se usa para descifrar grabaciones y el vídeo en directo H.264 local manteniendo activado el cifrado del flujo. Introduce aquí el código de verificación del dispositivo para activar el descifrado en directo; no se admiten el audio ni el vídeo en directo H.265 cifrado. Las grabaciones también pueden usar el código leído del dispositivo.",
           "sidebar_panel": "Se aplica a todos los dispositivos y cuentas de esta integración. La tarjeta del panel de control sigue disponible.",
           "panel_admin_only": "Los usuarios sin derechos de administrador dejan de ver el panel. Se aplica a todos los dispositivos y cuentas.",
+          "hidden_channels": "Las cámaras seleccionadas aquí no aparecen en el panel Hikvision de la barra lateral. Sus grabaciones y entidades no cambian; la tarjeta del panel de control sigue mostrándolas.",
           "try_encrypted_stream": "Intenta reproducir vídeo RTSP local aunque el dispositivo informe de cifrado Hik-Connect. Muchos grabadores solo cifran transmisiones en la nube."
         }
       },

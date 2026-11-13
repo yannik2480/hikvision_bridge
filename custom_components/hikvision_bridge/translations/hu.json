@@ -127,6 +127,7 @@
           "stream_key": "Ellenőrző kód (titkosított videó)",
           "sidebar_panel": "Hikvision panel megjelenítése az oldalsávban",
           "panel_admin_only": "A panelt csak a rendszergazdák látják",
+          "hidden_channels": "Az oldalsávi panelről elrejtett kamerák",
           "try_encrypted_stream": "Élő közvetítés megpróbálása bekapcsolt titkosítással is"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Felvételek és helyi H.264 élő videó visszafejtésére szolgál, miközben a stream titkosítása bekapcsolva marad. Az élő visszafejtés bekapcsolásához add meg itt az eszköz ellenőrző kódját; a hang és a titkosított H.265 élő videó nem támogatott. A felvételek az eszközről kiolvasott kódot is használhatják.",
           "sidebar_panel": "Az integráció összes eszközére és fiókjára vonatkozik. Az irányítópult-kártya továbbra is elérhető.",
           "panel_admin_only": "A rendszergazdai jogok nélküli felhasználók többé nem látják a panelt. Minden eszközre és fiókra vonatkozik.",
+          "hidden_channels": "Az itt kiválasztott kamerák nem jelennek meg az oldalsávi Hikvision-panelen. Felvételeik és entitásaik változatlanok maradnak; az irányítópult-kártya továbbra is megjeleníti őket.",
           "try_encrypted_stream": "Próbálja meg lejátszani a helyi RTSP-videót még akkor is, ha az eszköz Hik-Connect stream titkosítást jelez."
         }
       },

@@ -127,6 +127,7 @@
           "stream_key": "Mã xác minh (video được mã hóa)",
           "sidebar_panel": "Hiển thị bảng Hikvision trên thanh bên",
           "panel_admin_only": "Chỉ quản trị viên thấy bảng",
+          "hidden_channels": "Camera ẩn trong bảng bên",
           "try_encrypted_stream": "Thử phát trực tiếp ngay cả khi bật mã hóa"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Dùng để giải mã bản ghi và video trực tiếp H.264 cục bộ trong khi vẫn bật mã hóa luồng. Nhập mã xác minh của thiết bị tại đây để bật giải mã trực tiếp; âm thanh và video trực tiếp H.265 được mã hóa không được hỗ trợ. Bản ghi cũng có thể dùng mã đọc từ thiết bị.",
           "sidebar_panel": "Áp dụng cho mọi thiết bị và tài khoản của tích hợp này. Thẻ bảng điều khiển vẫn dùng được.",
           "panel_admin_only": "Người dùng không có quyền quản trị sẽ không còn thấy bảng. Áp dụng cho mọi thiết bị và tài khoản.",
+          "hidden_channels": "Các camera được chọn ở đây sẽ không hiển thị trong bảng Hikvision ở thanh bên. Bản ghi và thực thể không thay đổi; thẻ trên bảng điều khiển vẫn hiển thị chúng.",
           "try_encrypted_stream": "Thử phát video RTSP cục bộ ngay cả khi thiết bị báo cáo mã hóa luồng Hik-Connect đã bật."
         }
       },

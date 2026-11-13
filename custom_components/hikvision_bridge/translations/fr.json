@@ -127,6 +127,7 @@
           "stream_key": "Code de vérification (vidéo chiffrée)",
           "sidebar_panel": "Afficher le panneau Hikvision dans la barre latérale",
           "panel_admin_only": "Seuls les administrateurs voient le panneau",
+          "hidden_channels": "Caméras masquées dans le panneau latéral",
           "try_encrypted_stream": "Essayer le flux en direct même avec le chiffrement activé"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Sert à déchiffrer les enregistrements et la vidéo en direct H.264 locale tout en gardant le chiffrement du flux activé. Saisissez ici le code de vérification de l'appareil pour activer le déchiffrement en direct ; l'audio et la vidéo en direct H.265 chiffrée ne sont pas pris en charge. Les enregistrements peuvent aussi utiliser le code lu sur l'appareil.",
           "sidebar_panel": "S'applique à tous les appareils et comptes de cette intégration. La carte du tableau de bord reste disponible.",
           "panel_admin_only": "Les utilisateurs sans droits d'administrateur ne voient plus le panneau. S'applique à tous les appareils et comptes.",
+          "hidden_channels": "Les caméras sélectionnées ici n'apparaissent pas dans le panneau Hikvision de la barre latérale. Leurs enregistrements et entités ne changent pas ; la carte du tableau de bord les affiche toujours.",
           "try_encrypted_stream": "Essayez de lire le flux RTSP local même si l'appareil signale le chiffrement Hik-Connect. De nombreux enregistreurs ne chiffrent que les flux cloud."
         }
       },

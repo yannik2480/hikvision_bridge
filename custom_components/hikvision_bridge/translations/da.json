@@ -127,6 +127,7 @@
           "stream_key": "Verifikationskode (krypteret video)",
           "sidebar_panel": "Vis Hikvision-panelet i sidepanelet",
           "panel_admin_only": "Kun administratorer ser panelet",
+          "hidden_channels": "Kameraer skjult i sidepanelet",
           "try_encrypted_stream": "Prøv livestrømmen selv med kryptering slået til"
         },
         "data_description": {
@@ -137,6 +138,7 @@
           "stream_key": "Bruges til at dekryptere optagelser og lokal H.264-livevideo, mens streamkryptering forbliver slået til. Indtast enhedens verifikationskode her for at aktivere live-dekryptering; lyd og krypteret H.265-livevideo understøttes ikke. Optagelser kan også bruge koden, der læses fra enheden.",
           "sidebar_panel": "Gælder for alle enheder og konti i denne integration. Dashboard-kortet er stadig tilgængeligt.",
           "panel_admin_only": "Brugere uden administratorrettigheder ser ikke længere panelet. Gælder for alle enheder og konti.",
+          "hidden_channels": "Kameraer valgt her vises ikke i Hikvision-panelet i sidemenuen. Optagelser og entiteter forbliver uændrede; dashboardkortet viser dem stadig.",
           "try_encrypted_stream": "Prøv at afspille lokal RTSP-video, selvom enheden rapporterer, at Hik-Connect-strømkryptering er aktiveret."
         }
       },
