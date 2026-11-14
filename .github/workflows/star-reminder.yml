@@ -1,0 +1,69 @@
+name: Star reminder
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  remind:
+    # Not for the maintainer or bots. pull_request_target never checks out
+    # PR code here, it only reads the API, so it is safe for forks.
+    if: >-
+      (github.event.issue.user.login || github.event.pull_request.user.login) != 'yannik2480' &&
+      (github.event.issue.user.type || github.event.pull_request.user.type) != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const item = context.payload.issue ?? context.payload.pull_request;
+            const login = item.user.login;
+            const marker = "<!-- star-reminder -->";
+
+            // Has the author already starred the repo?
+            const stargazers = await github.paginate(
+              github.rest.activity.listStargazersForRepo,
+              { ...context.repo, per_page: 100 },
+            );
+            if (stargazers.some((u) => u.login.toLowerCase() === login.toLowerCase())) return;
+
+            // Ask only once per person: skip if one of their earlier
+            // issues/PRs already got the reminder.
+            const earlier = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo,
+              creator: login,
+              state: "all",
+              per_page: 100,
+            });
+            for (const other of earlier) {
+              if (other.number === item.number) continue;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                ...context.repo,
+                issue_number: other.number,
+                per_page: 100,
+              });
+              if (comments.some((c) => c.body?.includes(marker))) return;
+            }
+
+            const kind = context.payload.pull_request ? "PR" : "issue";
+            const body = [
+              marker,
+              `Hey @${login}, thanks for the ${kind}! :wave:`,
+              "",
+              "If Hikvision Bridge is useful for you, I'd really appreciate a :star: on the repo. " +
+                "It doesnt cost anything, but it helps other people find the integration and keeps me motivated to work on it.",
+              "",
+              "Thats totally optional of course, I'll take a look at your " + kind + " either way :slightly_smiling_face:",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: item.number,
+              body,
+            });

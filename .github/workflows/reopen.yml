@@ -1,0 +1,46 @@
+name: Reopen on comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  reopen:
+    # Only closed issues/PRs, and not when the maintainer or a bot comments
+    # (e.g. a "fixed in 0.9.x" note after closing should not reopen it).
+    if: >-
+      github.event.issue.state == 'closed' &&
+      github.event.comment.user.login != 'yannik2480' &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const params = { ...context.repo, issue_number: issue.number };
+
+            if (issue.pull_request) {
+              // A merged PR cannot be reopened.
+              const { data: pr } = await github.rest.pulls.get({
+                ...context.repo,
+                pull_number: issue.number,
+              });
+              if (pr.merged) return;
+              try {
+                await github.rest.pulls.update({
+                  ...context.repo,
+                  pull_number: issue.number,
+                  state: "open",
+                });
+              } catch (err) {
+                // e.g. the PR's branch was deleted
+                core.warning(`Could not reopen PR #${issue.number}: ${err.message}`);
+              }
+            } else {
+              await github.rest.issues.update({ ...params, state: "open" });
+            }
