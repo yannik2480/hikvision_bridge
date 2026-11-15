@@ -987,6 +987,7 @@
         "fullscreen": "Ecrã inteiro",
         "sound_on": "Ativar som",
         "sound_off": "Desativar som",
+        "no_sound": "Este stream não tem som.",
         "zoom_in": "Aproximar",
         "zoom_out": "Afastar",
         "previous_day": "Dia anterior",

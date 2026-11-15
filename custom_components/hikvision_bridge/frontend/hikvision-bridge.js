@@ -51,6 +51,7 @@ const TEXT = {
   fullscreen: "Full screen",
   sound_on: "Sound on",
   sound_off: "Sound off",
+  no_sound: "No sound from this stream.",
   zoom_in: "Zoom in",
   zoom_out: "Zoom out",
   previous_day: "Previous day",
@@ -129,6 +130,13 @@ function joinRecordings(recordings) {
     joined.push({ start: rec.start, end: rec.end, kind: rec.kind });
   }
   return joined;
+}
+
+// Whether hls.js has appended a sound track: Home Assistant's live HLS drops camera audio
+// it cannot pass on (G.711, G.726), so many live streams have none.
+function hasAudioTrack(data) {
+  if (data.audio) return true;
+  return Boolean(data.audiovideo && /mp4a|ac-3|ec-3|opus|mp3|flac/.test(data.audiovideo.codec || ""));
 }
 
 let hlsLoader;
@@ -641,6 +649,9 @@ class Player {
           levelLoadingMaxRetry: 6,
           fragLoadingMaxRetry: 6,
         });
+        this.hls.on(Hls.Events.BUFFER_CODECS, (_e, data) => {
+          if (token === this.token) this.host.setAudio(hasAudioTrack(data));
+        });
         this.hls.on(Hls.Events.ERROR, (_e, data) => {
           // A newer start ends this session on the server; the video stays until it is ready.
           if (token !== this.token) return;
@@ -657,21 +668,27 @@ class Player {
     await this._play();
   }
 
-  // Browsers only start a video with sound after a click on the page: play muted then.
+  // Browsers only start a video with sound after a click on the page: when refused with
+  // sound on, play muted instead, so the picture never waits for the sound setting.
   async _play() {
     const video = this.video;
     try {
       await video.play();
     } catch (err) {
-      if (video.muted || err?.name !== "NotAllowedError") return; // autoplay may need a click
+      if (video.muted || err?.name !== "NotAllowedError") return;
       this.host.sound = false;
-      video.muted = true;
+      video.muted = true; // the sound button follows through its volumechange listener
       try {
         await video.play();
       } catch (_err) {
         /* autoplay may need a click */
       }
     }
+  }
+
+  // Play or continue after a click; the sound setting is applied before this.
+  resume() {
+    return this._play();
   }
 
   _detach() {
@@ -684,6 +701,8 @@ class Player {
     this.video.srcObject = null;
     this.video.removeAttribute("src");
     this.video.load();
+    // The next source decides again whether it has sound.
+    this.host.setAudio(null);
     // Loading resets the rate to the default one: set the speed again for the next source.
     this._applySpeed();
   }
@@ -745,6 +764,7 @@ class Player {
       return;
     }
     this.host.busy(true);
+    this.host.clearError();
     try {
       const shown = camera.live[level] ? level : camera.live.high ? "high" : "low";
       if (!hlsOnly && (await this._webrtc(camera, level, entity, token))) {
@@ -820,7 +840,11 @@ class Player {
         if (!ok) teardown();
         resolve(ok);
       };
-      const onPlaying = () => finish(true);
+      // Tracks arrive before the picture plays, so the sound track is known by then.
+      const onPlaying = () => {
+        this.host.setAudio(stream.getAudioTracks().length > 0);
+        finish(true);
+      };
       const timer = setTimeout(() => finish(false), RTC_START_MS);
       const rtc = {
         close: () => {
@@ -897,6 +921,7 @@ class Player {
   async _play(time, level) {
     const token = ++this.token;
     this.host.busy(true);
+    this.host.clearError();
     this.starting = token;
     const previous = this.session;
     try {
@@ -973,6 +998,8 @@ class Player {
   }
 
   _smooth() {
+    // A picture is playing: an error from an earlier attempt no longer applies.
+    this.host.clearError();
     this.host.busy(false);
     clearTimeout(this._upgradeTimer);
     if (this.quality !== "auto" || this.mode !== "live" || this.level !== "low" || !this.camera.live.high) return;
@@ -1149,6 +1176,7 @@ class Viewer {
     this.mode = "live";
     this.quality = "auto";
     this.sound = false; // starts muted: browsers refuse autoplay with sound
+    this.hasAudio = null; // whether the current stream carries sound; null until known
     this.day = startOfDay(new Date());
     this.data = { recordings: [], events: [] };
     root.innerHTML = `
@@ -1258,15 +1286,31 @@ class Viewer {
     video.style.objectFit = "fill";
   }
 
-  // The button shows whether sound plays and offers the opposite.
+  // The button shows whether sound plays and offers the opposite; without a sound track in
+  // the stream there is nothing to switch on, so it is disabled.
   _soundButton() {
     const button = this.root.querySelector('[data-action="sound"]');
     const muted = this.video.muted;
-    button.innerHTML = muted ? ICONS.soundOff : ICONS.soundOn;
-    const label = this.t.ui(muted ? "sound_on" : "sound_off");
+    const silent = this.hasAudio === false;
+    button.innerHTML = muted || silent ? ICONS.soundOff : ICONS.soundOn;
+    button.disabled = silent;
+    const label = this.t.ui(silent ? "no_sound" : muted ? "sound_on" : "sound_off");
     button.title = label;
     button.setAttribute("aria-label", label);
-    button.setAttribute("aria-pressed", String(!muted));
+    button.setAttribute("aria-pressed", String(!muted && !silent));
+  }
+
+  // Called by the player once it knows the sound track of the stream (null: not yet known).
+  setAudio(value) {
+    this.hasAudio = value;
+    this._soundButton();
+  }
+
+  // A picture started: an error shown for an earlier attempt no longer applies.
+  clearError() {
+    if (this._error == null) return;
+    this._error = null;
+    this._overlay();
   }
 
   _label() {
@@ -1516,13 +1560,14 @@ class Viewer {
     const events = this.data.events.length ? this.data.events : this.data.recordings;
     switch (action) {
       case "toggle":
-        if (this.video.paused) this.video.play().catch(() => {});
+        if (this.video.paused) this.player.resume();
         else this.video.pause();
         break;
       case "sound":
+        if (this.hasAudio === false) break;
         this.sound = this.video.muted;
         this.video.muted = !this.sound;
-        if (this.video.paused) this.video.play().catch(() => {});
+        if (this.video.paused) this.player.resume();
         break;
       case "back":
         this.seek(new Date(position - 10e3));

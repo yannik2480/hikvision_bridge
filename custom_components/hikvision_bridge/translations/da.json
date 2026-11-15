@@ -987,6 +987,7 @@
         "fullscreen": "Fuld skærm",
         "sound_on": "Lyd til",
         "sound_off": "Lyd fra",
+        "no_sound": "Denne stream har ingen lyd.",
         "zoom_in": "Zoom ind",
         "zoom_out": "Zoom ud",
         "previous_day": "Forrige dag",

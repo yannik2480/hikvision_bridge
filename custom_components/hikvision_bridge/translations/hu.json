@@ -987,6 +987,7 @@
         "fullscreen": "Teljes képernyő",
         "sound_on": "Hang be",
         "sound_off": "Hang ki",
+        "no_sound": "Ez a folyam nem tartalmaz hangot.",
         "zoom_in": "Nagyítás",
         "zoom_out": "Kicsinyítés",
         "previous_day": "Előző nap",

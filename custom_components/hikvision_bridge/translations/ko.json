@@ -987,6 +987,7 @@
         "fullscreen": "전체 화면",
         "sound_on": "소리 켜기",
         "sound_off": "소리 끄기",
+        "no_sound": "이 스트림에는 소리가 없습니다.",
         "zoom_in": "확대",
         "zoom_out": "축소",
         "previous_day": "이전 날",

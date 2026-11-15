@@ -987,6 +987,7 @@
         "fullscreen": "Pantalla completa",
         "sound_on": "Activar sonido",
         "sound_off": "Silenciar",
+        "no_sound": "Esta transmisión no tiene sonido.",
         "zoom_in": "Acercar",
         "zoom_out": "Alejar",
         "previous_day": "Día anterior",

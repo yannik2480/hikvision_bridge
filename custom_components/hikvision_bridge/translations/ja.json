@@ -987,6 +987,7 @@
         "fullscreen": "全画面",
         "sound_on": "音声オン",
         "sound_off": "音声オフ",
+        "no_sound": "この配信には音声がありません。",
         "zoom_in": "ズームイン",
         "zoom_out": "ズームアウト",
         "previous_day": "前の日",

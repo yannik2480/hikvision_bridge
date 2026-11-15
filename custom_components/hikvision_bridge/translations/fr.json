@@ -987,6 +987,7 @@
         "fullscreen": "Plein écran",
         "sound_on": "Activer le son",
         "sound_off": "Couper le son",
+        "no_sound": "Ce flux n'a pas de son.",
         "zoom_in": "Zoom avant",
         "zoom_out": "Zoom arrière",
         "previous_day": "Jour précédent",

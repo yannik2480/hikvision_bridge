@@ -987,6 +987,7 @@
         "fullscreen": "Full screen",
         "sound_on": "Sound on",
         "sound_off": "Sound off",
+        "no_sound": "This stream has no sound.",
         "zoom_in": "Zoom in",
         "zoom_out": "Zoom out",
         "previous_day": "Previous day",

@@ -987,6 +987,7 @@
         "fullscreen": "Toàn màn hình",
         "sound_on": "Bật âm thanh",
         "sound_off": "Tắt âm thanh",
+        "no_sound": "Luồng này không có âm thanh.",
         "zoom_in": "Phóng to",
         "zoom_out": "Thu nhỏ",
         "previous_day": "Ngày trước",

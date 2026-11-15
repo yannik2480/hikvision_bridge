@@ -987,6 +987,7 @@
         "fullscreen": "全屏",
         "sound_on": "打开声音",
         "sound_off": "关闭声音",
+        "no_sound": "此视频流没有声音。",
         "zoom_in": "放大",
         "zoom_out": "缩小",
         "previous_day": "前一天",

@@ -987,6 +987,7 @@
         "fullscreen": "Layar penuh",
         "sound_on": "Suara aktif",
         "sound_off": "Suara mati",
+        "no_sound": "Streaming ini tidak memiliki suara.",
         "zoom_in": "Perbesar",
         "zoom_out": "Perkecil",
         "previous_day": "Hari sebelumnya",

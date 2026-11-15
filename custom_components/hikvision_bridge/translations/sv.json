@@ -987,6 +987,7 @@
         "fullscreen": "Helskärm",
         "sound_on": "Ljud på",
         "sound_off": "Ljud av",
+        "no_sound": "Den här strömmen har inget ljud.",
         "zoom_in": "Zooma in",
         "zoom_out": "Zooma ut",
         "previous_day": "Föregående dag",

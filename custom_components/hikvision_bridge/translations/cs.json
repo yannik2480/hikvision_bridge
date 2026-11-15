@@ -987,6 +987,7 @@
         "fullscreen": "Celá obrazovka",
         "sound_on": "Zapnout zvuk",
         "sound_off": "Vypnout zvuk",
+        "no_sound": "Tento stream nemá zvuk.",
         "zoom_in": "Přiblížit",
         "zoom_out": "Oddálit",
         "previous_day": "Předchozí den",

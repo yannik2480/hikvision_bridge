@@ -987,6 +987,7 @@
         "fullscreen": "Volledig scherm",
         "sound_on": "Geluid aan",
         "sound_off": "Geluid uit",
+        "no_sound": "Deze stream heeft geen geluid.",
         "zoom_in": "Inzoomen",
         "zoom_out": "Uitzoomen",
         "previous_day": "Vorige dag",

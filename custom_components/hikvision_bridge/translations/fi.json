@@ -987,6 +987,7 @@
         "fullscreen": "Koko näyttö",
         "sound_on": "Ääni päälle",
         "sound_off": "Ääni pois",
+        "no_sound": "Tässä virrassa ei ole ääntä.",
         "zoom_in": "Lähennä",
         "zoom_out": "Loitonna",
         "previous_day": "Edellinen päivä",

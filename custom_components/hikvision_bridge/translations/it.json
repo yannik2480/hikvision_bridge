@@ -987,6 +987,7 @@
         "fullscreen": "Schermo intero",
         "sound_on": "Attiva audio",
         "sound_off": "Disattiva audio",
+        "no_sound": "Questo flusso non ha audio.",
         "zoom_in": "Ingrandisci",
         "zoom_out": "Riduci",
         "previous_day": "Giorno precedente",

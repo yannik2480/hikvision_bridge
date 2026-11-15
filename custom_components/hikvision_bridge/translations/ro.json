@@ -987,6 +987,7 @@
         "fullscreen": "Ecran complet",
         "sound_on": "Pornește sunetul",
         "sound_off": "Oprește sunetul",
+        "no_sound": "Acest flux nu are sunet.",
         "zoom_in": "Mărește",
         "zoom_out": "Micșorează",
         "previous_day": "Ziua anterioară",

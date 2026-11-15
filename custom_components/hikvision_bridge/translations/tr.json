@@ -987,6 +987,7 @@
         "fullscreen": "Tam ekran",
         "sound_on": "Sesi aç",
         "sound_off": "Sesi kapat",
+        "no_sound": "Bu akışta ses yok.",
         "zoom_in": "Yakınlaştır",
         "zoom_out": "Uzaklaştır",
         "previous_day": "Önceki gün",

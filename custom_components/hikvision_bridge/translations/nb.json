@@ -987,6 +987,7 @@
         "fullscreen": "Fullskjerm",
         "sound_on": "Lyd på",
         "sound_off": "Lyd av",
+        "no_sound": "Denne strømmen har ingen lyd.",
         "zoom_in": "Zoom inn",
         "zoom_out": "Zoom ut",
         "previous_day": "Forrige dag",
