@@ -665,12 +665,12 @@ class Player {
       }
     }
     video.muted = !this.host.sound;
-    await this._play();
+    await this._autoplay();
   }
 
   // Browsers only start a video with sound after a click on the page: when refused with
   // sound on, play muted instead, so the picture never waits for the sound setting.
-  async _play() {
+  async _autoplay() {
     const video = this.video;
     try {
       await video.play();
@@ -688,7 +688,7 @@ class Player {
 
   // Play or continue after a click; the sound setting is applied before this.
   resume() {
-    return this._play();
+    return this._autoplay();
   }
 
   _detach() {
@@ -872,7 +872,7 @@ class Player {
       pc.addTransceiver("audio", { direction: "recvonly" });
       pc.ontrack = (event) => {
         stream.addTrack(event.track);
-        this._play();
+        this._autoplay();
       };
       pc.onicecandidate = (event) => {
         if (!event.candidate) return;
