@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant نشانی URL محلی پیکربندی‌شده ندارد."
     },
+    "webhook_protocol": {
+      "message": "دستگاه همچنان اعلان‌ها را از طریق {kept} می‌فرستد، اما نشانی URL محلی Home Assistant از {wanted} استفاده می‌کند. در تنظیمات ← سیستم ← شبکه یک نشانی محلی {kept} تنظیم کنید یا از جریان رویداد استفاده کنید."
+    },
     "cloud_auth": {
       "message": "Hik-Connect ورود را رد کرد."
     },
@@ -982,6 +985,8 @@
         "pause": "توقف",
         "download": "دانلود این ضبط",
         "fullscreen": "تمام‌صفحه",
+        "sound_on": "روشن کردن صدا",
+        "sound_off": "خاموش کردن صدا",
         "zoom_in": "بزرگ‌نمایی",
         "zoom_out": "کوچک‌نمایی",
         "previous_day": "روز قبل",

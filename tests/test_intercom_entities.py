@@ -7,9 +7,11 @@ from datetime import UTC, datetime
 import json
 import logging
 
+from aiohttp import web
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+import pytest
 from pytest_homeassistant_custom_component.common import async_capture_events
 
 from custom_components.hikvision_bridge.const import BUS_EVENT
@@ -276,6 +278,113 @@ async def test_door_station_stream_delivers_tamper_and_motion(
     assert "delivered tamperdetection" in caplog.text
     assert "delivered VMD" in caplog.text
 
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+def _access_log(device: FakeDevice, log: list[dict], *, reverse: bool = True) -> list[dict]:
+    """An access event log answering searches like a DS-KD8003; returns the requests seen."""
+    seen: list[dict] = []
+
+    def respond(method: str, body: str) -> web.Response:
+        cond = json.loads(body)["AcsEventCond"]
+        seen.append(cond)
+        ordered = list(reversed(log)) if reverse and cond.get("timeReverseOrder") else list(log)
+        start = cond["searchResultPosition"]
+        page = ordered[start : start + cond["maxResults"]]
+        return web.json_response(
+            {
+                "AcsEvent": {
+                    "searchID": cond["searchID"],
+                    "responseStatusStrg": "MORE" if start + len(page) < len(log) else "OK",
+                    "numOfMatches": len(page),
+                    "totalMatches": len(log),
+                    "InfoList": page,
+                }
+            }
+        )
+
+    device.responders["/ISAPI/AccessControl/AcsEvent"] = respond
+    return seen
+
+
+def _log_entry(serial: int, major: int, minor: int) -> dict:
+    return {
+        "major": major,
+        "minor": minor,
+        "time": f"2026-11-14T08:00:{serial % 60:02d}+01:00",
+        "serialNo": serial,
+        "doorNo": 1,
+    }
+
+
+@pytest.mark.parametrize("reverse", [True, False])
+async def test_door_station_access_log_delivers_new_entries(
+    hass: HomeAssistant, serve, reverse: bool
+) -> None:
+    # The DS-KD8003 of #44 keeps tamper alarms in its access event log, read like its web UI.
+    device = FakeDevice("camera_g2")
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+            "/ISAPI/VideoIntercom/callStatus?format=json": json.dumps(
+                {"CallStatus": {"status": "idle"}}
+            ),
+        }
+    )
+    log = [_log_entry(n, 5, 75) for n in range(1, 41)]  # older than a page
+    seen = _access_log(device, log, reverse=reverse)
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    bus = async_capture_events(hass, BUS_EVENT)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    bridge: DeviceBridge = entry.runtime_data
+    assert seen, "the log was not read"
+    assert bridge.access_log is not None
+    assert bridge.access_log.supported
+    assert not [e for e in bus if e.data["raw_type"].startswith("acs_")]  # backlog skipped
+
+    log.extend([_log_entry(41, 1, 0x404), _log_entry(42, 5, 37), _log_entry(43, 3, 0x70)])
+    await bridge.async_poll_access_log()
+    await hass.async_block_till_done()
+    delivered = [(e.data["kind"], e.data["raw_type"], e.data["state"]) for e in bus]
+    assert delivered == [("tamper", "tamper", "active"), ("other", "acs_3_112", "active")]
+    assert bridge.router.is_active(DEVICE_SCOPE, Kind.TAMPER.value)
+
+    bus.clear()
+    await bridge.async_poll_access_log()
+    await hass.async_block_till_done()
+    assert bus == []
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_access_log_stops_on_devices_without_one(hass: HomeAssistant, serve) -> None:
+    device = FakeDevice("camera_g2")
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+        }
+    )
+    device.responders["/ISAPI/AccessControl/AcsEvent"] = lambda method, body: web.Response(
+        status=404, text="<ResponseStatus><statusCode>4</statusCode></ResponseStatus>"
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    bridge: DeviceBridge = entry.runtime_data
+    assert bridge.access_log is not None
+    assert bridge.access_log.supported is False
+    assert bridge._access_log_unsub is None
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 

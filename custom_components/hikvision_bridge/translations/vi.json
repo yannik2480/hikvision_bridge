@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant chưa cấu hình URL nội bộ."
     },
+    "webhook_protocol": {
+      "message": "Thiết bị vẫn gửi thông báo qua {kept}, nhưng URL cục bộ của Home Assistant dùng {wanted}. Hãy đặt một URL cục bộ {kept} trong Cài đặt → Hệ thống → Mạng, hoặc dùng luồng sự kiện."
+    },
     "cloud_auth": {
       "message": "Hik-Connect đã từ chối đăng nhập."
     },
@@ -982,6 +985,8 @@
         "pause": "Tạm dừng",
         "download": "Tải bản ghi này",
         "fullscreen": "Toàn màn hình",
+        "sound_on": "Bật âm thanh",
+        "sound_off": "Tắt âm thanh",
         "zoom_in": "Phóng to",
         "zoom_out": "Thu nhỏ",
         "previous_day": "Ngày trước",

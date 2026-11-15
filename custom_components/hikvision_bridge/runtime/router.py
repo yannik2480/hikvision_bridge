@@ -137,7 +137,7 @@ class EventRouter:
                 self._note_unknown(channel)
                 known = False
 
-        if frame.device_time is not None:
+        if frame.device_time is not None and origin.name != "access_log":
             self.latency_ms = round((frame.received - frame.device_time).total_seconds() * 1000)
         if known:
             self._remember(scope, kind, frame)

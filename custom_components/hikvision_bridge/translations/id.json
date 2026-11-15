@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant tidak memiliki URL lokal yang dikonfigurasi."
     },
+    "webhook_protocol": {
+      "message": "Perangkat tetap mengirim notifikasi melalui {kept}, tetapi URL lokal Home Assistant memakai {wanted}. Atur URL lokal {kept} di Pengaturan → Sistem → Jaringan, atau gunakan aliran peristiwa."
+    },
     "cloud_auth": {
       "message": "Hik-Connect menolak login."
     },
@@ -982,6 +985,8 @@
         "pause": "Jeda",
         "download": "Unduh rekaman ini",
         "fullscreen": "Layar penuh",
+        "sound_on": "Suara aktif",
+        "sound_off": "Suara mati",
         "zoom_in": "Perbesar",
         "zoom_out": "Perkecil",
         "previous_day": "Hari sebelumnya",

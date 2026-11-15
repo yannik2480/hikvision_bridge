@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant 未配置本地 URL。"
     },
+    "webhook_protocol": {
+      "message": "设备仍通过 {kept} 发送通知，但 Home Assistant 的本地 URL 使用的是 {wanted}。请在 设置 → 系统 → 网络 中设置一个 {kept} 本地 URL，或改用事件流。"
+    },
     "cloud_auth": {
       "message": "Hik-Connect 拒绝了登录。"
     },
@@ -982,6 +985,8 @@
         "pause": "暂停",
         "download": "下载此录像",
         "fullscreen": "全屏",
+        "sound_on": "打开声音",
+        "sound_off": "关闭声音",
         "zoom_in": "放大",
         "zoom_out": "缩小",
         "previous_day": "前一天",

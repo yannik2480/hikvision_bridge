@@ -835,6 +835,9 @@
     "no_url": {
       "message": "لا يوجد عنوان URL محلي مكوَّن في Home Assistant."
     },
+    "webhook_protocol": {
+      "message": "يواصل الجهاز إرسال الإشعارات عبر {kept}، لكن عنوان URL المحلي لـ Home Assistant يستخدم {wanted}. اضبط عنوان URL محليًا بـ {kept} في الإعدادات ← النظام ← الشبكة، أو استخدم بث الأحداث."
+    },
     "cloud_auth": {
       "message": "رفض Hik-Connect تسجيل الدخول."
     },
@@ -982,6 +985,8 @@
         "pause": "إيقاف مؤقت",
         "download": "تنزيل هذا التسجيل",
         "fullscreen": "ملء الشاشة",
+        "sound_on": "تشغيل الصوت",
+        "sound_off": "إيقاف الصوت",
         "zoom_in": "تكبير",
         "zoom_out": "تصغير",
         "previous_day": "اليوم السابق",

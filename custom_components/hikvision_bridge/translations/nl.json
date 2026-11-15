@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant heeft geen lokale URL ingesteld."
     },
+    "webhook_protocol": {
+      "message": "Het apparaat blijft meldingen via {kept} versturen, maar de lokale URL van Home Assistant gebruikt {wanted}. Stel een lokale {kept}-URL in bij Instellingen → Systeem → Netwerk, of gebruik de gebeurtenisstroom."
+    },
     "cloud_auth": {
       "message": "Hik-Connect heeft de aanmelding geweigerd."
     },
@@ -982,6 +985,8 @@
         "pause": "Pauze",
         "download": "Deze opname downloaden",
         "fullscreen": "Volledig scherm",
+        "sound_on": "Geluid aan",
+        "sound_off": "Geluid uit",
         "zoom_in": "Inzoomen",
         "zoom_out": "Uitzoomen",
         "previous_day": "Vorige dag",

@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant میں کوئی مقامی URL ترتیب نہیں دیا گیا۔"
     },
+    "webhook_protocol": {
+      "message": "ڈیوائس اطلاعات {kept} پر ہی بھیجتی رہتی ہے، لیکن Home Assistant کا مقامی URL {wanted} استعمال کرتا ہے۔ ترتیبات ← سسٹم ← نیٹ ورک میں ایک مقامی {kept} URL سیٹ کریں، یا ایونٹ اسٹریم استعمال کریں۔"
+    },
     "cloud_auth": {
       "message": "Hik-Connect نے لاگ ان مسترد کر دیا۔"
     },
@@ -982,6 +985,8 @@
         "pause": "روکیں",
         "download": "یہ ریکارڈنگ ڈاؤن لوڈ کریں",
         "fullscreen": "پوری اسکرین",
+        "sound_on": "آواز آن",
+        "sound_off": "آواز بند",
         "zoom_in": "زوم اِن",
         "zoom_out": "زوم آؤٹ",
         "previous_day": "پچھلا دن",

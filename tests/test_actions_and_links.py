@@ -10,7 +10,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.entity_platform import async_get_platforms
 import pytest
@@ -178,11 +178,11 @@ async def test_notification_host_names_the_protocol_the_device_kept(
 ) -> None:
     device, entry = recorder
     _notification_slot(device, lambda body: body.replace("HTTP<", "HTTPS<"))
-    with pytest.raises(HomeAssistantError) as err:
+    # Door stations like the DS-KD8003 keep HTTPS whatever is written: say what to change.
+    with pytest.raises(ServiceValidationError) as err:
         await _set_notification_host(hass, entry)
-    assert err.value.translation_key == "write_failed"
-    assert "protocolType reads back as 'HTTPS'" in err.value.translation_placeholders["reason"]
-    assert "hookid" not in err.value.translation_placeholders["reason"]
+    assert err.value.translation_key == "webhook_protocol"
+    assert err.value.translation_placeholders == {"kept": "HTTPS", "wanted": "HTTP"}
 
 
 async def test_center_link_repair_writes_only_after_confirmation(

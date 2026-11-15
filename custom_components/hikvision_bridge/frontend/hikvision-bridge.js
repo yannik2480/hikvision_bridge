@@ -49,6 +49,8 @@ const TEXT = {
   pause: "Pause",
   download: "Download this recording",
   fullscreen: "Full screen",
+  sound_on: "Sound on",
+  sound_off: "Sound off",
   zoom_in: "Zoom in",
   zoom_out: "Zoom out",
   previous_day: "Previous day",
@@ -191,6 +193,8 @@ const ICONS = {
   next: icon("M16 18h2V6h-2zM6 18l8.5-6L6 6z"),
   download: icon("M5 20h14v-2H5m14-9h-4V3H9v6H5l7 7 7-7z"),
   fullscreen: icon("M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-7 3v2H5v-5h2v3h3z"),
+  soundOn: icon("M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.84-5 6.7v2.07c4-.91 7-4.49 7-8.77S18 4.14 14 3.23M16.5 12c0-1.77-1-3.29-2.5-4.03V16c1.5-.71 2.5-2.24 2.5-4M3 9v6h4l5 5V4L7 9H3z"),
+  soundOff: icon("M12 4 9.91 6.09 12 8.18M4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.26c-.67.51-1.42.93-2.25 1.2v2.07c1.38-.32 2.63-.95 3.68-1.81L19.73 21 21 19.73l-9-9M19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71m-2.5 0c0-1.77-1-3.29-2.5-4.03v2.21l2.45 2.45c.05-.2.05-.42.05-.63z"),
   menu: icon("M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"),
   left: icon("M15.41 16.58 10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.42z"),
   right: icon("M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"),
@@ -649,11 +653,24 @@ class Player {
         this.hls.attachMedia(video);
       }
     }
-    video.muted = true;
+    video.muted = !this.host.sound;
+    await this._play();
+  }
+
+  // Browsers only start a video with sound after a click on the page: play muted then.
+  async _play() {
+    const video = this.video;
     try {
       await video.play();
-    } catch (_err) {
-      /* autoplay may need a click */
+    } catch (err) {
+      if (video.muted || err?.name !== "NotAllowedError") return; // autoplay may need a click
+      this.host.sound = false;
+      video.muted = true;
+      try {
+        await video.play();
+      } catch (_err) {
+        /* autoplay may need a click */
+      }
     }
   }
 
@@ -671,7 +688,7 @@ class Player {
     this._applySpeed();
   }
 
-  // Recordings play at the chosen speed (muted, so no pitch to keep); live always at 1x.
+  // Recordings play at the chosen speed (the browser keeps the pitch); live always at 1x.
   _applySpeed() {
     const rate = this.mode === "playback" ? this.speed : 1;
     this.video.defaultPlaybackRate = rate;
@@ -778,7 +795,7 @@ class Player {
     const pc = new RTCPeerConnection(configuration);
     const stream = new MediaStream();
     video.srcObject = stream;
-    video.muted = true;
+    video.muted = !this.host.sound;
     let done = false;
     let closed = false;
     let session = null;
@@ -831,7 +848,7 @@ class Player {
       pc.addTransceiver("audio", { direction: "recvonly" });
       pc.ontrack = (event) => {
         stream.addTrack(event.track);
-        video.play().catch(() => {});
+        this._play();
       };
       pc.onicecandidate = (event) => {
         if (!event.candidate) return;
@@ -1131,6 +1148,7 @@ class Viewer {
     this.source = null;
     this.mode = "live";
     this.quality = "auto";
+    this.sound = false; // starts muted: browsers refuse autoplay with sound
     this.day = startOfDay(new Date());
     this.data = { recordings: [], events: [] };
     root.innerHTML = `
@@ -1155,6 +1173,7 @@ class Viewer {
             <select class="source" hidden></select>
             <select class="quality"></select>
             <select class="speed" hidden></select>
+            <button class="icon-button" data-action="sound">${ICONS.soundOff}</button>
             <button class="icon-button" data-action="download">${ICONS.download}</button>
             <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
           </div>
@@ -1192,6 +1211,7 @@ class Viewer {
     this.calendar.days = (year, month) => this._recordedDays(year, month);
     this.video.addEventListener("pause", () => this.update());
     this.video.addEventListener("play", () => this.update());
+    this.video.addEventListener("volumechange", () => this._soundButton());
     this.video.addEventListener("loadedmetadata", () => this._fit());
     this.video.addEventListener("resize", () => this._fit());
     this._stageSize = new ResizeObserver(() => this._fit());
@@ -1238,6 +1258,17 @@ class Viewer {
     video.style.objectFit = "fill";
   }
 
+  // The button shows whether sound plays and offers the opposite.
+  _soundButton() {
+    const button = this.root.querySelector('[data-action="sound"]');
+    const muted = this.video.muted;
+    button.innerHTML = muted ? ICONS.soundOff : ICONS.soundOn;
+    const label = this.t.ui(muted ? "sound_on" : "sound_off");
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", String(!muted));
+  }
+
   _label() {
     const t = this.t.ui;
     const titles = {
@@ -1258,6 +1289,7 @@ class Viewer {
       button.setAttribute("aria-label", t(key));
     }
     this.root.querySelector(".live-button span").textContent = t("live");
+    this._soundButton();
     this.root.querySelector(".today").textContent = t("today");
     const picker = this.root.querySelector(".date-button");
     picker.title = t("pick_day");
@@ -1486,6 +1518,11 @@ class Viewer {
       case "toggle":
         if (this.video.paused) this.video.play().catch(() => {});
         else this.video.pause();
+        break;
+      case "sound":
+        this.sound = this.video.muted;
+        this.video.muted = !this.sound;
+        if (this.video.paused) this.video.play().catch(() => {});
         break;
       case "back":
         this.seek(new Date(position - 10e3));

@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant'ta yapılandırılmış yerel URL yok."
     },
+    "webhook_protocol": {
+      "message": "Cihaz bildirimleri {kept} üzerinden göndermeye devam ediyor, ancak Home Assistant'ın yerel URL'si {wanted} kullanıyor. Ayarlar → Sistem → Ağ bölümünde yerel bir {kept} URL'si ayarlayın veya olay akışını kullanın."
+    },
     "cloud_auth": {
       "message": "Hik-Connect oturum açmayı reddetti."
     },
@@ -982,6 +985,8 @@
         "pause": "Duraklat",
         "download": "Bu kaydı indir",
         "fullscreen": "Tam ekran",
+        "sound_on": "Sesi aç",
+        "sound_off": "Sesi kapat",
         "zoom_in": "Yakınlaştır",
         "zoom_out": "Uzaklaştır",
         "previous_day": "Önceki gün",

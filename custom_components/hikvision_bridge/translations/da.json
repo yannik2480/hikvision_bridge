@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant har ingen lokal URL konfigureret."
     },
+    "webhook_protocol": {
+      "message": "Enheden bliver ved med at sende notifikationer over {kept}, men Home Assistants lokale URL bruger {wanted}. Angiv en lokal {kept}-URL under Indstillinger → System → Netværk, eller brug hændelsesstrømmen."
+    },
     "cloud_auth": {
       "message": "Hik-Connect afviste login."
     },
@@ -982,6 +985,8 @@
         "pause": "Pause",
         "download": "Download denne optagelse",
         "fullscreen": "Fuld skærm",
+        "sound_on": "Lyd til",
+        "sound_off": "Lyd fra",
         "zoom_in": "Zoom ind",
         "zoom_out": "Zoom ud",
         "previous_day": "Forrige dag",

@@ -13,6 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..const import (
+    ACCESS_LOG_INTERVAL,
     AUDIT_INTERVAL,
     CONF_CAMERA_SERIAL,
     CONF_CHANNEL_ID,
@@ -36,10 +37,10 @@ from ..const import (
 )
 from ..model import audit
 from ..model.discover import read_identity_only
-from ..model.features import adjust, detection, health, intercom, io, ptz, storage
+from ..model.features import acslog, adjust, detection, health, intercom, io, ptz, storage
 from ..model.inventory import CloudLinkState, DeviceProfile
 from ..model.vocabulary import Kind
-from ..wire.faults import BadCredentials, BridgeFault, LockedOut
+from ..wire.faults import BadCredentials, BridgeFault, LockedOut, Unsupported
 from ..wire.feed import AlarmFeed, stream_missing
 from ..wire.link import Endpoint, IsapiLink
 from ..wire.scrub import scrubbed_logger
@@ -111,6 +112,9 @@ class DeviceBridge:
     _unsubs: list[CALLBACK_TYPE] = field(default_factory=list)
     _last_audit: datetime | None = None
     _intercom_busy: bool = field(default=False, init=False)
+    access_log: acslog.AccessLog | None = field(default=None, init=False)
+    _access_log_busy: bool = field(default=False, init=False)
+    _access_log_unsub: CALLBACK_TYPE | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.refresher = StatusRefresher(self.hass, self.entry, self)
@@ -381,6 +385,65 @@ class DeviceBridge:
             _LOGGER.debug("Intercom poll skipped: %s", type(err).__name__)
         finally:
             self._intercom_busy = False
+
+    def schedule_access_log(self) -> None:
+        """Door stations keep tamper, door and access events in a log instead of pushing them."""
+        if self.profile.intercom is None:
+            return
+        self.access_log = acslog.AccessLog(self.link)
+        self.entry.async_create_task(self.hass, self.async_poll_access_log(), "access_log")
+        self._access_log_unsub = async_track_time_interval(
+            self.hass, self._access_log_tick, ACCESS_LOG_INTERVAL
+        )
+        self._unsubs.append(self._stop_access_log)
+
+    @callback
+    def _stop_access_log(self) -> None:
+        if self._access_log_unsub is not None:
+            self._access_log_unsub()
+            self._access_log_unsub = None
+
+    @callback
+    def _access_log_tick(self, _now: datetime) -> None:
+        self.entry.async_create_background_task(
+            self.hass, self.async_poll_access_log(), "access_log"
+        )
+
+    async def async_poll_access_log(self) -> None:
+        log = self.access_log
+        if log is None or self._access_log_busy:
+            return
+        self._access_log_busy = True
+        try:
+            frames = await log.poll()
+        except Unsupported:
+            if log.supported is False:
+                _LOGGER.debug("%s has no access event log", self.link.endpoint.host)
+                self._stop_access_log()
+            return
+        except LockedOut as err:
+            self.report_lockout(err)
+            return
+        except BadCredentials:
+            self.entry.async_start_reauth(self.hass)
+            return
+        except BridgeFault as err:
+            _LOGGER.debug("Access event log poll skipped: %s", type(err).__name__)
+            return
+        finally:
+            self._access_log_busy = False
+        handle = self.router.make_handler(Origin("access_log"))
+        ringing_polled = self.profile.intercom is not None and self.profile.intercom.has_call_status
+        for frame in frames:
+            _LOGGER.debug(
+                "Access event log of %s: %s (%s)",
+                self.link.endpoint.host,
+                frame.raw_type,
+                frame.description,
+            )
+            if ringing_polled and frame.raw_type == "doorbell":
+                continue  # the call status polling rings the bell already
+            handle(frame)
 
     @callback
     def update_cloud_state(self, state: CloudLinkState) -> None:

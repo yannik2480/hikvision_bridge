@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant में कोई लोकल URL कॉन्फ़िगर नहीं है।"
     },
+    "webhook_protocol": {
+      "message": "डिवाइस सूचनाएँ {kept} पर ही भेजता रहता है, लेकिन Home Assistant का स्थानीय URL {wanted} इस्तेमाल करता है। सेटिंग्स → सिस्टम → नेटवर्क में एक स्थानीय {kept} URL सेट करें, या इवेंट स्ट्रीम इस्तेमाल करें।"
+    },
     "cloud_auth": {
       "message": "Hik-Connect ने लॉगिन अस्वीकार कर दिया।"
     },
@@ -982,6 +985,8 @@
         "pause": "रोकें",
         "download": "यह रिकॉर्डिंग डाउनलोड करें",
         "fullscreen": "पूर्ण स्क्रीन",
+        "sound_on": "आवाज़ चालू",
+        "sound_off": "आवाज़ बंद",
         "zoom_in": "ज़ूम इन",
         "zoom_out": "ज़ूम आउट",
         "previous_day": "पिछला दिन",

@@ -148,6 +148,7 @@ async def _async_setup_device(hass: HomeAssistant, entry: BridgeConfigEntry) -> 
     async_register_webhook(hass, entry)
     bridge.schedule_audit()
     bridge.schedule_intercom_poll()
+    bridge.schedule_access_log()
     _reload_on_subentry_change(hass, entry)
     return True
 

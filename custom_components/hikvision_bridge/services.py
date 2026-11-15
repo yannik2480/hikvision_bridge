@@ -212,6 +212,15 @@ async def _set_notification_host(call: ServiceCall) -> ServiceResponse:
     )
     try:
         await patch_and_verify(bridge.link, path, edits)
+    except VerifyMismatch as err:
+        if (err.element or "").lower() == "protocoltype" and err.actual:
+            # Door stations like the DS-KD8003 keep HTTPS whatever is written.
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="webhook_protocol",
+                translation_placeholders={"kept": err.actual, "wanted": edits["protocolType"]},
+            ) from err
+        raise _fail(err) from err
     except BridgeFault as err:
         raise _fail(err) from err
     return {"slot": slot, "target": f"{url.scheme}://{url.host}:{url.port}/api/webhook/***"}

@@ -835,6 +835,9 @@
     "no_url": {
       "message": "A Home Assistantban nincs helyi URL beállítva."
     },
+    "webhook_protocol": {
+      "message": "Az eszköz továbbra is {kept} protokollon küldi az értesítéseket, de a Home Assistant helyi URL-je {wanted} protokollt használ. Állíts be helyi {kept} URL-t a Beállítások → Rendszer → Hálózat menüben, vagy használd az eseményfolyamot."
+    },
     "cloud_auth": {
       "message": "A Hik-Connect elutasította a bejelentkezést."
     },
@@ -982,6 +985,8 @@
         "pause": "Szünet",
         "download": "A felvétel letöltése",
         "fullscreen": "Teljes képernyő",
+        "sound_on": "Hang be",
+        "sound_off": "Hang ki",
         "zoom_in": "Nagyítás",
         "zoom_out": "Kicsinyítés",
         "previous_day": "Előző nap",

@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant nemá nastavenou místní URL."
     },
+    "webhook_protocol": {
+      "message": "Zařízení dál posílá oznámení přes {kept}, ale místní URL Home Assistantu používá {wanted}. Nastavte místní URL s {kept} v Nastavení → Systém → Síť, nebo použijte proud událostí."
+    },
     "cloud_auth": {
       "message": "Hik-Connect odmítl přihlášení."
     },
@@ -982,6 +985,8 @@
         "pause": "Pozastavit",
         "download": "Stáhnout tento záznam",
         "fullscreen": "Celá obrazovka",
+        "sound_on": "Zapnout zvuk",
+        "sound_off": "Vypnout zvuk",
         "zoom_in": "Přiblížit",
         "zoom_out": "Oddálit",
         "previous_day": "Předchozí den",

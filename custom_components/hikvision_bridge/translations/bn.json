@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant-এ কোনো লোকাল URL কনফিগার করা নেই।"
     },
+    "webhook_protocol": {
+      "message": "ডিভাইসটি {kept} দিয়ে বিজ্ঞপ্তি পাঠাতে থাকে, কিন্তু Home Assistant-এর স্থানীয় URL {wanted} ব্যবহার করে। সেটিংস → সিস্টেম → নেটওয়ার্কে একটি স্থানীয় {kept} URL সেট করুন, অথবা ইভেন্ট স্ট্রিম ব্যবহার করুন।"
+    },
     "cloud_auth": {
       "message": "Hik-Connect লগইন প্রত্যাখ্যান করেছে।"
     },
@@ -982,6 +985,8 @@
         "pause": "বিরতি",
         "download": "এই রেকর্ডিং ডাউনলোড করুন",
         "fullscreen": "পূর্ণ স্ক্রিন",
+        "sound_on": "শব্দ চালু",
+        "sound_off": "শব্দ বন্ধ",
         "zoom_in": "জুম ইন",
         "zoom_out": "জুম আউট",
         "previous_day": "আগের দিন",

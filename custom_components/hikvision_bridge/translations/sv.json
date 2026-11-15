@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant har ingen lokal URL konfigurerad."
     },
+    "webhook_protocol": {
+      "message": "Enheten fortsätter att skicka aviseringar över {kept}, men Home Assistants lokala URL använder {wanted}. Ange en lokal {kept}-URL under Inställningar → System → Nätverk, eller använd händelseströmmen."
+    },
     "cloud_auth": {
       "message": "Hik-Connect avvisade inloggningen."
     },
@@ -982,6 +985,8 @@
         "pause": "Pausa",
         "download": "Ladda ner den här inspelningen",
         "fullscreen": "Helskärm",
+        "sound_on": "Ljud på",
+        "sound_off": "Ljud av",
         "zoom_in": "Zooma in",
         "zoom_out": "Zooma ut",
         "previous_day": "Föregående dag",

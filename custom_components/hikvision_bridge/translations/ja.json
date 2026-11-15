@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant にローカル URL が設定されていません。"
     },
+    "webhook_protocol": {
+      "message": "デバイスは通知を {kept} で送信し続けますが、Home Assistant のローカル URL は {wanted} を使用しています。設定 → システム → ネットワークでローカルの {kept} URL を設定するか、イベントストリームを使用してください。"
+    },
     "cloud_auth": {
       "message": "Hik-Connect がログインを拒否しました。"
     },
@@ -982,6 +985,8 @@
         "pause": "一時停止",
         "download": "この録画をダウンロード",
         "fullscreen": "全画面",
+        "sound_on": "音声オン",
+        "sound_off": "音声オフ",
         "zoom_in": "ズームイン",
         "zoom_out": "ズームアウト",
         "previous_day": "前の日",

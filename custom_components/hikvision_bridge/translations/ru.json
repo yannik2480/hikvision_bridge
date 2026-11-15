@@ -835,6 +835,9 @@
     "no_url": {
       "message": "В Home Assistant не настроен локальный URL."
     },
+    "webhook_protocol": {
+      "message": "Устройство продолжает отправлять уведомления по {kept}, а локальный URL Home Assistant использует {wanted}. Укажите локальный URL с {kept} в разделе Настройки → Система → Сеть или используйте поток событий."
+    },
     "cloud_auth": {
       "message": "Hik-Connect отклонил вход."
     },
@@ -982,6 +985,8 @@
         "pause": "Пауза",
         "download": "Скачать эту запись",
         "fullscreen": "Полный экран",
+        "sound_on": "Включить звук",
+        "sound_off": "Выключить звук",
         "zoom_in": "Приблизить",
         "zoom_out": "Отдалить",
         "previous_day": "Предыдущий день",

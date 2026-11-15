@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant n'a pas d'URL locale configurée."
     },
+    "webhook_protocol": {
+      "message": "L'appareil continue d'envoyer les notifications en {kept}, mais l'URL locale de Home Assistant utilise {wanted}. Définissez une URL locale en {kept} dans Paramètres → Système → Réseau, ou utilisez le flux d'événements."
+    },
     "cloud_auth": {
       "message": "Hik-Connect a refusé la connexion."
     },
@@ -982,6 +985,8 @@
         "pause": "Pause",
         "download": "Télécharger cet enregistrement",
         "fullscreen": "Plein écran",
+        "sound_on": "Activer le son",
+        "sound_off": "Couper le son",
         "zoom_in": "Zoom avant",
         "zoom_out": "Zoom arrière",
         "previous_day": "Jour précédent",

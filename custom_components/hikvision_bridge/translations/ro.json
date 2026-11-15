@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistant nu are configurat un URL local."
     },
+    "webhook_protocol": {
+      "message": "Dispozitivul continuă să trimită notificări prin {kept}, dar URL-ul local al Home Assistant folosește {wanted}. Setează un URL local {kept} în Setări → Sistem → Rețea sau folosește fluxul de evenimente."
+    },
     "cloud_auth": {
       "message": "Hik-Connect a respins autentificarea."
     },
@@ -982,6 +985,8 @@
         "pause": "Pauză",
         "download": "Descarcă această înregistrare",
         "fullscreen": "Ecran complet",
+        "sound_on": "Pornește sunetul",
+        "sound_off": "Oprește sunetul",
         "zoom_in": "Mărește",
         "zoom_out": "Micșorează",
         "previous_day": "Ziua anterioară",

@@ -101,6 +101,11 @@ async def async_get_config_entry_diagnostics(
         }
         for name, feed in bridge.feeds.items()
     }
+    result["access_log"] = (
+        {**asdict(bridge.access_log.stats), "supported": bridge.access_log.supported}
+        if bridge.access_log is not None
+        else None
+    )
     result["events"] = {
         "recent": {scope: list(items) for scope, items in bridge.router.recent.items()},
         "unknown_channels": bridge.router.unknown_channels,

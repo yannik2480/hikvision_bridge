@@ -835,6 +835,9 @@
     "no_url": {
       "message": "Home Assistantiin ei ole määritetty paikallista URL-osoitetta."
     },
+    "webhook_protocol": {
+      "message": "Laite lähettää ilmoitukset edelleen {kept}-yhteydellä, mutta Home Assistantin paikallinen URL käyttää {wanted}-yhteyttä. Aseta paikallinen {kept}-URL kohdassa Asetukset → Järjestelmä → Verkko tai käytä tapahtumavirtaa."
+    },
     "cloud_auth": {
       "message": "Hik-Connect hylkäsi kirjautumisen."
     },
@@ -982,6 +985,8 @@
         "pause": "Tauko",
         "download": "Lataa tämä tallenne",
         "fullscreen": "Koko näyttö",
+        "sound_on": "Ääni päälle",
+        "sound_off": "Ääni pois",
         "zoom_in": "Lähennä",
         "zoom_out": "Loitonna",
         "previous_day": "Edellinen päivä",
