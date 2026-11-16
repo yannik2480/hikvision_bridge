@@ -26,14 +26,14 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import re
 import secrets
 import shutil
 import tempfile
 import time
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 from weakref import WeakKeyDictionary, WeakSet
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -55,6 +55,8 @@ QUALITY_ORIGINAL = "original"
 QUALITY_COMPATIBLE = "compatible"
 QUALITIES = (QUALITY_ORIGINAL, QUALITY_COMPATIBLE)
 SEGMENT_SECONDS = 2
+# Segments kept in the playlist of a live session (about 20 seconds).
+LIVE_WINDOW_SEGMENTS = 10
 # Video on demand is cut at the first key frame after this long (so at about every one).
 VOD_CUT_SECONDS = 1
 FIRST_SEGMENT_TIMEOUT = 25
@@ -174,6 +176,13 @@ def playback_uri(
     )
 
 
+def live_rtsp_url(host: str, port: int, stream_id: str, user: str, password: str) -> str:
+    """Address of a device's live stream with the login quoted for the URL."""
+    user_part = quote(user, safe="")
+    password_part = quote(password, safe="")
+    return f"rtsp://{user_part}:{password_part}@{host}:{port}/Streaming/Channels/{stream_id}"
+
+
 def hls_args(
     url: str,
     quality: str,
@@ -182,6 +191,7 @@ def hls_args(
     audio: bool | None = None,
     *,
     offset: float | None = None,
+    live: bool = False,
 ) -> list[str]:
     """ffmpeg arguments; ``url`` is an RTSP address or PIPE for a program stream on stdin.
 
@@ -233,19 +243,23 @@ def hls_args(
             "-map_metadata",
             "-1",
         ]
+    if live:
+        # A live picture has no end: keep a short window and delete what leaves it.
+        window = ["-hls_list_size", str(LIVE_WINDOW_SEGMENTS)]
+        flags = "independent_segments+delete_segments"
+    else:
+        window = ["-hls_list_size", "0", "-hls_playlist_type", "event"]
+        flags = "independent_segments"
     args += [
         "-f",
         "hls",
         "-hls_time",
         str(SEGMENT_SECONDS if offset is None else VOD_CUT_SECONDS),
-        "-hls_list_size",
-        "0",
+        *window,
         "-hls_segment_type",
         "fmp4",
-        "-hls_playlist_type",
-        "event",
         "-hls_flags",
-        "independent_segments",
+        flags,
         "-hls_segment_filename",
         str(target / SEGMENT.replace("{:05d}", "%05d")),
         str(target / PLAYLIST),
@@ -568,6 +582,48 @@ class SessionManager:
         session.owner = owner
         self.sessions[session.session_id] = session
         self._watch()
+
+    async def start_live_sound(
+        self,
+        url: str,
+        key: tuple[str, str, str],
+        codec: str | None,
+        owner: str | None,
+    ) -> Session:
+        """Live picture of a camera from its own RTSP stream, with the sound made AAC.
+
+        Home Assistant's live stream keeps only AAC and MP3 sound, so a device sending G.711
+        plays silent there. Video is copied as it is; only the sound is converted (see
+        ``hls_args``). A newer live session of the camera replaces the older one.
+        """
+        async with self._lock:
+            for other in [s for s in self.sessions.values() if s.source_key == key]:
+                await self._stop(other.session_id)
+            while len(self.sessions) >= MAX_SESSIONS:
+                oldest = min(self.sessions.values(), key=lambda s: s.last_access)
+                await self._stop(oldest.session_id)
+            folder = Path(
+                await self.hass.async_add_executor_job(tempfile.mkdtemp, "", "hikvision_")
+            )
+            try:
+                now = datetime.now(UTC)
+                session = Session(
+                    secrets.token_urlsafe(16), key, now, now, QUALITY_ORIGINAL, folder
+                )
+                await self._spawn(
+                    session,
+                    hls_args(url, QUALITY_ORIGINAL, codec, folder, True, live=True),
+                    False,
+                )
+                reason = await self._first_segment(session, "live sound")
+            except BaseException:
+                await self.hass.async_add_executor_job(shutil.rmtree, folder, True)
+                raise
+            if reason is not None:
+                await self.hass.async_add_executor_job(shutil.rmtree, folder, True)
+                raise SessionError(reason)
+            self._register(session, key, owner)
+            return session
 
     async def stop_entry(self, entry_id: str) -> None:
         """End the sessions of a config entry (it is unloading)."""

@@ -7,13 +7,20 @@ from functools import partial
 from typing import Any
 
 from homeassistant.components import websocket_api
-from homeassistant.const import Platform
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import CONF_ENTRY_KIND, DOMAIN, KIND_CLOUD, OPT_HIDDEN_CHANNELS
+from .const import (
+    CONF_ENTRY_KIND,
+    DOMAIN,
+    KIND_CLOUD,
+    OPT_HIDDEN_CHANNELS,
+    OPT_RTSP_PORT,
+    RTSP_PORT_DEFAULT,
+)
 from .model.features import recordings
 from .runtime import identity, sessions
 from .runtime.bridge import DeviceBridge
@@ -43,6 +50,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_days)
     websocket_api.async_register_command(hass, ws_playback_start)
     websocket_api.async_register_command(hass, ws_playback_stop)
+    websocket_api.async_register_command(hass, ws_live_sound)
 
 
 def _bridges(hass: HomeAssistant) -> list[DeviceBridge]:
@@ -99,6 +107,7 @@ def ws_cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
                     "online": channel.online is not False,
                     "sources": [s.key for s in sources(bridge, channel.channel_id)],
                     "live": live,
+                    "audio": {str(s.rank): s.audio for s in channel.streams if s.rank <= 2},
                     "codec": main.codec if main else None,
                     "resolution": f"{main.width}x{main.height}" if main and main.width else None,
                 }
@@ -344,3 +353,50 @@ async def ws_playback_stop(
         return
     await manager.stop(msg["session_id"])
     connection.send_result(msg["id"], {})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/live/sound",
+        vol.Required("entry_id"): str,
+        vol.Required("channel_id"): str,
+        vol.Required("rank"): vol.In((1, 2)),
+    }
+)
+@websocket_api.async_response
+async def ws_live_sound(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Live picture with sound from the device's own stream, for streams that lack it there."""
+    bridge = _bridge(hass, msg["entry_id"])
+    channel_id = msg["channel_id"]
+    if bridge is None or channel_id not in bridge.profile.channels or not channel_id.isdigit():
+        connection.send_error(msg["id"], "not_found", "Unknown camera")
+        return
+    route = bridge.routes.get(channel_id)
+    cloud = bridge.profile.cloud
+    if (route is not None and route.healthy) or (cloud and cloud.stream_encrypted):
+        connection.send_error(msg["id"], "unsupported", "Sound needs a direct connection")
+        return
+    data = bridge.entry.data
+    host = bridge.link.endpoint.base.split("://", 1)[1].rsplit(":", 1)[0]
+    port = bridge.entry.options.get(OPT_RTSP_PORT) or bridge.profile.rtsp_port or RTSP_PORT_DEFAULT
+    stream_id = f"{int(channel_id) * 100 + msg['rank']}"
+    url = sessions.live_rtsp_url(
+        host, int(port), stream_id, data[CONF_USERNAME], data[CONF_PASSWORD]
+    )
+    stream = next(
+        (s for s in bridge.profile.channels[channel_id].streams if s.rank == msg["rank"]), None
+    )
+    key = (bridge.entry.entry_id, channel_id, f"live{msg['rank']}")
+    try:
+        session = await sessions.manager(hass).start_live_sound(
+            url, key, stream.codec if stream else None, connection.user.id
+        )
+    except sessions.SessionError as err:
+        connection.send_error(msg["id"], err.reason, err.reason)
+        return
+    except FileNotFoundError:
+        connection.send_error(msg["id"], "no_ffmpeg", "ffmpeg is not available")
+        return
+    connection.send_result(msg["id"], {"session_id": session.session_id, "url": session.url})

@@ -612,6 +612,7 @@ class Player {
     this.video = host.video;
     this.hls = null;
     this.session = null;
+    this.liveSound = null; // session id of the live picture with its own sound, if any
     this.mode = "live";
     this.quality = "auto";
     this.speed = 1; // playback speed of recordings; live always runs at 1x
@@ -656,7 +657,10 @@ class Player {
           fragLoadingMaxRetry: 6,
         });
         this.hls.on(Hls.Events.BUFFER_CODECS, (_e, data) => {
-          if (token === this.token) this.host.setAudio(hasAudioTrack(data));
+          if (token !== this.token) return;
+          const sound = hasAudioTrack(data);
+          this.host.setAudio(sound);
+          if (!sound && this.mode === "live") this._liveSound(token);
         });
         this.hls.on(Hls.Events.ERROR, (_e, data) => {
           // A newer start ends this session on the server; the video stays until it is ready.
@@ -736,12 +740,42 @@ class Player {
     clearInterval(this._keepAlive);
     const session = this.session;
     this.session = null;
-    if (session) {
+    const sound = this.liveSound;
+    this.liveSound = null;
+    for (const id of [session && session.session_id, sound]) {
+      if (!id) continue;
       try {
-        await this.host.hass.callWS({ type: `${DOMAIN}/playback/stop`, session_id: session.session_id });
+        await this.host.hass.callWS({ type: `${DOMAIN}/playback/stop`, session_id: id });
       } catch (_err) {
         /* gone already */
       }
+    }
+  }
+
+  /*
+   * Home Assistant's live stream keeps only AAC or MP3 sound, so a camera sending G.711 plays
+   * silent there. When the device has sound on this stream, the integration serves the picture
+   * with the sound converted to AAC, and the player switches to that session.
+   */
+  async _liveSound(token) {
+    const camera = this.camera;
+    const rank = this.level === "low" ? 2 : 1;
+    if (this.liveSound || !camera || !camera.audio || camera.audio[rank] !== true) return;
+    try {
+      const session = await this.host.hass.callWS({
+        type: `${DOMAIN}/live/sound`,
+        entry_id: camera.entry_id,
+        channel_id: camera.channel_id,
+        rank,
+      });
+      if (token !== this.token) {
+        this.host.hass.callWS({ type: `${DOMAIN}/playback/stop`, session_id: session.session_id }).catch(() => {});
+        return;
+      }
+      this.liveSound = session.session_id;
+      await this._attach(session.url, token);
+    } catch (_err) {
+      /* the picture stays without sound */
     }
   }
 
@@ -761,7 +795,7 @@ class Player {
     const entity = camera.live[level] || camera.live.high || camera.live.low;
     const token = ++this.token;
     clearInterval(this._keepAlive);
-    if (this.session) this.stop();
+    if (this.session || this.liveSound) this.stop();
     this.token = token;
     this._closeRtc();
     if (!entity) {
