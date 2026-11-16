@@ -127,7 +127,7 @@ class EventRouter:
         if kind == Kind.IO:
             scope = DEVICE_SCOPE
             key = f"io:{frame.port_id or frame.channel_id or '?'}"
-        elif kind in DEVICE_WIDE or channel is None:
+        elif kind in DEVICE_WIDE or channel is None or self._door_access(kind):
             scope = DEVICE_SCOPE
             key = kind.value
         else:
@@ -166,6 +166,11 @@ class EventRouter:
             self._bridge.refresher.request_full()
         self._fire_bus_event(scope, kind, frame)
         async_dispatcher_send(self.hass, signal_state(self._bridge.entry.entry_id), (scope, key))
+
+    def _door_access(self, kind: Kind) -> bool:
+        """Door stations report access events (AccessControllerEvent, log entries) without a
+        channel of their own; they belong to the device."""
+        return kind is Kind.OTHER and self._bridge.profile.intercom is not None
 
     def _note_unknown(self, channel: str) -> None:
         """Count an event of a channel the device never listed; the table stays small."""

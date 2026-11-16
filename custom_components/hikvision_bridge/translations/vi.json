@@ -423,6 +423,16 @@
             }
           }
         }
+      },
+      "access_events": {
+        "name": "Access events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "access": "Access"
+            }
+          }
+        }
       }
     },
     "sensor": {

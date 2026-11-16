@@ -19,6 +19,7 @@ from ...wire.link import IsapiLink
 
 SEARCH_PATH = "/ISAPI/AccessControl/AcsEvent?format=json"
 PAGE = 30
+MAX_PAGES = 10  # most entries read per poll: 300
 # The whole log: devices refuse a search without a period.
 _START, _END = "2000-01-01T00:00:00", "2037-12-31T23:59:59"
 
@@ -151,14 +152,30 @@ class AccessLog:
         return total, [e for e in entries if isinstance(e, dict)]
 
     async def _newest(self) -> list[dict[str, Any]]:
-        """The newest page of the log, oldest entry first."""
+        """The entries of the log, oldest first, from the newest one back to the cursor. A page
+        holds PAGE entries, so a log that grew by more than that since the last poll is read
+        page by page; otherwise the entries in between would never be delivered."""
         total, entries = await self._search(0)
         if len(entries) >= 2 and self.stats.newest_first is None:
             self.stats.newest_first = _order(entries[0]) > _order(entries[-1])
-        if self.stats.newest_first is False and total > len(entries):
-            # The device ignores timeReverseOrder: the newest entries are on the last page.
-            _, entries = await self._search(max(total - PAGE, 0))
-        return sorted(entries, key=_order)
+        if self.stats.newest_first is False:
+            # The device ignores timeReverseOrder and counts from the oldest entry: the newest
+            # entries are on the last page, and the pages before it hold the older ones.
+            position = max(total - PAGE, 0)
+            step = -PAGE
+            _, entries = await self._search(position)
+        else:
+            position, step = 0, PAGE
+        found: list[dict[str, Any]] = []
+        for _ in range(MAX_PAGES):
+            found.extend(entries)
+            if not entries or self._last is None or any(_order(e) <= self._last for e in entries):
+                break
+            position += step
+            if position < 0 or position >= total:
+                break
+            _, entries = await self._search(position)
+        return sorted(found, key=_order)
 
     async def poll(self) -> list[FeedFrame]:
         """New entries since the last poll. Raises BridgeFault; Unsupported on the first poll
