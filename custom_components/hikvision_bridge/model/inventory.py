@@ -153,6 +153,8 @@ class DeviceProfile:
     cloud: CloudLinkState | None = None
     rtsp_port: int | None = None
     https_enabled: bool | None = None
+    # Whether the device downloads a time span; None if it does not say.
+    download_by_time: bool | None = None
     default_password: bool = False
     risky_password: bool = False
     has_alert_stream: bool = True
