@@ -1384,19 +1384,26 @@ class Viewer {
 
   async setCamera(camera) {
     if (this.camera && camera && this.camera.entry_id === camera.entry_id && this.camera.channel_id === camera.channel_id) return;
+    // During playback the next camera continues at the recorded time now shown.
+    const resume = this.camera && this.mode === "playback" ? (this._target?.time ?? this.player.position ?? this.timeline.playhead) : null;
+    const paused = this.video.paused;
     await this.player.stop();
     this.camera = camera;
     if (!camera) {
       this.showMessage(this.t.ui("select_camera"));
       return;
     }
-    this.source = camera.sources[0] || null;
+    // Keep the recording source when the next camera has it too.
+    this.source = camera.sources.includes(this.source) ? this.source : camera.sources[0] || null;
     const select = this.root.querySelector(".source");
     select.hidden = camera.sources.length < 2;
     select.innerHTML = camera.sources.map((s) => `<option value="${s}">${this.t.ui("source")}: ${this.t.source(s)}</option>`).join("");
+    if (this.source) select.value = this.source;
     this.data = { recordings: [], events: [] };
     this.loadTimeline();
-    this.goLive();
+    if (resume == null || !camera.sources.length) return this.goLive();
+    await this.seek(new Date(resume));
+    if (paused && this.camera === camera && this.mode === "playback") this.video.pause();
   }
 
   _dateLabel() {
