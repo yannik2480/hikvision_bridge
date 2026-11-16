@@ -248,9 +248,9 @@ const STYLE = `
   .segmented button.active { background: var(--hb-accent); color: var(--text-primary-color, #fff); }
   .stage { position: relative; background: #000; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
   .stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-  .stage.zoomable { touch-action: none; }
+  .stage.armed { touch-action: none; }
   .stage.zoomable video { transform-origin: 0 0; }
-  .stage.zoomed { cursor: grab; }
+  .stage.armed.zoomed { cursor: grab; }
   .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .message { background: rgba(0,0,0,.7); color: #fff; padding: 10px 16px; border-radius: 8px; max-width: 80%; text-align: center; }
   .message.error { border-left: 4px solid var(--hb-error); }
@@ -1230,8 +1230,7 @@ class Viewer {
       </div>`;
     this.video = root.querySelector("video");
     this._view = { scale: VIDEO_ZOOM_MIN, x: 0, y: 0 };
-    // On a dashboard the wheel and touch must keep scrolling the page: zoom only in the panel.
-    if (!this.compact) this._zoomable(root.querySelector(".stage"));
+    this._zoomable(root.querySelector(".stage"));
     this.player = new Player(this);
     this.timeline = new Timeline(root.querySelector(".timeline"), (date) => this.seek(date));
     root.querySelector(".controls").addEventListener("click", (e) => this._click(e));
@@ -1303,9 +1302,17 @@ class Viewer {
    * Digital pan and zoom, presentation only: a CSS transform on the video, the stream is
    * untouched. The wheel or a pinch zooms around the pointer, a drag pans while zoomed and
    * a double click or double tap returns to the whole picture.
+   *
+   * The panel is always armed. On a dashboard card the wheel and a swipe must keep scrolling
+   * the page, so the card starts unarmed: a tap arms it, a double tap or the mouse leaving
+   * the card returns to the whole picture and disarms. Tap one of a double tap arms, tap two
+   * resets and disarms, so a quick double tap on an unarmed card changes nothing. Ctrl (or
+   * Cmd) with the wheel, which is also how a trackpad pinch arrives, zooms without arming.
    */
   _zoomable(stage) {
     stage.classList.add("zoomable");
+    const arm = (on) => stage.classList.toggle("armed", (this._zoomArmed = on));
+    arm(!this.compact);
     const pointers = new Map();
     let pinch = null; // midpoint and distance of the two fingers at the previous move
     let tap = null; // the previous tap, to recognise a double tap
@@ -1317,6 +1324,9 @@ class Viewer {
     stage.addEventListener(
       "wheel",
       (e) => {
+        const ctrl = e.ctrlKey || e.metaKey;
+        if (!this._zoomArmed && !ctrl) return; // the page scrolls
+        if (ctrl) e.preventDefault(); // never zoom the whole page over the video
         const delta = e.deltaY * (e.deltaMode ? 33 : 1); // lines to pixels
         if (!delta || (delta > 0 && this._view.scale <= VIDEO_ZOOM_MIN)) return;
         e.preventDefault();
@@ -1336,6 +1346,7 @@ class Viewer {
       const dx = e.clientX - p.x;
       const dy = e.clientY - p.y;
       Object.assign(p, { x: e.clientX, y: e.clientY, travel: p.travel + Math.hypot(dx, dy) });
+      if (!this._zoomArmed) return; // only the travel counts, to tell a tap from a swipe
       const view = this._view;
       if (pointers.size === 1) {
         view.x += dx;
@@ -1364,9 +1375,16 @@ class Viewer {
       const double = tap && e.timeStamp - tap.time < 350 && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 30;
       tap = double ? null : { time: e.timeStamp, x: e.clientX, y: e.clientY };
       if (double) this._zoomTo(VIDEO_ZOOM_MIN);
+      if (this.compact) arm(!double);
     };
     stage.addEventListener("pointerup", release);
     stage.addEventListener("pointercancel", release);
+    // Only the mouse: a finger also "leaves" when it lifts after every tap.
+    stage.addEventListener("pointerleave", (e) => {
+      if (!this.compact || e.pointerType !== "mouse") return;
+      this._zoomTo(VIDEO_ZOOM_MIN);
+      arm(false);
+    });
   }
 
   // Sets the magnification, keeping the picture under `at` (from the unzoomed video box) in
@@ -2131,6 +2149,7 @@ class HikvisionBridgeCard extends HTMLElement {
         ha-card, .card { overflow: hidden; height: 100%; display: flex; flex-direction: column; }
         .viewer { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .stage { aspect-ratio: 16 / 9; flex: 1; }
+        .stage.armed::after { content: ""; position: absolute; inset: 0; border: 2px solid var(--hb-accent); pointer-events: none; }
         .day-bar { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
         .day-bar .spacer { flex: 1; }
         .today { background: none; border: 1px solid var(--hb-line); border-radius: 16px; padding: 2px 10px; cursor: pointer; }
