@@ -12,6 +12,9 @@ const ZOOMS = [DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 15 * 60e3];
 const HEVC = 'video/mp4; codecs="hvc1.1.6.L153.B0"';
 // Playback speeds of recordings, as the Hik-Connect app offers them.
 const SPEEDS = [1, 2, 4, 8];
+// Digital zoom of the panel video: from the whole picture up to this magnification.
+const VIDEO_ZOOM_MIN = 1;
+const VIDEO_ZOOM_MAX = 8;
 // Live WebRTC gives up after this long and the view falls back to HLS.
 const RTC_START_MS = 6000;
 
@@ -245,6 +248,9 @@ const STYLE = `
   .segmented button.active { background: var(--hb-accent); color: var(--text-primary-color, #fff); }
   .stage { position: relative; background: #000; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
   .stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .stage.zoomable { touch-action: none; }
+  .stage.zoomable video { transform-origin: 0 0; }
+  .stage.zoomed { cursor: grab; }
   .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .message { background: rgba(0,0,0,.7); color: #fff; padding: 10px 16px; border-radius: 8px; max-width: 80%; text-align: center; }
   .message.error { border-left: 4px solid var(--hb-error); }
@@ -1223,6 +1229,9 @@ class Viewer {
         <div class="hint" hidden></div>
       </div>`;
     this.video = root.querySelector("video");
+    this._view = { scale: VIDEO_ZOOM_MIN, x: 0, y: 0 };
+    // On a dashboard the wheel and touch must keep scrolling the page: zoom only in the panel.
+    if (!this.compact) this._zoomable(root.querySelector(".stage"));
     this.player = new Player(this);
     this.timeline = new Timeline(root.querySelector(".timeline"), (date) => this.seek(date));
     root.querySelector(".controls").addEventListener("click", (e) => this._click(e));
@@ -1242,8 +1251,12 @@ class Viewer {
     this.video.addEventListener("volumechange", () => this._soundButton());
     this.video.addEventListener("loadedmetadata", () => this._fit());
     this.video.addEventListener("resize", () => this._fit());
-    this._stageSize = new ResizeObserver(() => this._fit());
+    this._stageSize = new ResizeObserver(() => {
+      this._fit();
+      this._zoomTo(this._view.scale);
+    });
     this._stageSize.observe(root.querySelector(".stage"));
+    this._stageSize.observe(this.video); // a resized video keeps its zoom inside the new box
     this._tick = setInterval(() => this._frame(), 250);
     this._refresh = setInterval(() => {
       if (isoDay(this.day) === isoDay(new Date())) this.loadTimeline();
@@ -1284,6 +1297,94 @@ class Viewer {
     video.style.width = `${width}px`;
     video.style.height = `${width / shape}px`;
     video.style.objectFit = "fill";
+  }
+
+  /*
+   * Digital pan and zoom, presentation only: a CSS transform on the video, the stream is
+   * untouched. The wheel or a pinch zooms around the pointer, a drag pans while zoomed and
+   * a double click or double tap returns to the whole picture.
+   */
+  _zoomable(stage) {
+    stage.classList.add("zoomable");
+    const pointers = new Map();
+    let pinch = null; // midpoint and distance of the two fingers at the previous move
+    let tap = null; // the previous tap, to recognise a double tap
+    // A screen position relative to the unzoomed video box.
+    const at = (x, y) => {
+      const box = this.video.getBoundingClientRect();
+      return { x: x - box.left + this._view.x, y: y - box.top + this._view.y };
+    };
+    stage.addEventListener(
+      "wheel",
+      (e) => {
+        const delta = e.deltaY * (e.deltaMode ? 33 : 1); // lines to pixels
+        if (!delta || (delta > 0 && this._view.scale <= VIDEO_ZOOM_MIN)) return;
+        e.preventDefault();
+        this._zoomTo(this._view.scale * Math.exp(-delta / 400), at(e.clientX, e.clientY));
+      },
+      { passive: false },
+    );
+    stage.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, travel: 0 });
+      pinch = null;
+    });
+    stage.addEventListener("pointermove", (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      Object.assign(p, { x: e.clientX, y: e.clientY, travel: p.travel + Math.hypot(dx, dy) });
+      const view = this._view;
+      if (pointers.size === 1) {
+        view.x += dx;
+        view.y += dy;
+        this._zoomTo(view.scale);
+        return;
+      }
+      const [a, b] = pointers.values();
+      a.travel = b.travel = Infinity; // a pinch is no tap
+      const now = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, distance: Math.hypot(a.x - b.x, a.y - b.y) };
+      if (pinch?.distance) {
+        // Zoom around the previous midpoint, then follow the fingers to the new one.
+        this._zoomTo((view.scale * now.distance) / pinch.distance, at(pinch.x, pinch.y));
+        view.x += now.x - pinch.x;
+        view.y += now.y - pinch.y;
+        this._zoomTo(view.scale);
+      }
+      pinch = now;
+    });
+    const release = (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+      pointers.delete(e.pointerId);
+      pinch = null;
+      if (e.type !== "pointerup" || p.travel > 8) return;
+      const double = tap && e.timeStamp - tap.time < 350 && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 30;
+      tap = double ? null : { time: e.timeStamp, x: e.clientX, y: e.clientY };
+      if (double) this._zoomTo(VIDEO_ZOOM_MIN);
+    };
+    stage.addEventListener("pointerup", release);
+    stage.addEventListener("pointercancel", release);
+  }
+
+  // Sets the magnification, keeping the picture under `at` (from the unzoomed video box) in
+  // place, and holds the zoomed picture over the whole video box: no edge comes into view.
+  _zoomTo(scale, at) {
+    const view = this._view;
+    const next = Math.min(VIDEO_ZOOM_MAX, Math.max(VIDEO_ZOOM_MIN, scale || VIDEO_ZOOM_MIN));
+    if (at) {
+      view.x = at.x - ((at.x - view.x) * next) / view.scale;
+      view.y = at.y - ((at.y - view.y) * next) / view.scale;
+    }
+    view.scale = next;
+    const width = this.video.offsetWidth;
+    const height = this.video.offsetHeight;
+    view.x = Math.min(0, Math.max(width - width * next, view.x));
+    view.y = Math.min(0, Math.max(height - height * next, view.y));
+    this.video.style.transform = next > VIDEO_ZOOM_MIN ? `translate(${view.x}px, ${view.y}px) scale(${next})` : "";
+    this.video.parentElement.classList.toggle("zoomed", next > VIDEO_ZOOM_MIN);
   }
 
   // The button shows whether sound plays and offers the opposite; without a sound track in
@@ -1389,6 +1490,7 @@ class Viewer {
     const paused = this.video.paused;
     await this.player.stop();
     this.camera = camera;
+    this._zoomTo(VIDEO_ZOOM_MIN); // another camera starts with the whole picture
     if (!camera) {
       this.showMessage(this.t.ui("select_camera"));
       return;
