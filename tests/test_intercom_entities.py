@@ -364,6 +364,93 @@ async def test_door_station_access_log_delivers_new_entries(
     await hass.async_block_till_done()
 
 
+async def test_door_station_access_entries_change_the_access_event_entity(
+    hass: HomeAssistant, serve
+) -> None:
+    # Activity of the door station: tamper and access entries of the log must show up in an
+    # entity, not only on the bus; the doorbell keeps its own entity.
+    device = FakeDevice("camera_g2")
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+            "/ISAPI/VideoIntercom/callStatus?format=json": json.dumps(
+                {"CallStatus": {"status": "idle"}}
+            ),
+        }
+    )
+    log = [_log_entry(n, 5, 75) for n in range(1, 4)]
+    _access_log(device, log)
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    bridge: DeviceBridge = entry.runtime_data
+
+    log.extend([_log_entry(4, 1, 0x404), _log_entry(5, 5, 37), _log_entry(6, 3, 0x70)])
+    await bridge.async_poll_access_log()
+    await hass.async_block_till_done()
+
+    access = _entity(hass, entry, "event", "_access_events")
+    state = hass.states.get(access.entity_id)
+    assert state.state != STATE_UNAVAILABLE
+    assert state.attributes["event_type"] == "access"
+    assert state.attributes["raw_type"] == "acs_3_112"  # the last one, the bell is not one
+    assert state.attributes["kind"] == "other"
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_door_station_stream_access_event_reaches_the_access_event_entity(
+    hass: HomeAssistant, serve, caplog
+) -> None:
+    # AccessControllerEvent over the event stream of a door station (channel 1, no port).
+    def now() -> str:
+        return datetime.now(UTC).isoformat(timespec="seconds")
+
+    caplog.set_level(logging.DEBUG, logger="custom_components.hikvision_bridge.wire.feed")
+    device = FakeDevice(
+        "camera_g2",
+        stream_parts=[
+            lambda: xml_part(event_xml("AccessControllerEvent", channel="1", when=now())),
+        ],
+        stream_hold=3,
+    )
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+            "/ISAPI/VideoIntercom/callStatus?format=json": json.dumps(
+                {"CallStatus": {"status": "idle"}}
+            ),
+        }
+    )
+    server = await serve(device)
+    entry = device_entry(server, device)
+    entry.add_to_hass(hass)
+    bus = async_capture_events(hass, BUS_EVENT)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    for _ in range(150):
+        if bus:
+            break
+        await asyncio.sleep(0.02)
+    await hass.async_block_till_done()
+
+    assert "delivered AccessControllerEvent" in caplog.text
+    assert [(e.data["channel"], e.data["kind"]) for e in bus] == [(None, "other")]
+    access = _entity(hass, entry, "event", "_access_events")
+    state = hass.states.get(access.entity_id)
+    assert state.attributes["raw_type"] == "AccessControllerEvent"
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 async def test_access_log_stops_on_devices_without_one(hass: HomeAssistant, serve) -> None:
     device = FakeDevice("camera_g2")
     device.documents.update(

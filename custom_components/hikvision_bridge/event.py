@@ -12,7 +12,7 @@ from .const import CONF_ENTRY_KIND, KIND_CLOUD
 from .entity import BridgeEntity, add_entities, drop_entities
 from .model.vocabulary import SMART, Kind
 from .runtime.bridge import DeviceBridge
-from .runtime.router import Hit, signal_trigger
+from .runtime.router import DEVICE_SCOPE, Hit, signal_trigger
 
 PARALLEL_UPDATES = 0
 
@@ -34,6 +34,8 @@ async def async_setup_entry(
     ]
     if bridge.profile.intercom and bridge.profile.intercom.has_call_status:
         entities.append(DoorbellEvent(bridge))
+    if bridge.profile.intercom is not None:
+        entities.append(AccessEvent(bridge))
     add_entities(bridge, async_add_entities, entities)
     if not bridge.receives_events:
         stale = ((channel.channel_id, "detection_events") for channel in channels)
@@ -106,3 +108,30 @@ class DoorbellEvent(BridgeEntity, EventEntity):
     def available(self) -> bool:
         # The ring comes from the call status polling, the event stream only adds to it.
         return self.bridge.refresher.last_update_success
+
+
+class AccessEvent(BridgeEntity, EventEntity):
+    """Access and tamper entries of a door station, from its event stream and access log."""
+
+    _attr_translation_key = "access_events"
+    _attr_event_types = ["access"]
+    _attr_should_poll = False
+
+    def __init__(self, bridge: DeviceBridge) -> None:
+        super().__init__(bridge, None, "access_events")
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, signal_trigger(self.bridge.entry.entry_id), self._on_hit
+            )
+        )
+
+    @callback
+    def _on_hit(self, hit: Hit) -> None:
+        # The doorbell has its own entity; other device events stay on the bus.
+        if hit.channel != DEVICE_SCOPE or hit.kind not in (Kind.OTHER, Kind.TAMPER):
+            return
+        self._trigger_event("access", {"kind": hit.kind.value, "raw_type": hit.frame.raw_type})
+        self.async_write_ha_state()
