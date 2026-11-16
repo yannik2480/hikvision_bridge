@@ -11,6 +11,8 @@ real time and without decryption. Devices that send recorded files only from the
 play a time further into a file than they reach in READ_SECONDS over RTSP as well, if they can;
 a read that its pace shows will not reach the time in READ_SECONDS gives up after PACE_SECONDS.
 Where RTSP takes longer than READ_SECONDS to start on a device, the read may take that long.
+Devices that cannot download a time span play over RTSP first, which starts at the time.
+A recording that fails over RTSP is read from its file.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -515,8 +517,8 @@ class SessionManager:
                 await self.hass.async_add_executor_job(tempfile.mkdtemp, "", "hikvision_")
             )
             try:
-                far = False
-                if source.link not in self._rtsp_only:
+                far = source.rtsp_first  # the recorded file is the fallback
+                if not source.rtsp_first and source.link not in self._rtsp_only:
                     try:
                         session = await self._download(
                             source, key, start, end, uri, quality, folder, found or [], origin
@@ -536,8 +538,9 @@ class SessionManager:
                     if not far:
                         raise
                     # Read the recorded file up to the time after all. A camera still busy
-                    # with the previous playback says nothing about its RTSP playback.
-                    if err.reason != "playback_busy":
+                    # with the previous playback says nothing about its RTSP playback, nor does
+                    # one failing recording on a device played over RTSP first.
+                    if err.reason != "playback_busy" and not source.rtsp_first:
                         self._no_far_rtsp.add(source.link)
                     try:
                         session = await self._download(

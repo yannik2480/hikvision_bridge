@@ -198,10 +198,11 @@ def test_reason(errors: str, scrambled: bool, reason: str) -> None:
     assert sessions._reason(errors, scrambled) == reason
 
 
-async def _setup(hass: HomeAssistant, serve, data: bytes = b""):
+async def _setup(hass: HomeAssistant, serve, data: bytes = b"", overrides: dict | None = None):
     """Without data the device refuses nothing but sends no video: playback uses RTSP."""
     device = FakeDevice("camera_g3")
     recorded(device, data)
+    device.overrides.update(overrides or {})
     server = await serve(device)
     entry = device_entry(server, device)
     entry.add_to_hass(hass)
@@ -922,6 +923,91 @@ async def test_slow_recorded_file_plays_over_rtsp_from_the_first_seek(
     started, args = await play(START + timedelta(minutes=6))
     assert "pipe:0" in args
     assert started["start"] == (START + timedelta(seconds=12)).isoformat()
+    await manager.stop_all()
+
+
+async def test_device_without_download_by_time_plays_over_rtsp_first(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A device that reports no download by time plays over RTSP at once.
+
+    A recording that fails there is read from its file, and the next playback tries RTSP again.
+    """
+    capabilities = (
+        200,
+        '<DownloadAbility version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
+        "<isSupportDownloadbyTime>false</isSupportDownloadbyTime>"
+        "<isSupportDownloadbyFileName>true</isSupportDownloadbyFileName></DownloadAbility>",
+    )
+    device, entry = await _setup(
+        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": capabilities}
+    )
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+
+    def download(_method: str, body: str) -> web.Response:
+        if "name=" not in body:
+            return web.Response(
+                status=400,
+                text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
+                content_type="application/xml",
+            )
+        return web.Response(body=data, content_type="application/binary")
+
+    device.responders[recordings.DOWNLOAD_PATH] = download
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+
+    async def play(moment) -> tuple[dict, str]:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": moment.isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+        args = await hass.async_add_executor_job((session.folder / "args").read_text)
+        return answer["result"], args
+
+    def download_count() -> int:
+        return len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH])
+
+    manager = sessions.manager(hass)
+    # RTSP at the time asked for, without reading the file first.
+    started, args = await play(START + timedelta(minutes=5))
+    assert started["start"] == (START + timedelta(minutes=5)).isoformat()
+    assert "/Streaming/tracks/101/?starttime=" in args
+    assert download_count() == 0
+    await manager.stop_all()
+
+    # A recording RTSP fails on is read from its file ...
+    _script(
+        tmp_path,
+        monkeypatch,
+        '#!/bin/sh\ncase "$*" in *rtsp://*) echo "Connection refused" >&2; exit 1;; esac\n'
+        + HLS_PIPE.removeprefix("#!/bin/sh\n"),
+    )
+    _started, args = await play(START + timedelta(minutes=6))
+    assert "pipe:0" in args
+    assert download_count() > 0
+    assert not manager._no_far_rtsp
+    await manager.stop_all()
+
+    # ... and the next playback goes over RTSP again, without reading.
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    before = download_count()
+    started, args = await play(START + timedelta(minutes=7))
+    assert started["start"] == (START + timedelta(minutes=7)).isoformat()
+    assert "/Streaming/tracks/101/?starttime=" in args
+    assert download_count() == before
     await manager.stop_all()
 
 

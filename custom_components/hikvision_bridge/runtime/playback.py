@@ -83,6 +83,8 @@ class PlaybackSource:
     code: str | None = None
     # False if the channel records no audio: RTSP playback then leaves the audio track out.
     audio: bool | None = None
+    # True if the device cannot download a time span: playback starts over RTSP.
+    rtsp_first: bool = False
 
 
 def sources(bridge: DeviceBridge, channel_id: str) -> list[PlaybackSource]:
@@ -97,6 +99,7 @@ def sources(bridge: DeviceBridge, channel_id: str) -> list[PlaybackSource]:
     channel = profile.channels.get(channel_id)
     main = channel.main_stream if channel is not None else None
     audio = main.audio if main is not None else None
+    rtsp_first = profile.download_by_time is False
     if profile.shape.records:
         found.append(
             PlaybackSource(
@@ -107,6 +110,7 @@ def sources(bridge: DeviceBridge, channel_id: str) -> list[PlaybackSource]:
                 main_port,
                 code,
                 audio,
+                rtsp_first,
             )
         )
         route = bridge.routes.get(channel_id)
@@ -132,6 +136,7 @@ def sources(bridge: DeviceBridge, channel_id: str) -> list[PlaybackSource]:
                 main_port,
                 code,
                 audio,
+                rtsp_first,
             )
         )
     return found

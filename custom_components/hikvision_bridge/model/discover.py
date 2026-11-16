@@ -180,6 +180,7 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         cloud,
         accesses,
         user_check,
+        downloads,
     ) = await asyncio.gather(
         link.read_xml("/ISAPI/ContentMgmt/InputProxy/channels", optional=True),
         link.read_xml("/ISAPI/ContentMgmt/InputProxy/channels/status", optional=True),
@@ -193,6 +194,7 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         link.read_xml(CLOUD_PATH, optional=True),
         link.read_xml("/ISAPI/Security/adminAccesses", optional=True),
         link.read_xml("/ISAPI/Security/userCheck", optional=True),
+        link.read_xml("/ISAPI/ContentMgmt/download/capabilities", optional=True),
     )
 
     channels = _proxy_channels(proxy_list, proxy_status)
@@ -247,6 +249,8 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         storage=await storage.read(link),
     )
     profile.cloud = read_cloud_state(cloud)
+    if downloads is not None:
+        profile.download_by_time = downloads.flag("isSupportDownloadbyTime")
     if accesses is not None:
         for node in accesses.children("AdminAccessProtocol"):
             protocol = (node.text("protocol") or "").upper()
