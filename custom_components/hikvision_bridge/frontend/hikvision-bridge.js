@@ -812,6 +812,8 @@ class Player {
           this.level = shown;
           this.camera = camera;
           this.host.update();
+          // WebRTC can deliver a picture without its sound track too: same fallback as HLS.
+          if (this.host.hasAudio === false) this._liveSound(token);
         }
         return;
       }

@@ -20,6 +20,7 @@ from .const import (
     OPT_HIDDEN_CHANNELS,
     OPT_RTSP_PORT,
     RTSP_PORT_DEFAULT,
+    SUBENTRY_CHANNEL_LINK,
 )
 from .model.features import recordings
 from .runtime import identity, sessions
@@ -373,17 +374,31 @@ async def ws_live_sound(
     if bridge is None or channel_id not in bridge.profile.channels or not channel_id.isdigit():
         connection.send_error(msg["id"], "not_found", "Unknown camera")
         return
+    # Same source as the camera's own live stream (camera.py): a direct link is the camera
+    # itself with its remote channel and login, otherwise the recorder with the channel id.
     route = bridge.routes.get(channel_id)
+    direct = route is not None and route.healthy and not route.stream_from_recorder
     cloud = bridge.profile.cloud
-    if (route is not None and route.healthy) or (cloud and cloud.stream_encrypted):
-        connection.send_error(msg["id"], "unsupported", "Sound needs a direct connection")
+    if cloud and cloud.stream_encrypted and not direct:
+        connection.send_error(msg["id"], "unsupported", "The stream is encrypted")
         return
-    data = bridge.entry.data
-    host = bridge.link.endpoint.base.split("://", 1)[1].rsplit(":", 1)[0]
-    port = bridge.entry.options.get(OPT_RTSP_PORT) or bridge.profile.rtsp_port or RTSP_PORT_DEFAULT
-    stream_id = f"{int(channel_id) * 100 + msg['rank']}"
+    if direct:
+        sub = bridge.entry.subentries.get(route.subentry_id)
+        if sub is None or sub.subentry_type != SUBENTRY_CHANNEL_LINK:
+            connection.send_error(msg["id"], "not_found", "Unknown camera")
+            return
+        host, port, stream_no = route.link.endpoint.host, route.rtsp_port, route.remote_channel
+        creds = sub.data
+    else:
+        host = bridge.link.endpoint.host
+        port = (
+            bridge.entry.options.get(OPT_RTSP_PORT) or bridge.profile.rtsp_port or RTSP_PORT_DEFAULT
+        )
+        stream_no = channel_id
+        creds = bridge.entry.data
+    stream_id = f"{int(stream_no) * 100 + msg['rank']}"
     url = sessions.live_rtsp_url(
-        host, int(port), stream_id, data[CONF_USERNAME], data[CONF_PASSWORD]
+        host, int(port), stream_id, creds[CONF_USERNAME], creds[CONF_PASSWORD]
     )
     stream = next(
         (s for s in bridge.profile.channels[channel_id].streams if s.rank == msg["rank"]), None
