@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Jak přicházejí události",
           "hold_seconds": "Držet detekce zapnuté po dobu (sekundy)",
+          "access_log_seconds": "Přístupový protokol dveřní stanice každých (sekund)",
           "rtsp_port": "Port RTSP (volitelný)",
           "rtsp_transport": "Přenos RTSP",
           "target_sensors": "Samostatné senzory pro osoby a vozidla",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Stream událostí nevyžaduje žádnou změnu v zařízení. Webhook vyžaduje, aby zařízení odesílalo do Home Assistant.",
           "hold_seconds": "Zařízení u mnoha detekcí hlásí jen začátek; senzor zůstane zapnutý tak dlouho po posledním hlášení.",
+          "access_log_seconds": "Dveřní stanice ukládají události sabotáže a přístupu do protokolu, který Home Assistant čte v tomto intervalu (2 až 60 sekund). Kratší interval znamená rychlejší události, ale více dotazů na zařízení.",
           "playback": "Záznamy jsou v H.265 nebo H.264. „MP4 jak bylo nahráno“ začne hned, ale prohlížeče přehrávají H.265 jen s hardwarovou podporou. „Převést na H.264“ funguje všude a hodně zatěžuje procesor. „Streamovat ze zařízení“ nechá zařízení přehrát záznam přes RTSP. „S posouváním“ ukáže celou délku záznamu a umožní přejít kamkoli, jako panel.",
           "recording_clock": "Hodiny, podle kterých zařízení udává časy svých záznamů. „Automaticky“ je zjistí samo. Pokud se časová osa a přehrávaný záznam liší o posun vašeho časového pásma, zvolte druhé hodiny.",
           "stream_key": "Slouží k dešifrování záznamů a místního živého videa H.264 při zapnutém šifrování streamu. Zadejte sem ověřovací kód zařízení, abyste zapnuli živé dešifrování; zvuk a šifrované živé video H.265 nejsou podporovány. Záznamy mohou použít i kód načtený ze zařízení.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Zadejte port od 1 do 65535.",
-      "invalid_hold_seconds": "Zadejte hodnotu od 1 do 300 sekund."
+      "invalid_hold_seconds": "Zadejte hodnotu od 1 do 300 sekund.",
+      "invalid_access_log_seconds": "Zadejte hodnotu od 2 do 60 sekund."
     }
   },
   "config_subentries": {

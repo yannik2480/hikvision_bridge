@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Miten tapahtumat saapuvat",
           "hold_seconds": "Pidä tunnistukset päällä (sekuntia)",
+          "access_log_seconds": "Ovikameran tapahtumaloki joka (sekuntia)",
           "rtsp_port": "RTSP-portti (valinnainen)",
           "rtsp_transport": "RTSP-siirto",
           "target_sensors": "Erilliset anturit ihmisille ja ajoneuvoille",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Tapahtumavirta ei vaadi muutoksia laitteeseen. Webhook edellyttää, että laite lähettää Home Assistantiin.",
           "hold_seconds": "Laitteet ilmoittavat monista tunnistuksista vain alun; anturi pysyy päällä näin kauan viimeisen ilmoituksen jälkeen.",
+          "access_log_seconds": "Ovikamerat tallentavat sabotaasi- ja pääsytapahtumat lokiin, jonka Home Assistant lukee tällä välillä (2–60 sekuntia). Lyhyempi väli on nopeampi, mutta lähettää laitteelle enemmän pyyntöjä.",
           "playback": "Tallenteet ovat H.265- tai H.264-muodossa. ”MP4 tallennettuna” alkaa heti, mutta selaimet toistavat H.265:tä vain laitteistotuella. ”Muunna H.264:ksi” toimii kaikkialla ja vaatii paljon suoritinta. ”Suoratoista laitteelta” antaa laitteen toistaa tallenteen RTSP:n kautta. 'Siirrettävä' näyttää tallenteen koko pituuden ja siirtyy mihin kohtaan tahansa, kuten paneeli.",
           "recording_clock": "Kello, jonka mukaan laite ilmoittaa tallenteidensa ajat. 'Automaattinen' selvittää sen. Jos aikajana ja toistettu tallenne poikkeavat aikavyöhykkeesi siirtymän verran, valitse toinen kello.",
           "stream_key": "Käytetään tallenteiden ja paikallisen H.264-livevideon salauksen purkuun niin, että virran salaus pysyy päällä. Syötä laitteen vahvistuskoodi tähän ottaaksesi livepurun käyttöön; ääntä ja salattua H.265-livevideota ei tueta. Tallenteet voivat käyttää myös laitteesta luettua koodia.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Anna portti väliltä 1–65535.",
-      "invalid_hold_seconds": "Anna arvo väliltä 1–300 sekuntia."
+      "invalid_hold_seconds": "Anna arvo väliltä 1–300 sekuntia.",
+      "invalid_access_log_seconds": "Anna arvo väliltä 2–60 sekuntia."
     }
   },
   "config_subentries": {

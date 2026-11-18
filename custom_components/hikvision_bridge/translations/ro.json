@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Cum sosesc evenimentele",
           "hold_seconds": "Menține detecțiile active timp de (secunde)",
+          "access_log_seconds": "Jurnalul de acces al interfonului la fiecare (secunde)",
           "rtsp_port": "Port RTSP (opțional)",
           "rtsp_transport": "Transport RTSP",
           "target_sensors": "Senzori separați pentru persoane și vehicule",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Fluxul de evenimente nu necesită modificări pe dispozitiv. Webhook-ul necesită ca dispozitivul să trimită către Home Assistant.",
           "hold_seconds": "Dispozitivele raportează doar începutul multor detecții; senzorul rămâne activ atât timp după ultima raportare.",
+          "access_log_seconds": "Interfoanele păstrează evenimentele de sabotaj și acces într-un jurnal, pe care Home Assistant îl citește la acest interval (2 până la 60 de secunde). Un interval mai scurt înseamnă evenimente mai rapide, dar mai multe cereri către dispozitiv.",
           "playback": "Înregistrările sunt H.265 sau H.264. „MP4 așa cum a fost înregistrat” pornește imediat, dar browserele redau H.265 doar cu suport hardware. „Convertire în H.264” funcționează oriunde și necesită mult procesor. „Flux de la dispozitiv” lasă dispozitivul să redea înregistrarea prin RTSP. „Cu derulare” arată toată durata înregistrării și permite saltul în orice punct, ca panoul.",
           "recording_clock": "Ceasul după care dispozitivul indică orele înregistrărilor. „Automat” îl determină. Dacă cronologia și înregistrarea redată diferă cu decalajul fusului tău orar, alege celălalt ceas.",
           "stream_key": "Folosit pentru a decripta înregistrările și video live H.264 local, păstrând criptarea fluxului activată. Introduceți aici codul de verificare al dispozitivului pentru a activa decriptarea live; sunetul și video live H.265 criptat nu sunt acceptate. Înregistrările pot folosi și codul citit de pe dispozitiv.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Introduceți un port între 1 și 65535.",
-      "invalid_hold_seconds": "Introduceți o valoare între 1 și 300 de secunde."
+      "invalid_hold_seconds": "Introduceți o valoare între 1 și 300 de secunde.",
+      "invalid_access_log_seconds": "Introduceți o valoare între 2 și 60 de secunde."
     }
   },
   "config_subentries": {

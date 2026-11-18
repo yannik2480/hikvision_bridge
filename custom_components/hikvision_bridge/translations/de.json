@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Weg der Ereignisse",
           "hold_seconds": "Erkennungen aktiv halten für (Sekunden)",
+          "access_log_seconds": "Zugriffsprotokoll der Türstation alle (Sekunden)",
           "rtsp_port": "RTSP-Port (optional)",
           "rtsp_transport": "RTSP-Transport",
           "target_sensors": "Eigene Sensoren für Personen und Fahrzeuge",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Der Ereignis-Stream braucht keine Änderung am Gerät. Der Webhook setzt voraus, dass das Gerät an Home Assistant sendet.",
           "hold_seconds": "Viele Geräte melden nur den Beginn einer Erkennung; der Sensor bleibt so lange nach der letzten Meldung an.",
+          "access_log_seconds": "Türstationen speichern Sabotage- und Zugriffsereignisse in einem Protokoll, das Home Assistant in diesem Abstand abruft (2 bis 60 Sekunden). Kürzer heißt schnellere Ereignisse, aber mehr Anfragen an das Gerät.",
           "playback": "Aufnahmen sind H.265 oder H.264. „MP4 wie aufgenommen“ startet sofort, Browser spielen H.265 aber nur mit Hardwareunterstützung. „In H.264 umwandeln“ läuft überall und braucht viel CPU. „Vom Gerät streamen“ lässt das Gerät die Aufnahme per RTSP abspielen. „Mit Spulen“ zeigt die ganze Länge der Aufnahme und springt an jede Stelle, wie das Panel.",
           "recording_clock": "Die Uhr, nach der das Gerät die Zeiten seiner Aufnahmen angibt. „Automatisch“ findet sie heraus. Liegen Zeitleiste und abgespielte Aufnahme um den Versatz deiner Zeitzone auseinander, wähle die andere Uhr.",
           "stream_key": "Entschlüsselt Aufnahmen und lokales H.264-Livevideo, während die Stream-Verschlüsselung eingeschaltet bleibt. Trage hier den Verifizierungscode des Geräts ein, um die Live-Entschlüsselung zu aktivieren; Audio und verschlüsseltes H.265-Livevideo werden nicht unterstützt. Für Aufnahmen kann auch der vom Gerät gelesene Code verwendet werden.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Gib einen Port von 1 bis 65535 ein.",
-      "invalid_hold_seconds": "Gib einen Wert von 1 bis 300 Sekunden ein."
+      "invalid_hold_seconds": "Gib einen Wert von 1 bis 300 Sekunden ein.",
+      "invalid_access_log_seconds": "Gib einen Wert von 2 bis 60 Sekunden ein."
     }
   },
   "config_subentries": {

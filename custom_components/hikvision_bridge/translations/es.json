@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Cómo llegan los eventos",
           "hold_seconds": "Mantener las detecciones activas durante (segundos)",
+          "access_log_seconds": "Registro de accesos de la estación de puerta cada (segundos)",
           "rtsp_port": "Puerto RTSP (opcional)",
           "rtsp_transport": "Transporte RTSP",
           "target_sensors": "Sensores separados para personas y vehículos",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "El flujo de eventos no requiere cambios en el dispositivo. El webhook requiere que el dispositivo envíe a Home Assistant.",
           "hold_seconds": "Los dispositivos solo informan del inicio de muchas detecciones; el sensor permanece activo este tiempo tras el último aviso.",
+          "access_log_seconds": "Las estaciones de puerta guardan los eventos de manipulación y acceso en un registro que Home Assistant lee con este intervalo (de 2 a 60 segundos). Un valor menor es más rápido, pero hace más peticiones al dispositivo.",
           "playback": "Las grabaciones son H.265 o H.264. «MP4 tal como se grabó» empieza al instante, pero los navegadores solo reproducen H.265 con soporte de hardware. «Convertir a H.264» funciona en todas partes y requiere mucha CPU. «Transmitir desde el dispositivo» deja que el dispositivo reproduzca la grabación por RTSP. «Con búsqueda» muestra la duración completa de la grabación y salta a cualquier punto, como el panel.",
           "recording_clock": "El reloj con el que el dispositivo indica las horas de sus grabaciones. 'Automático' lo averigua. Si la línea de tiempo y la grabación reproducida difieren en el desfase de tu zona horaria, elige el otro reloj.",
           "stream_key": "Se usa para descifrar grabaciones y el vídeo en directo H.264 local manteniendo activado el cifrado del flujo. Introduce aquí el código de verificación del dispositivo para activar el descifrado en directo; no se admiten el audio ni el vídeo en directo H.265 cifrado. Las grabaciones también pueden usar el código leído del dispositivo.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Introduce un puerto entre 1 y 65535.",
-      "invalid_hold_seconds": "Introduce un valor entre 1 y 300 segundos."
+      "invalid_hold_seconds": "Introduce un valor entre 1 y 300 segundos.",
+      "invalid_access_log_seconds": "Introduce un valor de 2 a 60 segundos."
     }
   },
   "config_subentries": {

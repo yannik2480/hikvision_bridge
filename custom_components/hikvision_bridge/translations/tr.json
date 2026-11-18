@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Olayların gelme yolu",
           "hold_seconds": "Algılamaları açık tutma süresi (saniye)",
+          "access_log_seconds": "Kapı istasyonu erişim günlüğü her (saniye)",
           "rtsp_port": "RTSP bağlantı noktası (isteğe bağlı)",
           "rtsp_transport": "RTSP aktarımı",
           "target_sensors": "Kişiler ve araçlar için ayrı sensörler",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Olay akışı cihazda değişiklik gerektirmez. Webhook, cihazın Home Assistant'a göndermesini gerektirir.",
           "hold_seconds": "Cihazlar birçok algılamada yalnızca başlangıcı bildirir; sensör son bildirimden sonra bu süre kadar açık kalır.",
+          "access_log_seconds": "Kapı istasyonları kurcalama ve erişim olaylarını bir günlükte tutar; Home Assistant bunu bu aralıkla okur (2 ila 60 saniye). Daha kısa aralık olayları daha hızlı getirir, ama cihaza daha fazla istek gönderir.",
           "playback": "Kayıtlar H.265 veya H.264'tür. 'Kaydedildiği gibi MP4' hemen başlar, ancak tarayıcılar H.265'i yalnızca donanım desteğiyle oynatır. 'H.264'e dönüştür' her yerde çalışır ve çok işlemci gerektirir. 'Cihazdan akış' kaydı cihazın RTSP üzerinden oynatmasını sağlar. 'İleri sarılabilir' kaydın tüm uzunluğunu gösterir ve panel gibi herhangi bir noktaya atlar.",
           "recording_clock": "Cihazın kayıt saatlerini verdiği saat. 'Otomatik' bunu kendisi bulur. Zaman çizelgesi ile oynatılan kayıt saat diliminizin farkı kadar kayıksa diğer saati seçin.",
           "stream_key": "Akış şifrelemesi açık kalırken kayıtların ve yerel H.264 canlı videonun şifresini çözmek için kullanılır. Canlı şifre çözmeyi etkinleştirmek için cihazın doğrulama kodunu buraya girin; ses ve şifreli H.265 canlı video desteklenmez. Kayıtlar cihazdan okunan kodu da kullanabilir.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "1 ile 65535 arasında bir port girin.",
-      "invalid_hold_seconds": "1 ile 300 saniye arasında bir değer girin."
+      "invalid_hold_seconds": "1 ile 300 saniye arasında bir değer girin.",
+      "invalid_access_log_seconds": "2 ila 60 saniye arasında bir değer girin."
     }
   },
   "config_subentries": {

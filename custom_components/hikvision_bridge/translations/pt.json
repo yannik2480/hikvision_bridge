@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Como chegam os eventos",
           "hold_seconds": "Manter as deteções ativas durante (segundos)",
+          "access_log_seconds": "Registo de acessos da estação de porta a cada (segundos)",
           "rtsp_port": "Porta RTSP (opcional)",
           "rtsp_transport": "Transporte RTSP",
           "target_sensors": "Sensores separados para pessoas e veículos",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "O fluxo de eventos não exige alterações no dispositivo. O webhook exige que o dispositivo envie para o Home Assistant.",
           "hold_seconds": "Os dispositivos só comunicam o início de muitas deteções; o sensor fica ativo durante este tempo após a última comunicação.",
+          "access_log_seconds": "As estações de porta guardam eventos de adulteração e de acesso num registo que o Home Assistant lê com este intervalo (2 a 60 segundos). Menos tempo significa eventos mais rápidos, mas mais pedidos ao dispositivo.",
           "playback": "As gravações são H.265 ou H.264. «MP4 tal como gravado» começa de imediato, mas os navegadores só reproduzem H.265 com suporte de hardware. «Converter para H.264» funciona em todo o lado e exige muito CPU. «Transmitir a partir do dispositivo» deixa o dispositivo reproduzir a gravação por RTSP. 'Com procura' mostra a duração completa da gravação e permite ir para qualquer ponto, como o painel.",
           "recording_clock": "O relógio com que o dispositivo indica as horas das gravações. 'Automático' descobre-o. Se a linha temporal e a gravação reproduzida diferirem pelo desfasamento do seu fuso horário, escolha o outro relógio.",
           "stream_key": "Usado para desencriptar gravações e vídeo em direto H.264 local, mantendo a encriptação do stream ativa. Introduza aqui o código de verificação do dispositivo para ativar a desencriptação em direto; áudio e vídeo em direto H.265 encriptado não são suportados. As gravações também podem usar o código lido do dispositivo.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Introduza uma porta de 1 a 65535.",
-      "invalid_hold_seconds": "Introduza um valor de 1 a 300 segundos."
+      "invalid_hold_seconds": "Introduza um valor de 1 a 300 segundos.",
+      "invalid_access_log_seconds": "Introduza um valor de 2 a 60 segundos."
     }
   },
   "config_subentries": {

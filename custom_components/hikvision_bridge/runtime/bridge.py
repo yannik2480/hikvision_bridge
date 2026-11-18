@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
@@ -13,7 +13,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..const import (
-    ACCESS_LOG_INTERVAL,
     AUDIT_INTERVAL,
     CONF_CAMERA_SERIAL,
     CONF_CHANNEL_ID,
@@ -22,12 +21,14 @@ from ..const import (
     CONF_SCHEME,
     CONF_STREAM_SOURCE,
     CONF_VERIFY_TLS,
+    DEFAULT_ACCESS_LOG_SECONDS,
     DEFAULT_HOLD_SECONDS,
     DOMAIN,
     EVENT_PATH_STREAM,
     EVENT_PATH_WEBHOOK,
     EVENT_SOURCE_CAMERA,
     INTERCOM_INTERVAL,
+    OPT_ACCESS_LOG_SECONDS,
     OPT_EVENT_PATH,
     OPT_HOLD_SECONDS,
     RTSP_PORT_DEFAULT,
@@ -392,8 +393,9 @@ class DeviceBridge:
             return
         self.access_log = acslog.AccessLog(self.link)
         self.entry.async_create_task(self.hass, self.async_poll_access_log(), "access_log")
+        seconds = float(self.entry.options.get(OPT_ACCESS_LOG_SECONDS, DEFAULT_ACCESS_LOG_SECONDS))
         self._access_log_unsub = async_track_time_interval(
-            self.hass, self._access_log_tick, ACCESS_LOG_INTERVAL
+            self.hass, self._access_log_tick, timedelta(seconds=seconds)
         )
         self._unsubs.append(self._stop_access_log)
 

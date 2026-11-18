@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Cara peristiwa diterima",
           "hold_seconds": "Tahan deteksi aktif selama (detik)",
+          "access_log_seconds": "Log akses stasiun pintu setiap (detik)",
           "rtsp_port": "Port RTSP (opsional)",
           "rtsp_transport": "Transport RTSP",
           "target_sensors": "Sensor terpisah untuk orang dan kendaraan",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Aliran peristiwa tidak memerlukan perubahan pada perangkat. Webhook mengharuskan perangkat mengirim ke Home Assistant.",
           "hold_seconds": "Perangkat hanya melaporkan awal dari banyak deteksi; sensor tetap aktif selama ini setelah laporan terakhir.",
+          "access_log_seconds": "Stasiun pintu menyimpan peristiwa sabotase dan akses dalam log yang dibaca Home Assistant dengan interval ini (2 sampai 60 detik). Interval lebih pendek membuat peristiwa lebih cepat, tetapi permintaan ke perangkat lebih banyak.",
           "playback": "Rekaman berformat H.265 atau H.264. 'MP4 sesuai rekaman' langsung dimulai, tetapi peramban hanya memutar H.265 dengan dukungan perangkat keras. 'Ubah ke H.264' bisa diputar di mana saja dan butuh banyak CPU. 'Streaming dari perangkat' membiarkan perangkat memutar rekaman melalui RTSP. 'Bisa digeser' menampilkan seluruh durasi rekaman dan bisa melompat ke titik mana pun, seperti panel.",
           "recording_clock": "Jam yang dipakai perangkat untuk waktu rekamannya. 'Otomatis' mencari tahu sendiri. Jika linimasa dan rekaman yang diputar selisih sebesar offset zona waktu Anda, pilih jam yang lain.",
           "stream_key": "Digunakan untuk mendekripsi rekaman dan video langsung H.264 lokal sambil tetap mengaktifkan enkripsi stream. Masukkan kode verifikasi perangkat di sini untuk mengaktifkan dekripsi langsung; audio dan video langsung H.265 terenkripsi tidak didukung. Rekaman juga dapat menggunakan kode yang dibaca dari perangkat.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Masukkan port dari 1 hingga 65535.",
-      "invalid_hold_seconds": "Masukkan nilai dari 1 hingga 300 detik."
+      "invalid_hold_seconds": "Masukkan nilai dari 1 hingga 300 detik.",
+      "invalid_access_log_seconds": "Masukkan nilai dari 2 sampai 60 detik."
     }
   },
   "config_subentries": {

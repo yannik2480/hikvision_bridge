@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Hvordan hændelser modtages",
           "hold_seconds": "Hold registreringer aktive i (sekunder)",
+          "access_log_seconds": "Adgangslog for dørstation hvert (sekund)",
           "rtsp_port": "RTSP-port (valgfri)",
           "rtsp_transport": "RTSP-transport",
           "target_sensors": "Separate sensorer for personer og køretøjer",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Hændelsesstrømmen kræver ingen ændring på enheden. Webhooken kræver, at enheden sender til Home Assistant.",
           "hold_seconds": "Enheder melder kun starten af mange registreringer; sensoren forbliver tændt så længe efter den seneste melding.",
+          "access_log_seconds": "Dørstationer gemmer manipulations- og adgangshændelser i en log, som Home Assistant læser med dette interval (2 til 60 sekunder). Kortere giver hurtigere hændelser, men flere forespørgsler til enheden.",
           "playback": "Optagelser er H.265 eller H.264. 'MP4 som optaget' starter med det samme, men browsere afspiller kun H.265 med hardwareunderstøttelse. 'Konvertér til H.264' virker overalt og kræver meget CPU. 'Stream fra enheden' lader enheden afspille optagelsen via RTSP. 'Med spoling' viser hele optagelsens længde og kan spole hvor som helst hen, som panelet.",
           "recording_clock": "Det ur, enheden angiver tiderne for sine optagelser efter. 'Automatisk' finder det selv. Hvis tidslinjen og den afspillede optagelse er forskudt med din tidszones forskydning, så vælg det andet ur.",
           "stream_key": "Bruges til at dekryptere optagelser og lokal H.264-livevideo, mens streamkryptering forbliver slået til. Indtast enhedens verifikationskode her for at aktivere live-dekryptering; lyd og krypteret H.265-livevideo understøttes ikke. Optagelser kan også bruge koden, der læses fra enheden.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Angiv en port fra 1 til 65535.",
-      "invalid_hold_seconds": "Angiv en værdi fra 1 til 300 sekunder."
+      "invalid_hold_seconds": "Angiv en værdi fra 1 til 300 sekunder.",
+      "invalid_access_log_seconds": "Angiv en værdi fra 2 til 60 sekunder."
     }
   },
   "config_subentries": {

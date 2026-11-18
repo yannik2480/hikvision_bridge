@@ -119,6 +119,7 @@
         "data": {
           "event_path": "How events arrive",
           "hold_seconds": "Hold detections on for (seconds)",
+          "access_log_seconds": "Door station access log every (seconds)",
           "rtsp_port": "RTSP port (optional)",
           "rtsp_transport": "RTSP transport",
           "target_sensors": "Separate sensors for people and vehicles",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "The event stream needs no device change. The webhook requires the device to send to Home Assistant.",
           "hold_seconds": "Devices only report the start of many detections; the sensor stays on this long after the last report.",
+          "access_log_seconds": "Door stations keep tamper and access events in a log that Home Assistant reads at this interval (2 to 60 seconds). Shorter means faster events, but more requests to the device.",
           "playback": "Recordings are H.265 or H.264. 'Seekable' shows the whole length of the recording and seeks anywhere in it, like the panel. 'MP4 as recorded' starts at once, but browsers play H.265 only with hardware support. 'Convert to H.264' plays everywhere and needs a lot of CPU. 'Stream from the device' lets the device play the recording over RTSP.",
           "recording_clock": "The clock the device gives its recording times on. 'Automatic' finds it out. If the timeline and the recording played are off by your time zone's offset, choose the other clock.",
           "stream_key": "Used to decrypt recordings and local H.264 live video while keeping stream encryption enabled. Enter the device's verification code here to enable live decryption; audio and encrypted H.265 live video are not supported. Recordings can also use the code read from the device.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Enter a port from 1 to 65535.",
-      "invalid_hold_seconds": "Enter a value from 1 to 300 seconds."
+      "invalid_hold_seconds": "Enter a value from 1 to 300 seconds.",
+      "invalid_access_log_seconds": "Enter a value from 2 to 60 seconds."
     }
   },
   "config_subentries": {

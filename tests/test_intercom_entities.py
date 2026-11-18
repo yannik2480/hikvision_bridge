@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 import logging
 
@@ -14,8 +14,9 @@ from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import async_capture_events
 
-from custom_components.hikvision_bridge.const import BUS_EVENT
+from custom_components.hikvision_bridge.const import BUS_EVENT, OPT_ACCESS_LOG_SECONDS
 from custom_components.hikvision_bridge.model.vocabulary import Kind, canonical
+from custom_components.hikvision_bridge.runtime import bridge as bridge_mod
 from custom_components.hikvision_bridge.runtime.bridge import MAIN_FEED, DeviceBridge
 from custom_components.hikvision_bridge.runtime.router import DEVICE_SCOPE
 from custom_components.hikvision_bridge.wire.feed import frame_from_json, frame_from_xml
@@ -472,6 +473,36 @@ async def test_access_log_stops_on_devices_without_one(hass: HomeAssistant, serv
     assert bridge.access_log is not None
     assert bridge.access_log.supported is False
     assert bridge._access_log_unsub is None
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize(("options", "seconds"), [({}, 5), ({OPT_ACCESS_LOG_SECONDS: 7}, 7)])
+async def test_access_log_interval_follows_the_option(
+    hass: HomeAssistant, serve, monkeypatch, options: dict, seconds: int
+) -> None:
+    scheduled: list[timedelta] = []
+    real = bridge_mod.async_track_time_interval
+
+    def spy(hass_, action, interval):
+        scheduled.append(interval)
+        return real(hass_, action, interval)
+
+    monkeypatch.setattr(bridge_mod, "async_track_time_interval", spy)
+    device = FakeDevice("camera_g2")
+    device.documents.update(
+        {
+            "/ISAPI/System/deviceInfo": DEVICE_INFO_INTERCOM,
+            "/ISAPI/VideoIntercom/capabilities": INTERCOM_CAPS,
+            "/ISAPI/AccessControl/RemoteControl/door/capabilities": DOOR_CAPS,
+        }
+    )
+    server = await serve(device)
+    entry = device_entry(server, device, options=options)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert timedelta(seconds=seconds) in scheduled
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 

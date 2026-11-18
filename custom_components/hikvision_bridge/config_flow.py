@@ -40,6 +40,7 @@ from .const import (
     CONF_STREAM_SOURCE,
     CONF_VERIFY_TLS,
     CONNECTION_AUTO,
+    DEFAULT_ACCESS_LOG_SECONDS,
     DEFAULT_HOLD_SECONDS,
     DEFAULT_PORTS,
     DOMAIN,
@@ -50,6 +51,7 @@ from .const import (
     EVENT_SOURCE_RECORDER,
     KIND_CLOUD,
     KIND_DEVICE,
+    OPT_ACCESS_LOG_SECONDS,
     OPT_EVENT_PATH,
     OPT_HIDDEN_CHANNELS,
     OPT_HOLD_SECONDS,
@@ -162,6 +164,8 @@ def _error_key(err: faults.BridgeFault) -> str:
 
 PORT_RANGE = (1, 65535)
 HOLD_RANGE = (1, 300)
+# Every poll reads the door station's access log, so the floor keeps the device from being flooded.
+ACCESS_LOG_RANGE = (2, 60)
 
 
 def field_errors(
@@ -654,6 +658,7 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                 user_input,
                 ranges={
                     OPT_HOLD_SECONDS: (HOLD_RANGE, "invalid_hold_seconds"),
+                    OPT_ACCESS_LOG_SECONDS: (ACCESS_LOG_RANGE, "invalid_access_log_seconds"),
                     **_port(OPT_RTSP_PORT),
                 },
             )
@@ -690,6 +695,10 @@ class BridgeOptionsFlow(OptionsFlowWithReload):
                 ),
                 vol.Required(
                     OPT_HOLD_SECONDS, default=options.get(OPT_HOLD_SECONDS, DEFAULT_HOLD_SECONDS)
+                ): vol.Coerce(int),
+                vol.Required(
+                    OPT_ACCESS_LOG_SECONDS,
+                    default=options.get(OPT_ACCESS_LOG_SECONDS, DEFAULT_ACCESS_LOG_SECONDS),
                 ): vol.Coerce(int),
                 vol.Optional(
                     OPT_RTSP_PORT, description={"suggested_value": options.get(OPT_RTSP_PORT)}

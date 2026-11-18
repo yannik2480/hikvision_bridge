@@ -46,6 +46,7 @@ EVENT_PATH_STREAM: Final = "stream"
 EVENT_PATH_WEBHOOK: Final = "webhook"
 EVENT_PATH_BOTH: Final = "both"
 OPT_HOLD_SECONDS: Final = "hold_seconds"
+OPT_ACCESS_LOG_SECONDS: Final = "access_log_seconds"
 OPT_RTSP_PORT: Final = "rtsp_port"
 OPT_RTSP_TRANSPORT: Final = "rtsp_transport"
 OPT_TARGET_SENSORS: Final = "target_sensors"
@@ -68,6 +69,7 @@ RECORDING_CLOCK_DEVICE: Final = "device"
 RECORDING_CLOCK_UTC: Final = "utc"
 
 DEFAULT_HOLD_SECONDS: Final = 5
+DEFAULT_ACCESS_LOG_SECONDS: Final = 5
 RTSP_PORT_DEFAULT: Final = 554
 RTSP_TCP: Final = "tcp"
 RTSP_UDP: Final = "udp"
@@ -75,7 +77,6 @@ RTSP_UDP: Final = "udp"
 # Refresh cadence
 FAST_INTERVAL: Final = timedelta(seconds=30)
 INTERCOM_INTERVAL: Final = timedelta(seconds=2)
-ACCESS_LOG_INTERVAL: Final = timedelta(seconds=5)
 MEDIUM_INTERVAL: Final = timedelta(seconds=120)
 SLOW_INTERVAL: Final = timedelta(minutes=10)
 AUDIT_INTERVAL: Final = timedelta(hours=24)

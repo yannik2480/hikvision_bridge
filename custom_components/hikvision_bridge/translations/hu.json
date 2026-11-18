@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Az események érkezési módja",
           "hold_seconds": "Észlelések bekapcsolva tartása (másodperc)",
+          "access_log_seconds": "Kaputelefon hozzáférési naplója (másodpercenként)",
           "rtsp_port": "RTSP-port (nem kötelező)",
           "rtsp_transport": "RTSP-átvitel",
           "target_sensors": "Külön érzékelők személyekhez és járművekhez",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Az eseményfolyam nem igényel módosítást az eszközön. A webhookhoz az eszköznek a Home Assistantnak kell küldenie.",
           "hold_seconds": "Az eszközök sok észlelésnél csak a kezdetet jelentik; az érzékelő ennyi ideig bekapcsolva marad az utolsó jelzés után.",
+          "access_log_seconds": "A kaputelefonok a szabotázs- és hozzáférési eseményeket naplóba írják, amelyet a Home Assistant ezzel az időközzel olvas (2–60 másodperc). A rövidebb időköz gyorsabb, de több kérést küld az eszköznek.",
           "playback": "A felvételek H.265 vagy H.264 formátumúak. Az „MP4 felvett formában” azonnal indul, de a böngészők a H.265-öt csak hardveres támogatással játsszák le. Az „Átalakítás H.264-re” mindenhol működik, és sok processzort igényel. A „Streamelés az eszközről” az eszközzel játszatja le a felvételt RTSP-n keresztül. A „Tekerhető” a felvétel teljes hosszát mutatja, és bárhová lehet ugrani benne, mint a panelen.",
           "recording_clock": "Az óra, amely szerint az eszköz a felvételei időpontját megadja. Az „Automatikus” kideríti. Ha az idővonal és a lejátszott felvétel az időzónád eltolásával eltér, válaszd a másik órát.",
           "stream_key": "Felvételek és helyi H.264 élő videó visszafejtésére szolgál, miközben a stream titkosítása bekapcsolva marad. Az élő visszafejtés bekapcsolásához add meg itt az eszköz ellenőrző kódját; a hang és a titkosított H.265 élő videó nem támogatott. A felvételek az eszközről kiolvasott kódot is használhatják.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Adjon meg egy portot 1 és 65535 között.",
-      "invalid_hold_seconds": "Adjon meg egy értéket 1 és 300 másodperc között."
+      "invalid_hold_seconds": "Adjon meg egy értéket 1 és 300 másodperc között.",
+      "invalid_access_log_seconds": "Adjon meg 2 és 60 közötti értéket másodpercben."
     }
   },
   "config_subentries": {

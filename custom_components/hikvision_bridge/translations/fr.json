@@ -119,6 +119,7 @@
         "data": {
           "event_path": "Réception des événements",
           "hold_seconds": "Maintenir les détections actives pendant (secondes)",
+          "access_log_seconds": "Journal d'accès de l'interphone toutes les (secondes)",
           "rtsp_port": "Port RTSP (facultatif)",
           "rtsp_transport": "Transport RTSP",
           "target_sensors": "Capteurs séparés pour les personnes et les véhicules",
@@ -135,6 +136,7 @@
         "data_description": {
           "event_path": "Le flux d'événements ne nécessite aucune modification de l'appareil. Le webhook exige que l'appareil envoie vers Home Assistant.",
           "hold_seconds": "Les appareils ne signalent que le début de nombreuses détections ; le capteur reste actif aussi longtemps après le dernier signalement.",
+          "access_log_seconds": "Les interphones vidéo conservent les événements de sabotage et d'accès dans un journal que Home Assistant lit à cet intervalle (2 à 60 secondes). Plus court signifie des événements plus rapides, mais plus de requêtes vers l'appareil.",
           "playback": "Les enregistrements sont en H.265 ou H.264. « MP4 tel qu'enregistré » démarre immédiatement, mais les navigateurs ne lisent le H.265 qu'avec une prise en charge matérielle. « Convertir en H.264 » fonctionne partout et sollicite fortement le processeur. « Diffuser depuis l'appareil » laisse l'appareil lire l'enregistrement via RTSP. « Avec navigation » affiche toute la durée de l'enregistrement et permet d'aller à n'importe quel moment, comme le panneau.",
           "recording_clock": "L'horloge selon laquelle l'appareil indique les heures de ses enregistrements. « Automatique » la détermine. Si la frise et l'enregistrement lu sont décalés du décalage de votre fuseau horaire, choisissez l'autre horloge.",
           "stream_key": "Sert à déchiffrer les enregistrements et la vidéo en direct H.264 locale tout en gardant le chiffrement du flux activé. Saisissez ici le code de vérification de l'appareil pour activer le déchiffrement en direct ; l'audio et la vidéo en direct H.265 chiffrée ne sont pas pris en charge. Les enregistrements peuvent aussi utiliser le code lu sur l'appareil.",
@@ -153,7 +155,8 @@
     },
     "error": {
       "invalid_port": "Saisissez un port entre 1 et 65535.",
-      "invalid_hold_seconds": "Saisissez une valeur entre 1 et 300 secondes."
+      "invalid_hold_seconds": "Saisissez une valeur entre 1 et 300 secondes.",
+      "invalid_access_log_seconds": "Saisissez une valeur de 2 à 60 secondes."
     }
   },
   "config_subentries": {
