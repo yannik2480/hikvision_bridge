@@ -58,6 +58,8 @@ class StreamSpec:
     height: int | None = None
     # False if the stream carries no audio (its <Audio><enabled>); None if not stated.
     audio: bool | None = None
+    # The device's sound format, e.g. "G.711ulaw" or "AAC"; None if not stated.
+    audio_codec: str | None = None
 
     @property
     def rank(self) -> int:

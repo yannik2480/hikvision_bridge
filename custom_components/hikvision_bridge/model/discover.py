@@ -113,6 +113,7 @@ def _streams(listing: XmlNode | None) -> dict[str, list[StreamSpec]]:
                 width=video.numeric("videoResolutionWidth") if video else None,
                 height=video.numeric("videoResolutionHeight") if video else None,
                 audio=audio.flag("enabled") if audio else None,
+                audio_codec=audio.text("audioCompressionType") if audio else None,
             )
         )
     return by_channel

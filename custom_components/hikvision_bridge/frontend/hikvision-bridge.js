@@ -142,6 +142,13 @@ function hasAudioTrack(data) {
   return Boolean(data.audiovideo && /mp4a|ac-3|ec-3|opus|mp3|flac/.test(data.audiovideo.codec || ""));
 }
 
+// Whether the device sends a sound format that Home Assistant's live HLS drops (anything but
+// AAC or MP3), so the picture needs the integration's converted session from the start.
+function needsSoundConversion(camera, level) {
+  const codec = camera.audio_codec && camera.audio_codec[level === "low" ? 2 : 1];
+  return Boolean(codec) && !/aac|mp3|mp4a/i.test(codec);
+}
+
 let hlsLoader;
 function loadHls() {
   if (window.Hls) return Promise.resolve(window.Hls);
@@ -756,11 +763,12 @@ class Player {
    * Home Assistant's live stream keeps only AAC or MP3 sound, so a camera sending G.711 plays
    * silent there. When the device has sound on this stream, the integration serves the picture
    * with the sound converted to AAC, and the player switches to that session.
+   * Resolves true when the converted picture is playing, false when the caller should carry on.
    */
   async _liveSound(token) {
     const camera = this.camera;
     const rank = this.level === "low" ? 2 : 1;
-    if (this.liveSound || !camera || !camera.audio || camera.audio[rank] !== true) return;
+    if (this.liveSound || !camera || !camera.audio || camera.audio[rank] !== true) return false;
     try {
       const session = await this.host.hass.callWS({
         type: `${DOMAIN}/live/sound`,
@@ -770,12 +778,15 @@ class Player {
       });
       if (token !== this.token) {
         this.host.hass.callWS({ type: `${DOMAIN}/playback/stop`, session_id: session.session_id }).catch(() => {});
-        return;
+        return false;
       }
       this.liveSound = session.session_id;
       await this._attach(session.url, token);
-    } catch (_err) {
-      /* the picture stays without sound */
+      return true;
+    } catch (err) {
+      // The picture stays without sound; the reason is logged so a silent camera can be traced.
+      console.warn("[hikvision-bridge] live picture with sound failed", err);
+      return false;
     }
   }
 
@@ -818,10 +829,17 @@ class Player {
         return;
       }
       if (token !== this.token) return;
-      const { url } = await this.host.hass.callWS({ type: "camera/stream", entity_id: entity, format: "hls" });
-      if (token !== this.token) return;
       this.level = shown;
       this.camera = camera;
+      // A sound format Home Assistant's HLS drops goes straight to the converted picture: the
+      // silent one would only flash on screen before it.
+      if (needsSoundConversion(camera, shown) && (await this._liveSound(token))) {
+        if (token === this.token) this.host.update();
+        return;
+      }
+      if (token !== this.token) return;
+      const { url } = await this.host.hass.callWS({ type: "camera/stream", entity_id: entity, format: "hls" });
+      if (token !== this.token) return;
       await this._attach(url, token);
       this.host.update();
     } catch (err) {

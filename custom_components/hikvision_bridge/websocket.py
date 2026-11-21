@@ -109,6 +109,9 @@ def ws_cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
                     "sources": [s.key for s in sources(bridge, channel.channel_id)],
                     "live": live,
                     "audio": {str(s.rank): s.audio for s in channel.streams if s.rank <= 2},
+                    "audio_codec": {
+                        str(s.rank): s.audio_codec for s in channel.streams if s.rank <= 2
+                    },
                     "codec": main.codec if main else None,
                     "resolution": f"{main.width}x{main.height}" if main and main.width else None,
                 }

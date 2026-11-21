@@ -1072,4 +1072,24 @@ async def _end(process: asyncio.subprocess.Process) -> None:
 def manager(hass: HomeAssistant) -> SessionManager:
     if DATA_KEY not in hass.data:
         hass.data[DATA_KEY] = SessionManager(hass)
+        hass.async_add_executor_job(_remove_stale_folders)
     return hass.data[DATA_KEY]
+
+
+# Set when this module loads, i.e. when this run of Home Assistant starts.
+_RUN_STARTED = time.time()
+
+
+def _remove_stale_folders() -> None:
+    """Delete the session folders an earlier run left in the temp directory.
+
+    Sessions are removed when they end, but a crash or a hard stop skips that and their video
+    stays on disk. A folder written since this run started belongs to this run; any older one
+    is left over.
+    """
+    for folder in Path(tempfile.gettempdir()).glob("hikvision_*"):
+        try:
+            if folder.is_dir() and folder.stat().st_mtime < _RUN_STARTED:
+                shutil.rmtree(folder, True)
+        except OSError:
+            continue
