@@ -1012,7 +1012,10 @@
         "pick_day": "Gün seçin",
         "previous_month": "Önceki ay",
         "next_month": "Sonraki ay",
-        "recording_days": "Kayıt olan günler"
+        "recording_days": "Kayıt olan günler",
+        "view_timeline": "Zaman çizelgesi",
+        "view_clips": "Klipler",
+        "no_picture": "Görüntü yok"
       }
     }
   },

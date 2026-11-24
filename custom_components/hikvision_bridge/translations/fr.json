@@ -1012,7 +1012,10 @@
         "pick_day": "Choisir un jour",
         "previous_month": "Mois précédent",
         "next_month": "Mois suivant",
-        "recording_days": "Jours avec enregistrements"
+        "recording_days": "Jours avec enregistrements",
+        "view_timeline": "Chronologie",
+        "view_clips": "Clips",
+        "no_picture": "Pas d'image"
       }
     }
   },

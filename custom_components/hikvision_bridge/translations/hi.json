@@ -1012,7 +1012,10 @@
         "pick_day": "दिन चुनें",
         "previous_month": "पिछला महीना",
         "next_month": "अगला महीना",
-        "recording_days": "रिकॉर्डिंग वाले दिन"
+        "recording_days": "रिकॉर्डिंग वाले दिन",
+        "view_timeline": "टाइमलाइन",
+        "view_clips": "क्लिप",
+        "no_picture": "कोई चित्र नहीं"
       }
     }
   },

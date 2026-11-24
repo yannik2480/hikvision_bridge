@@ -1012,7 +1012,10 @@
         "pick_day": "Alegeți o zi",
         "previous_month": "Luna anterioară",
         "next_month": "Luna următoare",
-        "recording_days": "Zile cu înregistrări"
+        "recording_days": "Zile cu înregistrări",
+        "view_timeline": "Cronologie",
+        "view_clips": "Clipuri",
+        "no_picture": "Fără imagine"
       }
     }
   },

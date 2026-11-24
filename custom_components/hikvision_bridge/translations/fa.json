@@ -1012,7 +1012,10 @@
         "pick_day": "انتخاب روز",
         "previous_month": "ماه قبل",
         "next_month": "ماه بعد",
-        "recording_days": "روزهای دارای ضبط"
+        "recording_days": "روزهای دارای ضبط",
+        "view_timeline": "خط زمان",
+        "view_clips": "کلیپ‌ها",
+        "no_picture": "تصویری نیست"
       }
     }
   },

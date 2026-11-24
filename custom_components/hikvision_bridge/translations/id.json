@@ -1012,7 +1012,10 @@
         "pick_day": "Pilih hari",
         "previous_month": "Bulan sebelumnya",
         "next_month": "Bulan berikutnya",
-        "recording_days": "Hari dengan rekaman"
+        "recording_days": "Hari dengan rekaman",
+        "view_timeline": "Linimasa",
+        "view_clips": "Klip",
+        "no_picture": "Tidak ada gambar"
       }
     }
   },

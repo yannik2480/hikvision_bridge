@@ -1012,7 +1012,10 @@
         "pick_day": "Chọn ngày",
         "previous_month": "Tháng trước",
         "next_month": "Tháng sau",
-        "recording_days": "Ngày có bản ghi"
+        "recording_days": "Ngày có bản ghi",
+        "view_timeline": "Dòng thời gian",
+        "view_clips": "Đoạn clip",
+        "no_picture": "Không có ảnh"
       }
     }
   },

@@ -1012,7 +1012,10 @@
         "pick_day": "Kies een dag",
         "previous_month": "Vorige maand",
         "next_month": "Volgende maand",
-        "recording_days": "Dagen met opnamen"
+        "recording_days": "Dagen met opnamen",
+        "view_timeline": "Tijdlijn",
+        "view_clips": "Clips",
+        "no_picture": "Geen beeld"
       }
     }
   },

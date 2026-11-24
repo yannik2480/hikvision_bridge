@@ -1012,7 +1012,10 @@
         "pick_day": "날짜 선택",
         "previous_month": "이전 달",
         "next_month": "다음 달",
-        "recording_days": "녹화가 있는 날"
+        "recording_days": "녹화가 있는 날",
+        "view_timeline": "타임라인",
+        "view_clips": "클립",
+        "no_picture": "사진 없음"
       }
     }
   },
