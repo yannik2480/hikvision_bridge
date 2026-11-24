@@ -243,6 +243,14 @@ async def test_cameras_and_timeline(hass: HomeAssistant, serve, hass_ws_client) 
     assert all(r["token"] for r in timeline["recordings"])
     assert timeline["events"] == []
 
+    # Detection sensors map to their plain kind, so the panel finds a colour and symbol for each.
+    from custom_components.hikvision_bridge.websocket import _event_entities  # noqa: PLC0415
+
+    kinds = set(_event_entities(hass, entry.runtime_data, "1").values())
+    assert kinds
+    assert not any(k.startswith("_") or "__" in k for k in kinds)
+    assert "motion" in kinds
+
     await client.send_json_auto_id(
         {"type": f"{DOMAIN}/timeline", "entry_id": "nope", "channel_id": "1", "source": "auto"}
         | period

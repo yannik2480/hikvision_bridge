@@ -131,7 +131,8 @@
           "panel_title": "Título do painel",
           "panel_header": "Mostrar a barra de título no painel",
           "hidden_channels": "Câmeras ocultas no painel lateral",
-          "try_encrypted_stream": "Tentar transmissão ao vivo mesmo com criptografia ativada"
+          "try_encrypted_stream": "Tentar transmissão ao vivo mesmo com criptografia ativada",
+          "media_retention_days": "Excluir gravações salvas após (dias, 0 = manter)"
         },
         "data_description": {
           "event_path": "O fluxo de eventos não exige mudanças no dispositivo. O webhook exige que o dispositivo envie para o Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Nome do painel na barra lateral e na sua barra de título. Deixe vazio para 'Hikvision'. Vale para todos os dispositivos e contas.",
           "panel_header": "Desative para dar mais espaço às câmeras. Em telas estreitas a barra continua, ela contém o botão do menu.",
           "hidden_channels": "As câmeras selecionadas aqui não aparecem no painel Hikvision da barra lateral. Gravações e entidades continuam como estão; o cartão do painel ainda as mostra.",
-          "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte criptografia Hik-Connect ativada."
+          "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte criptografia Hik-Connect ativada.",
+          "media_retention_days": "As gravações salvas pela ação de download são excluídas após este número de dias. 0 as mantém. Só são excluídos os arquivos salvos pela integração; a verificação roda uma vez por dia."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Informe uma porta de 1 a 65535.",
       "invalid_hold_seconds": "Informe um valor de 1 a 300 segundos.",
-      "invalid_access_log_seconds": "Digite um valor de 2 a 60 segundos."
+      "invalid_access_log_seconds": "Digite um valor de 2 a 60 segundos.",
+      "invalid_media_retention_days": "Digite um valor de 0 a 3650 dias."
     }
   },
   "config_subentries": {

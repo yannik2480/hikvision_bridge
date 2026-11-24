@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from homeassistant.config_entries import (
     SIGNAL_CONFIG_ENTRY_CHANGED,
     ConfigEntry,
@@ -12,13 +14,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
+from . import retention
 from .const import (
     CONF_ENTRY_KIND,
     CONF_SERIAL,
+    DEFAULT_MEDIA_RETENTION_DAYS,
     DOMAIN,
     KIND_CLOUD,
+    OPT_MEDIA_RETENTION_DAYS,
     OPT_RECORDING_CLOCK,
     RECORDING_CLOCK_DEVICE,
     RECORDING_CLOCK_UTC,
@@ -43,6 +50,8 @@ from .wire.faults import (
 from .wire.scrub import LOG_SCRUBBER, scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
+# Saved recordings past their retention period are checked once a day.
+MEDIA_RETENTION_INTERVAL = timedelta(hours=24)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -149,8 +158,26 @@ async def _async_setup_device(hass: HomeAssistant, entry: BridgeConfigEntry) -> 
     bridge.schedule_audit()
     bridge.schedule_intercom_poll()
     bridge.schedule_access_log()
+    _schedule_media_retention(hass, entry)
     _reload_on_subentry_change(hass, entry)
     return True
+
+
+def _schedule_media_retention(hass: HomeAssistant, entry: BridgeConfigEntry) -> None:
+    """Delete saved recordings past the retention period, now and once a day.
+
+    Changing the option reloads the entry, so the new period applies at once.
+    """
+    days = int(entry.options.get(OPT_MEDIA_RETENTION_DAYS, DEFAULT_MEDIA_RETENTION_DAYS))
+    if days <= 0:
+        return
+    folder = retention.saved_folder(hass, entry.title)
+
+    async def _prune(_now: datetime | None = None) -> None:
+        await hass.async_add_executor_job(retention.prune_saved, folder, days, dt_util.now())
+
+    entry.async_create_background_task(hass, _prune(), f"{DOMAIN}_media_retention")
+    entry.async_on_unload(async_track_time_interval(hass, _prune, MEDIA_RETENTION_INTERVAL))
 
 
 def _reload_on_subentry_change(hass: HomeAssistant, entry: ConfigEntry) -> None:

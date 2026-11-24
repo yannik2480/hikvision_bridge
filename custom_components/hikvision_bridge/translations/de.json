@@ -131,7 +131,8 @@
           "panel_title": "Titel des Panels",
           "panel_header": "Titelleiste im Panel anzeigen",
           "hidden_channels": "Im Seitenleisten-Panel ausgeblendete Kameras",
-          "try_encrypted_stream": "Livestream auch bei aktivierter Verschlüsselung versuchen"
+          "try_encrypted_stream": "Livestream auch bei aktivierter Verschlüsselung versuchen",
+          "media_retention_days": "Gespeicherte Aufnahmen löschen nach (Tage, 0 = behalten)"
         },
         "data_description": {
           "event_path": "Der Ereignis-Stream braucht keine Änderung am Gerät. Der Webhook setzt voraus, dass das Gerät an Home Assistant sendet.",
@@ -145,7 +146,8 @@
           "panel_title": "Name des Panels in der Seitenleiste und in seiner Titelleiste. Leer lassen für 'Hikvision'. Gilt für alle Geräte und Konten.",
           "panel_header": "Ausschalten, um den Kameras mehr Platz zu geben. Auf schmalen Bildschirmen bleibt die Leiste, sie enthält die Menütaste.",
           "hidden_channels": "Hier ausgewählte Kameras werden im Hikvision-Panel der Seitenleiste ausgeblendet. Aufnahmen und Entitäten bleiben unverändert; die Dashboard-Karte zeigt sie weiterhin.",
-          "try_encrypted_stream": "Spielt den lokalen RTSP-Livestream ab, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams."
+          "try_encrypted_stream": "Spielt den lokalen RTSP-Livestream ab, auch wenn das Gerät die Hik-Connect-Stream-Verschlüsselung meldet. Viele Rekorder verschlüsseln nur Cloud-Streams.",
+          "media_retention_days": "Mit der Download-Aktion gespeicherte Aufnahmen werden nach so vielen Tagen gelöscht. 0 behält sie. Gelöscht werden nur Dateien, die die Integration gespeichert hat; die Prüfung läuft einmal am Tag."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Gib einen Port von 1 bis 65535 ein.",
       "invalid_hold_seconds": "Gib einen Wert von 1 bis 300 Sekunden ein.",
-      "invalid_access_log_seconds": "Gib einen Wert von 2 bis 60 Sekunden ein."
+      "invalid_access_log_seconds": "Gib einen Wert von 2 bis 60 Sekunden ein.",
+      "invalid_media_retention_days": "Gib einen Wert von 0 bis 3650 Tagen ein."
     }
   },
   "config_subentries": {

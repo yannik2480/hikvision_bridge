@@ -131,7 +131,8 @@
           "panel_title": "Título do painel",
           "panel_header": "Mostrar a barra de título no painel",
           "hidden_channels": "Câmaras ocultas no painel lateral",
-          "try_encrypted_stream": "Tentar transmissão em direto mesmo com encriptação ativada"
+          "try_encrypted_stream": "Tentar transmissão em direto mesmo com encriptação ativada",
+          "media_retention_days": "Apagar gravações guardadas após (dias, 0 = manter)"
         },
         "data_description": {
           "event_path": "O fluxo de eventos não exige alterações no dispositivo. O webhook exige que o dispositivo envie para o Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Nome do painel na barra lateral e na sua barra de título. Deixe vazio para 'Hikvision'. Aplica-se a todos os dispositivos e contas.",
           "panel_header": "Desative para dar mais espaço às câmaras. Em ecrãs estreitos a barra mantém-se, contém o botão do menu.",
           "hidden_channels": "As câmaras selecionadas aqui não aparecem no painel Hikvision da barra lateral. As gravações e entidades mantêm-se; o cartão do painel continua a mostrá-las.",
-          "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte encriptação Hik-Connect ativada."
+          "try_encrypted_stream": "Tente reproduzir vídeo RTSP local mesmo que o dispositivo reporte encriptação Hik-Connect ativada.",
+          "media_retention_days": "As gravações guardadas com a ação de transferência são apagadas após este número de dias. 0 mantém-nas. Só são apagados os ficheiros guardados pela integração; a verificação faz-se uma vez por dia."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Introduza uma porta de 1 a 65535.",
       "invalid_hold_seconds": "Introduza um valor de 1 a 300 segundos.",
-      "invalid_access_log_seconds": "Introduza um valor de 2 a 60 segundos."
+      "invalid_access_log_seconds": "Introduza um valor de 2 a 60 segundos.",
+      "invalid_media_retention_days": "Introduza um valor de 0 a 3650 dias."
     }
   },
   "config_subentries": {

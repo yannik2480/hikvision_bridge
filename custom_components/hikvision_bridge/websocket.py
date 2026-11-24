@@ -122,9 +122,11 @@ def ws_cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
 def _event_entities(hass: HomeAssistant, bridge: DeviceBridge, channel_id: str) -> dict[str, str]:
     """Detection binary sensors of a channel: entity id -> kind."""
     registry = er.async_get(hass)
+    # The feature key drops a trailing "_", so the separator is added after it: with it inside,
+    # every kind came out as "_motion" and matched no colour or symbol in the panel.
     prefixes = {
-        identity.entity_uid(bridge.profile, channel_id, "event_"): "",
-        identity.entity_uid(bridge.profile, channel_id, "target_"): "target_",
+        identity.entity_uid(bridge.profile, channel_id, "event") + "_": "",
+        identity.entity_uid(bridge.profile, channel_id, "target") + "_": "target_",
     }
     found: dict[str, str] = {}
     for entry in er.async_entries_for_config_entry(registry, bridge.entry.entry_id):

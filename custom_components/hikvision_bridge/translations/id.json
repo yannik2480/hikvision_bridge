@@ -131,7 +131,8 @@
           "panel_title": "Judul panel",
           "panel_header": "Tampilkan bilah judul di panel",
           "hidden_channels": "Kamera yang disembunyikan di panel samping",
-          "try_encrypted_stream": "Coba streaming langsung meskipun enkripsi aktif"
+          "try_encrypted_stream": "Coba streaming langsung meskipun enkripsi aktif",
+          "media_retention_days": "Hapus rekaman tersimpan setelah (hari, 0 = simpan)"
         },
         "data_description": {
           "event_path": "Aliran peristiwa tidak memerlukan perubahan pada perangkat. Webhook mengharuskan perangkat mengirim ke Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Nama panel di bilah samping dan di bilah judulnya. Biarkan kosong untuk 'Hikvision'. Berlaku untuk semua perangkat dan akun.",
           "panel_header": "Matikan agar kamera mendapat ruang lebih. Di layar sempit bilah tetap ada, karena berisi tombol menu.",
           "hidden_channels": "Kamera yang dipilih di sini tidak ditampilkan di panel Hikvision di sidebar. Rekaman dan entitasnya tetap; kartu dasbor tetap menampilkannya.",
-          "try_encrypted_stream": "Coba putar video RTSP lokal meskipun perangkat melaporkan enkripsi streaming Hik-Connect aktif."
+          "try_encrypted_stream": "Coba putar video RTSP lokal meskipun perangkat melaporkan enkripsi streaming Hik-Connect aktif.",
+          "media_retention_days": "Rekaman yang disimpan dengan aksi unduh dihapus setelah sekian hari. 0 menyimpannya. Hanya file yang disimpan integrasi yang dihapus; pemeriksaan dilakukan sekali sehari."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Masukkan port dari 1 hingga 65535.",
       "invalid_hold_seconds": "Masukkan nilai dari 1 hingga 300 detik.",
-      "invalid_access_log_seconds": "Masukkan nilai dari 2 sampai 60 detik."
+      "invalid_access_log_seconds": "Masukkan nilai dari 2 sampai 60 detik.",
+      "invalid_media_retention_days": "Masukkan nilai dari 0 sampai 3650 hari."
     }
   },
   "config_subentries": {

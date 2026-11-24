@@ -131,7 +131,8 @@
           "panel_title": "Panelets tittel",
           "panel_header": "Vis tittellinjen i panelet",
           "hidden_channels": "Kameraer skjult i sidepanelet",
-          "try_encrypted_stream": "Prøv direktesendingen selv med kryptering på"
+          "try_encrypted_stream": "Prøv direktesendingen selv med kryptering på",
+          "media_retention_days": "Slett lagrede opptak etter (dager, 0 = behold)"
         },
         "data_description": {
           "event_path": "Hendelsesstrømmen krever ingen endring på enheten. Webhooken krever at enheten sender til Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Panelets navn i sidefeltet og i tittellinjen. La stå tomt for 'Hikvision'. Gjelder alle enheter og kontoer.",
           "panel_header": "Slå av for å gi kameraene mer plass. På smale skjermer blir linjen værende, den inneholder menyknappen.",
           "hidden_channels": "Kameraene som velges her, vises ikke i Hikvision-panelet i sidepanelet. Opptak og entiteter forblir uendret; dashbordkortet viser dem fortsatt.",
-          "try_encrypted_stream": "Prøv å spille av lokal RTSP-video selv om enheten rapporterer at Hik-Connect-strømkryptering er aktivert."
+          "try_encrypted_stream": "Prøv å spille av lokal RTSP-video selv om enheten rapporterer at Hik-Connect-strømkryptering er aktivert.",
+          "media_retention_days": "Opptak lagret med nedlastingshandlingen slettes etter så mange dager. 0 beholder dem. Bare filer integrasjonen har lagret, slettes; kontrollen kjører én gang i døgnet."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Angi en port fra 1 til 65535.",
       "invalid_hold_seconds": "Angi en verdi fra 1 til 300 sekunder.",
-      "invalid_access_log_seconds": "Skriv inn en verdi fra 2 til 60 sekunder."
+      "invalid_access_log_seconds": "Skriv inn en verdi fra 2 til 60 sekunder.",
+      "invalid_media_retention_days": "Skriv inn en verdi fra 0 til 3650 dager."
     }
   },
   "config_subentries": {

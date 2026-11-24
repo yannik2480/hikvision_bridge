@@ -131,7 +131,8 @@
           "panel_title": "A panel címe",
           "panel_header": "Címsor megjelenítése a panelen",
           "hidden_channels": "Az oldalsávi panelről elrejtett kamerák",
-          "try_encrypted_stream": "Élő közvetítés megpróbálása bekapcsolt titkosítással is"
+          "try_encrypted_stream": "Élő közvetítés megpróbálása bekapcsolt titkosítással is",
+          "media_retention_days": "Mentett felvételek törlése ennyi nap után (0 = megtartás)"
         },
         "data_description": {
           "event_path": "Az eseményfolyam nem igényel módosítást az eszközön. A webhookhoz az eszköznek a Home Assistantnak kell küldenie.",
@@ -145,7 +146,8 @@
           "panel_title": "A panel neve az oldalsávban és a címsorában. Hagyja üresen a 'Hikvision' névhez. Minden eszközre és fiókra vonatkozik.",
           "panel_header": "Kapcsolja ki, hogy a kamerák több helyet kapjanak. Keskeny képernyőn a sáv megmarad, abban van a menügomb.",
           "hidden_channels": "Az itt kiválasztott kamerák nem jelennek meg az oldalsávi Hikvision-panelen. Felvételeik és entitásaik változatlanok maradnak; az irányítópult-kártya továbbra is megjeleníti őket.",
-          "try_encrypted_stream": "Próbálja meg lejátszani a helyi RTSP-videót még akkor is, ha az eszköz Hik-Connect stream titkosítást jelez."
+          "try_encrypted_stream": "Próbálja meg lejátszani a helyi RTSP-videót még akkor is, ha az eszköz Hik-Connect stream titkosítást jelez.",
+          "media_retention_days": "A letöltés művelettel mentett felvételek ennyi nap után törlődnek. A 0 megtartja őket. Csak az integráció által mentett fájlok törlődnek; az ellenőrzés naponta egyszer fut."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Adjon meg egy portot 1 és 65535 között.",
       "invalid_hold_seconds": "Adjon meg egy értéket 1 és 300 másodperc között.",
-      "invalid_access_log_seconds": "Adjon meg 2 és 60 közötti értéket másodpercben."
+      "invalid_access_log_seconds": "Adjon meg 2 és 60 közötti értéket másodpercben.",
+      "invalid_media_retention_days": "Adjon meg 0 és 3650 közötti értéket (nap)."
     }
   },
   "config_subentries": {

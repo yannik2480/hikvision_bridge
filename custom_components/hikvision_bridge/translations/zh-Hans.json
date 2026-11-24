@@ -131,7 +131,8 @@
           "panel_title": "面板标题",
           "panel_header": "在面板中显示标题栏",
           "hidden_channels": "侧边栏面板中隐藏的摄像头",
-          "try_encrypted_stream": "即使启用加密也尝试实时流"
+          "try_encrypted_stream": "即使启用加密也尝试实时流",
+          "media_retention_days": "保存的录像保留天数（0 = 永久保留）"
         },
         "data_description": {
           "event_path": "事件流无需更改设备。Webhook 需要设备向 Home Assistant 发送数据。",
@@ -145,7 +146,8 @@
           "panel_title": "侧边栏及面板标题栏中显示的面板名称。留空则为 'Hikvision'。适用于所有设备和账户。",
           "panel_header": "关闭后摄像机画面可占用更多空间。在窄屏幕上标题栏会保留，因为其中有菜单按钮。",
           "hidden_channels": "在此选择的摄像头不会显示在侧边栏的 Hikvision 面板中。录像和实体保持不变；仪表板卡片仍会显示它们。",
-          "try_encrypted_stream": "即使设备报告启用了 Hik-Connect 流加密，也尝试播放本地 RTSP 视频。许多录像机仅加密云端流。"
+          "try_encrypted_stream": "即使设备报告启用了 Hik-Connect 流加密，也尝试播放本地 RTSP 视频。许多录像机仅加密云端流。",
+          "media_retention_days": "通过下载操作保存的录像会在此天数后删除。0 表示保留。只删除集成保存的文件，检查每天进行一次。"
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "请输入 1 到 65535 之间的端口。",
       "invalid_hold_seconds": "请输入 1 到 300 秒之间的值。",
-      "invalid_access_log_seconds": "请输入 2 到 60 秒之间的值。"
+      "invalid_access_log_seconds": "请输入 2 到 60 秒之间的值。",
+      "invalid_media_retention_days": "请输入 0 到 3650 天之间的值。"
     }
   },
   "config_subentries": {

@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util, slugify
 import voluptuous as vol
 from yarl import URL
 
+from . import retention
 from .const import DOMAIN, OPT_WEBHOOK_ID
 from .model.features import VerifyMismatch, linkage, patch_and_verify, ptz, recordings
 from .model.vocabulary import Kind
@@ -51,7 +52,6 @@ MAX_FILES = 50
 WHOLE_STEP = timedelta(hours=1)
 # How far past the period files running over its ends are searched for their real times.
 WHOLE_SPAN = timedelta(days=1)
-MEDIA_FOLDER = DOMAIN
 
 MAX_RESPONSE = 65536
 
@@ -325,8 +325,7 @@ async def _download_recording(call: ServiceCall) -> ServiceResponse:
         )
     fmt = call.data[FIELD_FORMAT]
     start, end = _period(call)
-    root = Path(hass.config.media_dirs.get("local") or hass.config.path("media"))
-    folder = root / MEDIA_FOLDER / slugify(bridge.entry.title)
+    folder = retention.saved_folder(hass, bridge.entry.title)
     if not hass.config.is_allowed_path(str(folder)):
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="media_not_allowed")
     await hass.async_add_executor_job(lambda: folder.mkdir(parents=True, exist_ok=True))

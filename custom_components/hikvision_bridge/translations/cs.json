@@ -131,7 +131,8 @@
           "panel_title": "Název panelu",
           "panel_header": "Zobrazit v panelu záhlaví",
           "hidden_channels": "Kamery skryté v postranním panelu",
-          "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování"
+          "try_encrypted_stream": "Zkusit živý přenos i při zapnutém šifrování",
+          "media_retention_days": "Smazat uložené záznamy po (dnech, 0 = ponechat)"
         },
         "data_description": {
           "event_path": "Stream událostí nevyžaduje žádnou změnu v zařízení. Webhook vyžaduje, aby zařízení odesílalo do Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Název panelu v postranním panelu a v jeho záhlaví. Ponechte prázdné pro 'Hikvision'. Platí pro všechna zařízení a účty.",
           "panel_header": "Vypněte, aby kamery měly více místa. Na úzkých obrazovkách záhlaví zůstává, obsahuje tlačítko nabídky.",
           "hidden_channels": "Kamery vybrané zde se nezobrazí v postranním panelu Hikvision. Jejich nahrávky a entity zůstanou beze změny; karta na přehledu je dál zobrazuje.",
-          "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect."
+          "try_encrypted_stream": "Zkuste přehrát místní RTSP video, i když zařízení hlásí zapnuté šifrování Hik-Connect.",
+          "media_retention_days": "Záznamy uložené akcí stažení se smažou po tomto počtu dnů. 0 je ponechá. Smazány jsou jen soubory uložené integrací; kontrola probíhá jednou denně."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Zadejte port od 1 do 65535.",
       "invalid_hold_seconds": "Zadejte hodnotu od 1 do 300 sekund.",
-      "invalid_access_log_seconds": "Zadejte hodnotu od 2 do 60 sekund."
+      "invalid_access_log_seconds": "Zadejte hodnotu od 2 do 60 sekund.",
+      "invalid_media_retention_days": "Zadejte hodnotu od 0 do 3650 dnů."
     }
   },
   "config_subentries": {

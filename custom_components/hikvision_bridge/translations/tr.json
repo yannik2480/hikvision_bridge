@@ -131,7 +131,8 @@
           "panel_title": "Panel başlığı",
           "panel_header": "Panelde başlık çubuğunu göster",
           "hidden_channels": "Kenar çubuğu panelinde gizlenen kameralar",
-          "try_encrypted_stream": "Şifreleme açıkken bile canlı akışı dene"
+          "try_encrypted_stream": "Şifreleme açıkken bile canlı akışı dene",
+          "media_retention_days": "Kaydedilen kayıtları şu süre sonra sil (gün, 0 = sakla)"
         },
         "data_description": {
           "event_path": "Olay akışı cihazda değişiklik gerektirmez. Webhook, cihazın Home Assistant'a göndermesini gerektirir.",
@@ -145,7 +146,8 @@
           "panel_title": "Panelin kenar çubuğundaki ve başlık çubuğundaki adı. 'Hikvision' için boş bırakın. Tüm cihazlar ve hesaplar için geçerlidir.",
           "panel_header": "Kameralara daha fazla yer açmak için kapatın. Dar ekranlarda çubuk kalır, menü düğmesi oradadır.",
           "hidden_channels": "Burada seçilen kameralar kenar çubuğundaki Hikvision panelinde gösterilmez. Kayıtları ve varlıkları değişmez; pano kartı yine de gösterir.",
-          "try_encrypted_stream": "Cihaz Hik-Connect akış şifrelemesini bildirse bile yerel RTSP videosunu oynatmayı deneyin."
+          "try_encrypted_stream": "Cihaz Hik-Connect akış şifrelemesini bildirse bile yerel RTSP videosunu oynatmayı deneyin.",
+          "media_retention_days": "İndirme eylemiyle kaydedilen kayıtlar bu gün sayısından sonra silinir. 0 kayıtları saklar. Yalnızca entegrasyonun kaydettiği dosyalar silinir; kontrol günde bir kez yapılır."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "1 ile 65535 arasında bir port girin.",
       "invalid_hold_seconds": "1 ile 300 saniye arasında bir değer girin.",
-      "invalid_access_log_seconds": "2 ila 60 saniye arasında bir değer girin."
+      "invalid_access_log_seconds": "2 ila 60 saniye arasında bir değer girin.",
+      "invalid_media_retention_days": "0 ile 3650 gün arasında bir değer girin."
     }
   },
   "config_subentries": {

@@ -131,7 +131,8 @@
           "panel_title": "Titre du panneau",
           "panel_header": "Afficher la barre de titre dans le panneau",
           "hidden_channels": "Caméras masquées dans le panneau latéral",
-          "try_encrypted_stream": "Essayer le flux en direct même avec le chiffrement activé"
+          "try_encrypted_stream": "Essayer le flux en direct même avec le chiffrement activé",
+          "media_retention_days": "Supprimer les enregistrements sauvegardés après (jours, 0 = garder)"
         },
         "data_description": {
           "event_path": "Le flux d'événements ne nécessite aucune modification de l'appareil. Le webhook exige que l'appareil envoie vers Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Nom du panneau dans la barre latérale et dans sa barre de titre. Laisser vide pour 'Hikvision'. S'applique à tous les appareils et comptes.",
           "panel_header": "Désactiver pour laisser plus de place aux caméras. Sur les écrans étroits, la barre reste, elle contient le bouton du menu.",
           "hidden_channels": "Les caméras sélectionnées ici n'apparaissent pas dans le panneau Hikvision de la barre latérale. Leurs enregistrements et entités ne changent pas ; la carte du tableau de bord les affiche toujours.",
-          "try_encrypted_stream": "Essayez de lire le flux RTSP local même si l'appareil signale le chiffrement Hik-Connect. De nombreux enregistreurs ne chiffrent que les flux cloud."
+          "try_encrypted_stream": "Essayez de lire le flux RTSP local même si l'appareil signale le chiffrement Hik-Connect. De nombreux enregistreurs ne chiffrent que les flux cloud.",
+          "media_retention_days": "Les enregistrements sauvegardés avec l'action de téléchargement sont supprimés après ce nombre de jours. 0 les garde. Seuls les fichiers enregistrés par l'intégration sont supprimés ; la vérification a lieu une fois par jour."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Saisissez un port entre 1 et 65535.",
       "invalid_hold_seconds": "Saisissez une valeur entre 1 et 300 secondes.",
-      "invalid_access_log_seconds": "Saisissez une valeur de 2 à 60 secondes."
+      "invalid_access_log_seconds": "Saisissez une valeur de 2 à 60 secondes.",
+      "invalid_media_retention_days": "Saisissez une valeur de 0 à 3650 jours."
     }
   },
   "config_subentries": {

@@ -131,7 +131,8 @@
           "panel_title": "Panelets titel",
           "panel_header": "Vis titellinjen i panelet",
           "hidden_channels": "Kameraer skjult i sidepanelet",
-          "try_encrypted_stream": "Prøv livestrømmen selv med kryptering slået til"
+          "try_encrypted_stream": "Prøv livestrømmen selv med kryptering slået til",
+          "media_retention_days": "Slet gemte optagelser efter (dage, 0 = behold)"
         },
         "data_description": {
           "event_path": "Hændelsesstrømmen kræver ingen ændring på enheden. Webhooken kræver, at enheden sender til Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Panelets navn i sidebjælken og i dets titellinje. Lad feltet stå tomt for 'Hikvision'. Gælder alle enheder og konti.",
           "panel_header": "Slå fra for at give kameraerne mere plads. På smalle skærme bliver linjen, den indeholder menuknappen.",
           "hidden_channels": "Kameraer valgt her vises ikke i Hikvision-panelet i sidemenuen. Optagelser og entiteter forbliver uændrede; dashboardkortet viser dem stadig.",
-          "try_encrypted_stream": "Prøv at afspille lokal RTSP-video, selvom enheden rapporterer, at Hik-Connect-strømkryptering er aktiveret."
+          "try_encrypted_stream": "Prøv at afspille lokal RTSP-video, selvom enheden rapporterer, at Hik-Connect-strømkryptering er aktiveret.",
+          "media_retention_days": "Optagelser gemt med downloadhandlingen slettes efter så mange dage. 0 beholder dem. Kun filer, integrationen har gemt, slettes; kontrollen kører én gang i døgnet."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Angiv en port fra 1 til 65535.",
       "invalid_hold_seconds": "Angiv en værdi fra 1 til 300 sekunder.",
-      "invalid_access_log_seconds": "Angiv en værdi fra 2 til 60 sekunder."
+      "invalid_access_log_seconds": "Angiv en værdi fra 2 til 60 sekunder.",
+      "invalid_media_retention_days": "Angiv en værdi fra 0 til 3650 dage."
     }
   },
   "config_subentries": {

@@ -64,12 +64,15 @@ PLAYBACK_H264: Final = "h264"
 PLAYBACK_STREAM: Final = "stream"
 PLAYBACK_SEEKABLE: Final = "seekable"
 OPT_RECORDING_CLOCK: Final = "recording_clock"
+# Saved recordings (the download action) older than this many days are deleted; 0 keeps them.
+OPT_MEDIA_RETENTION_DAYS: Final = "media_retention_days"
 RECORDING_CLOCK_AUTO: Final = "auto"
 RECORDING_CLOCK_DEVICE: Final = "device"
 RECORDING_CLOCK_UTC: Final = "utc"
 
 DEFAULT_HOLD_SECONDS: Final = 5
 DEFAULT_ACCESS_LOG_SECONDS: Final = 5
+DEFAULT_MEDIA_RETENTION_DAYS: Final = 0
 RTSP_PORT_DEFAULT: Final = 554
 RTSP_TCP: Final = "tcp"
 RTSP_UDP: Final = "udp"

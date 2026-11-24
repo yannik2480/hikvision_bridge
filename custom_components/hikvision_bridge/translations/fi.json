@@ -131,7 +131,8 @@
           "panel_title": "Paneelin otsikko",
           "panel_header": "Näytä paneelin otsikkopalkki",
           "hidden_channels": "Sivupalkin paneelista piilotetut kamerat",
-          "try_encrypted_stream": "Kokeile suoraa lähetystä salauksen ollessa päällä"
+          "try_encrypted_stream": "Kokeile suoraa lähetystä salauksen ollessa päällä",
+          "media_retention_days": "Poista tallennetut tallenteet ajan kuluttua (päivää, 0 = säilytä)"
         },
         "data_description": {
           "event_path": "Tapahtumavirta ei vaadi muutoksia laitteeseen. Webhook edellyttää, että laite lähettää Home Assistantiin.",
@@ -145,7 +146,8 @@
           "panel_title": "Paneelin nimi sivupalkissa ja sen otsikkopalkissa. Jätä tyhjäksi, niin nimi on 'Hikvision'. Koskee kaikkia laitteita ja tilejä.",
           "panel_header": "Poista käytöstä, niin kameroille jää enemmän tilaa. Kapeilla näytöillä palkki jää näkyviin, siinä on valikkopainike.",
           "hidden_channels": "Tässä valitut kamerat jätetään pois Hikvision-paneelista sivupalkissa. Tallenteet ja kohteet pysyvät ennallaan; kojelautakortti näyttää ne edelleen.",
-          "try_encrypted_stream": "Kokeile toistaa paikallista RTSP-videota, vaikka laite ilmoittaisi Hik-Connect-suojauksen olevan käytössä."
+          "try_encrypted_stream": "Kokeile toistaa paikallista RTSP-videota, vaikka laite ilmoittaisi Hik-Connect-suojauksen olevan käytössä.",
+          "media_retention_days": "Lataustoiminnolla tallennetut tallenteet poistetaan tämän päivämäärän jälkeen. 0 säilyttää ne. Poistetaan vain integraation tallentamat tiedostot; tarkistus tehdään kerran vuorokaudessa."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Anna portti väliltä 1–65535.",
       "invalid_hold_seconds": "Anna arvo väliltä 1–300 sekuntia.",
-      "invalid_access_log_seconds": "Anna arvo väliltä 2–60 sekuntia."
+      "invalid_access_log_seconds": "Anna arvo väliltä 2–60 sekuntia.",
+      "invalid_media_retention_days": "Anna arvo väliltä 0–3650 päivää."
     }
   },
   "config_subentries": {

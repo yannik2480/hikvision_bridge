@@ -131,7 +131,8 @@
           "panel_title": "Titolo del pannello",
           "panel_header": "Mostra la barra del titolo nel pannello",
           "hidden_channels": "Telecamere nascoste nel pannello laterale",
-          "try_encrypted_stream": "Prova lo streaming live anche con crittografia attiva"
+          "try_encrypted_stream": "Prova lo streaming live anche con crittografia attiva",
+          "media_retention_days": "Elimina le registrazioni salvate dopo (giorni, 0 = conserva)"
         },
         "data_description": {
           "event_path": "Il flusso di eventi non richiede modifiche al dispositivo. Il webhook richiede che il dispositivo invii a Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Nome del pannello nella barra laterale e nella sua barra del titolo. Lascia vuoto per 'Hikvision'. Vale per tutti i dispositivi e gli account.",
           "panel_header": "Disattiva per dare più spazio alle telecamere. Sugli schermi stretti la barra resta, contiene il pulsante del menu.",
           "hidden_channels": "Le telecamere selezionate qui non compaiono nel pannello Hikvision nella barra laterale. Registrazioni ed entità restano invariate; la scheda della dashboard le mostra ancora.",
-          "try_encrypted_stream": "Prova a riprodurre il video RTSP locale anche se il dispositivo segnala la crittografia Hik-Connect. Molti registratori crittografano solo i flussi cloud."
+          "try_encrypted_stream": "Prova a riprodurre il video RTSP locale anche se il dispositivo segnala la crittografia Hik-Connect. Molti registratori crittografano solo i flussi cloud.",
+          "media_retention_days": "Le registrazioni salvate con l'azione di download vengono eliminate dopo questo numero di giorni. 0 le conserva. Vengono eliminati solo i file salvati dall'integrazione; il controllo avviene una volta al giorno."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Inserisci una porta da 1 a 65535.",
       "invalid_hold_seconds": "Inserisci un valore da 1 a 300 secondi.",
-      "invalid_access_log_seconds": "Inserisci un valore da 2 a 60 secondi."
+      "invalid_access_log_seconds": "Inserisci un valore da 2 a 60 secondi.",
+      "invalid_media_retention_days": "Inserisci un valore da 0 a 3650 giorni."
     }
   },
   "config_subentries": {

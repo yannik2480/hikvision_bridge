@@ -11,7 +11,7 @@ const DAY = 24 * HOUR;
 const ZOOMS = [DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 15 * 60e3];
 const HEVC = 'video/mp4; codecs="hvc1.1.6.L153.B0"';
 // Playback speeds of recordings, as the Hik-Connect app offers them.
-const SPEEDS = [1, 2, 4, 8];
+const SPEEDS = [0.5, 1, 2, 4, 8];
 // Digital zoom of the panel video: from the whole picture up to this magnification.
 const VIDEO_ZOOM_MIN = 1;
 const VIDEO_ZOOM_MAX = 8;
@@ -118,6 +118,11 @@ const eventSymbol = (kind) => SYMBOL_PATHS[EVENT_SYMBOLS[kind] || "alert"];
 const eventRank = (kind) => EVENT_RANK[kind] ?? 1;
 // Recordings closer than this are drawn as one; the files of a recording follow each other.
 const JOIN_GAP = 10e3;
+// Event kinds the viewer switched off in the legend, kept in this browser.
+const HIDDEN_EVENTS_KEY = "hikvision-bridge.hidden-events";
+// Previous/next start an event's recording file from its beginning when the event comes at
+// most this long after it (the pre-record time of event recordings); else at the event.
+const EVENT_LEAD_MAX = 60e3;
 
 function joinRecordings(recordings) {
   const joined = [];
@@ -196,6 +201,13 @@ function makeTranslator(resources) {
 const pad = (n) => String(n).padStart(2, "0");
 const clock = (date, seconds = true) =>
   `${pad(date.getHours())}:${pad(date.getMinutes())}${seconds ? `:${pad(date.getSeconds())}` : ""}`;
+// Length or position in a recording file: 0:07, 12:34 or 1:02:03.
+const duration = (ms) => {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  return h ? `${h}:${pad(m)}:${pad(total % 60)}` : `${m}:${pad(total % 60)}`;
+};
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 const isoDay = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
@@ -354,7 +366,14 @@ const STYLE = `
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
   .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
   .legend span.event::before { display: none; }
-  .legend span.event svg { width: 16px; height: 16px; padding: 2px; border-radius: 50%; background: var(--c); fill: #fff; box-sizing: border-box; }
+  .legend span.event svg, .legend button.event svg { width: 16px; height: 16px; padding: 2px; border-radius: 50%; background: var(--c); fill: #fff; box-sizing: border-box; }
+  .legend button.event { display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 10px; cursor: pointer; }
+  .legend button.event:hover { background: color-mix(in srgb, var(--hb-text) 8%, transparent); }
+  .legend button.event.off { opacity: .45; text-decoration: line-through; }
+  .legend button.event.off svg { background: var(--hb-muted); }
+  .clip { display: flex; align-items: center; gap: 8px; padding: 4px 12px 0; font-size: 12px; color: var(--hb-muted); font-variant-numeric: tabular-nums; }
+  .clip[hidden] { display: none; }
+  .clip input { flex: 1; min-width: 0; margin: 0; accent-color: var(--hb-accent); }
   .hint { font-size: 12px; color: var(--hb-muted); padding: 0 12px 4px; }
 `;
 
@@ -377,6 +396,8 @@ class Timeline {
     this.loading = false;
     this.loadingText = "Loading recordings...";
     this.playhead = null;
+    // While zoomed in, the view follows the playhead until the user pans or zooms by hand.
+    this.followPlayhead = true;
     this.colors = {};
     this.kindName = (k) => k;
     this.eventName = (k) => k;
@@ -392,6 +413,7 @@ class Timeline {
   setDay(dayStart) {
     this.dayStart = dayStart.getTime();
     this.span = Math.min(this.span, DAY);
+    this.followPlayhead = true;
     this.viewStart = this.dayStart;
     if (this.span < DAY) this.center(this.playhead ?? Date.now());
     this.draw();
@@ -407,6 +429,8 @@ class Timeline {
     const index = ZOOMS.indexOf(this.span);
     const next = ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, (index < 0 ? 0 : index) + direction))];
     if (next === this.span) return;
+    // The buttons zoom around the playhead and follow it again; the wheel passes a pointer position.
+    if (at === undefined) this.followPlayhead = true;
     const anchor = at ?? this.playhead ?? this.viewStart + this.span / 2;
     const ratio = (anchor - this.viewStart) / this.span;
     this.span = next;
@@ -433,6 +457,7 @@ class Timeline {
         const dx = x - drag.x;
         if (Math.abs(dx) > 4) drag.moved = true;
         if (drag.moved && this.span < DAY) {
+          this.followPlayhead = false;
           this.viewStart = drag.start - (dx / this.canvas.clientWidth) * this.span;
           this.center(this.viewStart + this.span / 2);
           this.draw();
@@ -458,6 +483,7 @@ class Timeline {
       "wheel",
       (e) => {
         e.preventDefault();
+        this.followPlayhead = false;
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && this.span < DAY) {
           this.viewStart += (e.deltaX / this.canvas.clientWidth) * this.span;
           this.center(this.viewStart + this.span / 2);
@@ -818,6 +844,17 @@ class Player {
     this.host.clearError();
     try {
       const shown = camera.live[level] ? level : camera.live.high ? "high" : "low";
+      // A sound format Home Assistant drops goes straight to the converted picture, before
+      // WebRTC too: a silent WebRTC picture would play for a few seconds and then be replaced.
+      if (needsSoundConversion(camera, shown)) {
+        this.level = shown;
+        this.camera = camera;
+        if (await this._liveSound(token)) {
+          if (token === this.token) this.host.update();
+          return;
+        }
+        if (token !== this.token) return;
+      }
       if (!hlsOnly && (await this._webrtc(camera, level, entity, token))) {
         if (token === this.token) {
           this.level = shown;
@@ -831,13 +868,6 @@ class Player {
       if (token !== this.token) return;
       this.level = shown;
       this.camera = camera;
-      // A sound format Home Assistant's HLS drops goes straight to the converted picture: the
-      // silent one would only flash on screen before it.
-      if (needsSoundConversion(camera, shown) && (await this._liveSound(token))) {
-        if (token === this.token) this.host.update();
-        return;
-      }
-      if (token !== this.token) return;
       const { url } = await this.host.hass.callWS({ type: "camera/stream", entity_id: entity, format: "hls" });
       if (token !== this.token) return;
       await this._attach(url, token);
@@ -1246,6 +1276,7 @@ class Viewer {
           <div class="badges"></div>
           <div class="overlay"></div>
         </div>
+        <div class="clip" hidden><span class="clip-at">0:00</span><input type="range" min="0" max="1" step="0.1" value="0"><span class="clip-length">0:00</span></div>
         <div class="controls">
           <div class="group start">
             <button class="live-button" data-action="live">${ICONS.live}<span></span></button>
@@ -1288,6 +1319,28 @@ class Viewer {
     this.player = new Player(this);
     this.timeline = new Timeline(root.querySelector(".timeline"), (date) => this.seek(date));
     root.querySelector(".controls").addEventListener("click", (e) => this._click(e));
+    // Event kinds switched off in the legend leave the timeline and the previous/next buttons.
+    this.hiddenEvents = new Set();
+    try {
+      for (const kind of JSON.parse(localStorage.getItem(HIDDEN_EVENTS_KEY) || "[]")) this.hiddenEvents.add(kind);
+    } catch (_err) {
+      /* storage unavailable: all kinds shown */
+    }
+    root.querySelector(".legend").addEventListener("click", (e) => {
+      const kind = e.target.closest("[data-kind]")?.dataset.kind;
+      if (kind) this.toggleEvent(kind);
+    });
+    // Seek bar of the recording file playing now: dragging shows the time, letting go seeks.
+    const clipRange = root.querySelector(".clip input");
+    clipRange.addEventListener("input", () => {
+      this._clipDrag = true;
+      root.querySelector(".clip-at").textContent = duration(Number(clipRange.value) * 1000);
+    });
+    clipRange.addEventListener("change", () => {
+      this._clipDrag = false;
+      const clip = this._clip;
+      if (clip) this.seek(new Date(clip.start + Number(clipRange.value) * 1000));
+    });
     root.querySelector(".day-bar").addEventListener("click", (e) => this._click(e));
     root.querySelector(".quality").addEventListener("change", (e) => this.setQuality(e.target.value));
     root.querySelector(".speed").addEventListener("change", (e) => this.setSpeed(Number(e.target.value)));
@@ -1547,8 +1600,34 @@ class Viewer {
     const events = [...new Set(this.data.events.map((e) => e.kind))];
     this.root.querySelector(".legend").innerHTML = [
       ...kinds.map((k) => `<span style="--c:${KIND_COLORS[k] || KIND_COLORS.other}">${this.t.kind(k)}</span>`),
-      ...events.map((k) => `<span class="event" style="--c:${EVENT_COLORS[k] || "var(--hb-accent)"}">${symbolIcon(k)}${this.t.event(k)}</span>`),
+      ...events.map((k) => {
+        const off = this.hiddenEvents.has(k);
+        return `<button type="button" class="event${off ? " off" : ""}" data-kind="${k}" aria-pressed="${!off}" style="--c:${EVENT_COLORS[k] || "var(--hb-accent)"}">${symbolIcon(k)}${this.t.event(k)}</button>`;
+      }),
     ].join("");
+  }
+
+  // Events of the kinds shown: the timeline and previous/next use only these.
+  _shownEvents() {
+    return this.data.events.filter((e) => !this.hiddenEvents.has(e.kind));
+  }
+
+  toggleEvent(kind) {
+    if (this.hiddenEvents.has(kind)) this.hiddenEvents.delete(kind);
+    else this.hiddenEvents.add(kind);
+    try {
+      localStorage.setItem(HIDDEN_EVENTS_KEY, JSON.stringify([...this.hiddenEvents]));
+    } catch (_err) {
+      /* storage unavailable: applies until the page is reloaded */
+    }
+    this.timeline.events = this._shownEvents();
+    this.timeline.draw();
+    this._legend();
+  }
+
+  // The recording file that contains a moment, if any.
+  _recordingAt(time) {
+    return this.data.recordings.find((r) => r.start <= time && time < r.end) || null;
   }
 
   setHass(hass) {
@@ -1659,7 +1738,7 @@ class Viewer {
     }
     this.timeline.loading = this.loading = false;
     this.timeline.recordings = this.data.recordings;
-    this.timeline.events = this.data.events;
+    this.timeline.events = this._shownEvents();
     this.timeline.draw();
     this._legend();
     this._hint();
@@ -1690,6 +1769,10 @@ class Viewer {
   async seek(date) {
     if (!this.camera || !this.camera.sources.length) return;
     if (date.getTime() > Date.now()) return this.goLive();
+    // A chosen moment brings the view back to the playhead.
+    this.timeline.followPlayhead = true;
+    this._eventCursor = null;
+    this._brokeOff = null;
     const wasLive = this.mode === "live";
     this.mode = "playback";
     if (wasLive) {
@@ -1725,20 +1808,54 @@ class Viewer {
     // The old video may end while a seek starts a new session; the seek wins.
     if (this.player.starting != null) return;
     // A session ends early when the device broke off the download: carry on from there.
+    // A new session starts at the key frame before that point, so a file whose end the device
+    // never sends ended at the same spot again and again, jumping back a few seconds each time.
+    // If the last restart got no further, the rest of that file is skipped.
     const position = this.player.position;
-    if (position != null && position < this.player.session.end - 5000) {
+    const last = this._brokeOff;
+    const stuck = last != null && position != null && position < last + 2000;
+    if (position != null && position < this.player.session.end - 5000 && !stuck) {
+      this._brokeOff = position;
       this.player.play(this.camera, this.source, position, this.quality);
+      return;
+    }
+    this._brokeOff = null;
+    if (stuck) {
+      const after = this.data.recordings.find((r) => r.start > position + 1000);
+      if (after) this.player.play(this.camera, this.source, after.start, this.quality);
       return;
     }
     const next = this.data.recordings.find((r) => r.start > this.player.session.end - 1000);
     if (next) this.player.play(this.camera, this.source, next.start, this.quality);
   }
 
+  /*
+   * Previous/next event: an event in another recording file plays that file from its start,
+   * so the moments recorded before the event are seen too. Inside the file playing now, the
+   * jump goes to the event itself.
+   */
+  _jumpTo(ev, position) {
+    const clip = this._recordingAt(ev.start);
+    const current = this._recordingAt(position);
+    // Long files (continuous recording) would start far before the event: those go to the event.
+    if (!clip || clip === current || clip.start >= ev.start || ev.start - clip.start > EVENT_LEAD_MAX) {
+      this.seek(new Date(ev.start));
+      return;
+    }
+    this.seek(new Date(clip.start));
+    this._eventCursor = { time: ev.start, clip };
+  }
+
   _click(e) {
     const action = e.target.closest("[data-action]")?.dataset.action;
     if (!action) return;
     const position = this.player.position ?? Date.now();
-    const events = this.data.events.length ? this.data.events : this.data.recordings;
+    const shown = this._shownEvents();
+    const events = shown.length ? shown : this.data.events.length ? [] : this.data.recordings;
+    // After a jump to the start of an event's recording, the next jump counts from that event,
+    // not from the earlier start of its recording.
+    const cursor = this._eventCursor;
+    const from = cursor && position >= cursor.clip.start && position < cursor.time + 1000 ? cursor.time : position;
     switch (action) {
       case "toggle":
         if (this.video.paused) this.player.resume();
@@ -1757,13 +1874,13 @@ class Viewer {
         this.seek(new Date(position + 10e3));
         break;
       case "prev": {
-        const prev = [...events].reverse().find((ev) => ev.start < position - 2000);
-        if (prev) this.seek(new Date(prev.start));
+        const prev = [...events].reverse().find((ev) => ev.start < from - 2000);
+        if (prev) this._jumpTo(prev, position);
         break;
       }
       case "next": {
-        const next = events.find((ev) => ev.start > position + 1000);
-        if (next) this.seek(new Date(next.start));
+        const next = events.find((ev) => ev.start > from + 1000);
+        if (next) this._jumpTo(next, position);
         break;
       }
       case "live":
@@ -1881,20 +1998,38 @@ class Viewer {
     this._hint();
   }
 
+  // Seek bar of the recording file playing now, with the position and length in that file.
+  _clipBar(position) {
+    const bar = this.root.querySelector(".clip");
+    const clip = this.mode === "playback" && position != null ? this._recordingAt(position) : null;
+    this._clip = clip;
+    bar.hidden = !clip;
+    if (!clip || this._clipDrag) return;
+    const range = bar.querySelector("input");
+    const length = (clip.end - clip.start) / 1000;
+    if (range.max !== String(length)) range.max = String(length);
+    range.value = String(Math.min(length, Math.max(0, (position - clip.start) / 1000)));
+    bar.querySelector(".clip-at").textContent = duration(position - clip.start);
+    bar.querySelector(".clip-length").textContent = duration(clip.end - clip.start);
+  }
+
   _frame() {
     const target = this._target;
+    // Reading the position also sets the player's base, which a pending seek waits for.
+    // Without this read, a seek from a timeline click never finished and the playhead stuck.
+    const position = this.player.position;
     if (target && (!target.done || this.player.base == null || this.video.seeking)) {
       this.timeline.playhead = target.time;
       this.timeline.draw();
       return;
     }
     this._target = null;
-    const position = this.player.position;
+    this._clipBar(position);
     if (position != null && this.camera) {
       if (this.mode === "playback" || isoDay(this.day) === isoDay(new Date())) {
         this.timeline.playhead = position;
-        // Follow the playhead when zoomed in.
-        if (this.timeline.span < DAY) {
+        // Follow the playhead when zoomed in, unless the user has panned or zoomed by hand.
+        if (this.timeline.span < DAY && this.timeline.followPlayhead) {
           const { viewStart, span } = this.timeline;
           if (position < viewStart || position > viewStart + span * 0.9) this.timeline.center(position);
         }

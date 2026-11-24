@@ -131,7 +131,8 @@
           "panel_title": "Panelens titel",
           "panel_header": "Visa namnlisten i panelen",
           "hidden_channels": "Kameror dolda i sidopanelen",
-          "try_encrypted_stream": "Prova liveströmmen även med kryptering på"
+          "try_encrypted_stream": "Prova liveströmmen även med kryptering på",
+          "media_retention_days": "Radera sparade inspelningar efter (dagar, 0 = behåll)"
         },
         "data_description": {
           "event_path": "Händelseströmmen kräver ingen ändring på enheten. Webhooken kräver att enheten skickar till Home Assistant.",
@@ -145,7 +146,8 @@
           "panel_title": "Panelens namn i sidofältet och i dess namnlist. Lämna tomt för 'Hikvision'. Gäller alla enheter och konton.",
           "panel_header": "Stäng av för att ge kamerorna mer plats. På smala skärmar finns listen kvar, den innehåller menyknappen.",
           "hidden_channels": "Kameror som väljs här visas inte i Hikvision-panelen i sidofältet. Inspelningar och entiteter förblir oförändrade; dashboardkortet visar dem fortfarande.",
-          "try_encrypted_stream": "Försök spela upp lokal RTSP-video även om enheten rapporterar att Hik-Connect-strömkryptering är aktiverad."
+          "try_encrypted_stream": "Försök spela upp lokal RTSP-video även om enheten rapporterar att Hik-Connect-strömkryptering är aktiverad.",
+          "media_retention_days": "Inspelningar som sparats med nedladdningsåtgärden raderas efter så här många dagar. 0 behåller dem. Endast filer som integrationen sparat tas bort; kontrollen körs en gång per dygn."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "Ange en port från 1 till 65535.",
       "invalid_hold_seconds": "Ange ett värde från 1 till 300 sekunder.",
-      "invalid_access_log_seconds": "Ange ett värde från 2 till 60 sekunder."
+      "invalid_access_log_seconds": "Ange ett värde från 2 till 60 sekunder.",
+      "invalid_media_retention_days": "Ange ett värde från 0 till 3650 dagar."
     }
   },
   "config_subentries": {

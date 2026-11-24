@@ -131,7 +131,8 @@
           "panel_title": "패널 제목",
           "panel_header": "패널에 제목 표시줄 표시",
           "hidden_channels": "사이드바 패널에서 숨길 카메라",
-          "try_encrypted_stream": "암호화가 활성화된 경우에도 라이브 스트림 시도"
+          "try_encrypted_stream": "암호화가 활성화된 경우에도 라이브 스트림 시도",
+          "media_retention_days": "저장된 녹화를 다음 기간 후 삭제 (일, 0 = 보관)"
         },
         "data_description": {
           "event_path": "이벤트 스트림은 장치 변경이 필요 없습니다. 웹훅은 장치가 Home Assistant로 전송해야 합니다.",
@@ -145,7 +146,8 @@
           "panel_title": "사이드바와 제목 표시줄에 표시되는 패널 이름입니다. 비워 두면 'Hikvision'이 됩니다. 모든 장치와 계정에 적용됩니다.",
           "panel_header": "끄면 카메라 화면이 더 넓어집니다. 좁은 화면에서는 메뉴 버튼이 있어 표시줄이 유지됩니다.",
           "hidden_channels": "여기서 선택한 카메라는 사이드바의 Hikvision 패널에 표시되지 않습니다. 녹화와 엔티티는 그대로이며, 대시보드 카드에는 계속 표시됩니다.",
-          "try_encrypted_stream": "장치에서 Hik-Connect 스트림 암호화가 활성화되었다고 보고하더라도 로컬 RTSP 비디오 재생을 시도합니다."
+          "try_encrypted_stream": "장치에서 Hik-Connect 스트림 암호화가 활성화되었다고 보고하더라도 로컬 RTSP 비디오 재생을 시도합니다.",
+          "media_retention_days": "다운로드 동작으로 저장한 녹화는 이 일수가 지나면 삭제됩니다. 0이면 계속 보관합니다. 통합 구성요소가 저장한 파일만 삭제되며, 확인은 하루에 한 번 실행됩니다."
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "1~65535 사이의 포트를 입력하세요.",
       "invalid_hold_seconds": "1~300초 사이의 값을 입력하세요.",
-      "invalid_access_log_seconds": "2~60초 사이의 값을 입력하세요."
+      "invalid_access_log_seconds": "2~60초 사이의 값을 입력하세요.",
+      "invalid_media_retention_days": "0부터 3650일 사이의 값을 입력하세요."
     }
   },
   "config_subentries": {

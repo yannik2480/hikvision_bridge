@@ -131,7 +131,8 @@
           "panel_title": "パネルのタイトル",
           "panel_header": "パネルにタイトルバーを表示",
           "hidden_channels": "サイドバーのパネルで非表示にするカメラ",
-          "try_encrypted_stream": "暗号化が有効でもライブストリームを試す"
+          "try_encrypted_stream": "暗号化が有効でもライブストリームを試す",
+          "media_retention_days": "保存した録画を削除するまでの日数（0 = 保存し続ける）"
         },
         "data_description": {
           "event_path": "イベントストリームはデバイスの変更が不要です。Webhook ではデバイスから Home Assistant へ送信する必要があります。",
@@ -145,7 +146,8 @@
           "panel_title": "サイドバーとタイトルバーに表示するパネルの名前です。空欄にすると 'Hikvision' になります。すべてのデバイスとアカウントに適用されます。",
           "panel_header": "オフにするとカメラの表示領域が広がります。幅の狭い画面ではメニューボタンがあるためバーは残ります。",
           "hidden_channels": "ここで選んだカメラは、サイドバーの Hikvision パネルに表示されません。録画とエンティティはそのまま残り、ダッシュボードのカードには引き続き表示されます。",
-          "try_encrypted_stream": "デバイスがHik-Connectストリーム暗号化を報告していても、ローカルRTSPビデオの再生を試みます。"
+          "try_encrypted_stream": "デバイスがHik-Connectストリーム暗号化を報告していても、ローカルRTSPビデオの再生を試みます。",
+          "media_retention_days": "ダウンロード操作で保存した録画は、この日数が経過すると削除されます。0 にすると削除しません。統合機能が保存したファイルだけを削除し、確認は 1 日 1 回行われます。"
         }
       },
       "webhook": {
@@ -156,7 +158,8 @@
     "error": {
       "invalid_port": "1～65535 のポートを入力してください。",
       "invalid_hold_seconds": "1～300 秒の値を入力してください。",
-      "invalid_access_log_seconds": "2～60 秒の値を入力してください。"
+      "invalid_access_log_seconds": "2～60 秒の値を入力してください。",
+      "invalid_media_retention_days": "0 から 3650 日の間の値を入力してください。"
     }
   },
   "config_subentries": {
