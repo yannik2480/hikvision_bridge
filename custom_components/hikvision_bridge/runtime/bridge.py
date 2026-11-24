@@ -11,6 +11,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     AUDIT_INTERVAL,
@@ -329,11 +330,10 @@ class DeviceBridge:
 
     async def async_run_audit(self) -> None:
         main_feed = self.feeds.get(MAIN_FEED)
-        skew = (
-            main_feed.clock_offset.total_seconds()
-            if main_feed and main_feed.stats.heartbeats
-            else None
-        )
+        skew = None
+        if main_feed and main_feed.stats.heartbeats:
+            local = dt_util.now().utcoffset() or timedelta(0)
+            skew = audit.clock_skew_of(main_feed.clock_offset, local).total_seconds()
         try:
             report = await audit.run_audit(
                 self.link,

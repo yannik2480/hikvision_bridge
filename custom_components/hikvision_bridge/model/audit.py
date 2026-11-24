@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from datetime import timedelta
 from enum import StrEnum
 
 from ..wire.link import IsapiLink
@@ -47,6 +48,16 @@ class AuditReport:
 
     def of(self, finding: Finding) -> list[AuditItem]:
         return [item for item in self.items if item.finding == finding]
+
+
+def clock_skew_of(offset: timedelta, local_offset: timedelta) -> timedelta:
+    """The device clock's error, from the offset its heartbeats show against UTC.
+
+    Some firmware stamps heartbeats with the local wall time labelled as UTC, so the offset
+    also carries the zone (an hour ahead in winter in Central Europe). ``local_offset`` is
+    the UTC offset of Home Assistant's zone now; the reading closer to zero is the error.
+    """
+    return min(offset, offset - local_offset, key=abs)
 
 
 async def run_audit(
