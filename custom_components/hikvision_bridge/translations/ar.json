@@ -1007,6 +1007,8 @@
         "zoom_in": "تكبير",
         "zoom_out": "تصغير",
         "previous_day": "اليوم السابق",
+        "unread": "غير مقروء",
+        "mark_all_read": "تحديد الكل كمقروء",
         "next_day": "اليوم التالي",
         "source": "المصدر",
         "select_camera": "اختر كاميرا.",
@@ -1015,7 +1017,10 @@
         "pick_day": "اختر يومًا",
         "previous_month": "الشهر السابق",
         "next_month": "الشهر التالي",
-        "recording_days": "أيام بها تسجيلات"
+        "recording_days": "أيام بها تسجيلات",
+        "view_timeline": "الجدول الزمني",
+        "view_clips": "المقاطع",
+        "no_picture": "لا توجد صورة"
       }
     }
   },

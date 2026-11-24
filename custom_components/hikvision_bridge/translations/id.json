@@ -1007,6 +1007,8 @@
         "zoom_in": "Perbesar",
         "zoom_out": "Perkecil",
         "previous_day": "Hari sebelumnya",
+        "unread": "Belum dibaca",
+        "mark_all_read": "Tandai semua sudah dibaca",
         "next_day": "Hari berikutnya",
         "source": "Sumber",
         "select_camera": "Pilih kamera.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Pilih hari",
         "previous_month": "Bulan sebelumnya",
         "next_month": "Bulan berikutnya",
-        "recording_days": "Hari dengan rekaman"
+        "recording_days": "Hari dengan rekaman",
+        "view_timeline": "Linimasa",
+        "view_clips": "Klip",
+        "no_picture": "Tidak ada gambar"
       }
     }
   },

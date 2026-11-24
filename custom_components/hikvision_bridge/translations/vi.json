@@ -1007,6 +1007,8 @@
         "zoom_in": "Phóng to",
         "zoom_out": "Thu nhỏ",
         "previous_day": "Ngày trước",
+        "unread": "Chưa đọc",
+        "mark_all_read": "Đánh dấu tất cả là đã đọc",
         "next_day": "Ngày sau",
         "source": "Nguồn",
         "select_camera": "Hãy chọn một camera.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Chọn ngày",
         "previous_month": "Tháng trước",
         "next_month": "Tháng sau",
-        "recording_days": "Ngày có bản ghi"
+        "recording_days": "Ngày có bản ghi",
+        "view_timeline": "Dòng thời gian",
+        "view_clips": "Đoạn clip",
+        "no_picture": "Không có ảnh"
       }
     }
   },

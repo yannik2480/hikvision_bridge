@@ -1,5 +1,7 @@
 """Discovery, audit findings and switching against simulated devices."""
 
+from datetime import timedelta
+
 import aiohttp
 from aiohttp import web
 from aiohttp.test_utils import TestServer
@@ -253,3 +255,26 @@ def test_stream_audio_comes_from_its_audio_enabled(audio, expected):
         "</StreamingChannel></StreamingChannelList>"
     )
     assert discover._streams(listing)["1"][0].audio is expected
+
+
+@pytest.mark.parametrize(
+    ("offset", "local", "expected"),
+    [
+        # Heartbeat in real UTC and the device correct: no skew in winter or summer.
+        (timedelta(0), timedelta(hours=1), timedelta(0)),
+        (timedelta(0), timedelta(hours=2), timedelta(0)),
+        # Local wall time labelled as UTC (issue #71), CET in winter and CEST in summer.
+        (timedelta(hours=1), timedelta(hours=1), timedelta(0)),
+        (timedelta(hours=2), timedelta(hours=2), timedelta(0)),
+        # Wall time labelled as UTC and 4 minutes slow: the 4 minutes stay.
+        (timedelta(hours=1, seconds=-240), timedelta(hours=1), timedelta(seconds=-240)),
+        # A real skew of 10 minutes stays visible with and without the zone.
+        (timedelta(seconds=600), timedelta(hours=1), timedelta(seconds=600)),
+        (timedelta(hours=1, seconds=600), timedelta(hours=1), timedelta(seconds=600)),
+        # Home Assistant in UTC: the offset is the skew.
+        (timedelta(0), timedelta(0), timedelta(0)),
+        (timedelta(seconds=3599), timedelta(0), timedelta(seconds=3599)),
+    ],
+)
+def test_clock_skew_ignores_the_zone_of_wall_clock_heartbeats(offset, local, expected):
+    assert audit.clock_skew_of(offset, local) == expected

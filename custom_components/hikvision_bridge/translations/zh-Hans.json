@@ -1007,6 +1007,8 @@
         "zoom_in": "放大",
         "zoom_out": "缩小",
         "previous_day": "前一天",
+        "unread": "未读",
+        "mark_all_read": "全部标为已读",
         "next_day": "后一天",
         "source": "来源",
         "select_camera": "请选择摄像机。",
@@ -1015,7 +1017,10 @@
         "pick_day": "选择日期",
         "previous_month": "上个月",
         "next_month": "下个月",
-        "recording_days": "有录像的日期"
+        "recording_days": "有录像的日期",
+        "view_timeline": "时间轴",
+        "view_clips": "片段",
+        "no_picture": "无图片"
       }
     }
   },

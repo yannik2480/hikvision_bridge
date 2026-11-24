@@ -1007,6 +1007,8 @@
         "zoom_in": "Zooma in",
         "zoom_out": "Zooma ut",
         "previous_day": "Föregående dag",
+        "unread": "Olästa",
+        "mark_all_read": "Markera alla som lästa",
         "next_day": "Nästa dag",
         "source": "Källa",
         "select_camera": "Välj en kamera.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Välj en dag",
         "previous_month": "Föregående månad",
         "next_month": "Nästa månad",
-        "recording_days": "Dagar med inspelningar"
+        "recording_days": "Dagar med inspelningar",
+        "view_timeline": "Tidslinje",
+        "view_clips": "Klipp",
+        "no_picture": "Ingen bild"
       }
     }
   },

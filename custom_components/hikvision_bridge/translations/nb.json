@@ -1007,6 +1007,8 @@
         "zoom_in": "Zoom inn",
         "zoom_out": "Zoom ut",
         "previous_day": "Forrige dag",
+        "unread": "Ulest",
+        "mark_all_read": "Merk alle som lest",
         "next_day": "Neste dag",
         "source": "Kilde",
         "select_camera": "Velg et kamera.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Velg en dag",
         "previous_month": "Forrige måned",
         "next_month": "Neste måned",
-        "recording_days": "Dager med opptak"
+        "recording_days": "Dager med opptak",
+        "view_timeline": "Tidslinje",
+        "view_clips": "Klipp",
+        "no_picture": "Ingen bilde"
       }
     }
   },

@@ -33,7 +33,7 @@ from .const import (
 from .model.discover import discover
 from .model.features import recordings
 from .panel import async_register_frontend
-from .runtime import sessions, vod
+from .runtime import event_reads, sessions, vod
 from .runtime.bridge import DeviceBridge, build_link
 from .runtime.hookin import async_register_webhook, async_unregister_webhook
 from .services import async_register_services
@@ -79,6 +79,7 @@ type BridgeConfigEntry = ConfigEntry[DeviceBridge]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    await event_reads.async_load(hass)
     async_register_services(hass)
     async_register_views(hass)
     async_register_commands(hass)

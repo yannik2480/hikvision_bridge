@@ -1007,6 +1007,8 @@
         "zoom_in": "ज़ूम इन",
         "zoom_out": "ज़ूम आउट",
         "previous_day": "पिछला दिन",
+        "unread": "अपठित",
+        "mark_all_read": "सभी को पढ़ा हुआ चिह्नित करें",
         "next_day": "अगला दिन",
         "source": "स्रोत",
         "select_camera": "एक कैमरा चुनें।",
@@ -1015,7 +1017,10 @@
         "pick_day": "दिन चुनें",
         "previous_month": "पिछला महीना",
         "next_month": "अगला महीना",
-        "recording_days": "रिकॉर्डिंग वाले दिन"
+        "recording_days": "रिकॉर्डिंग वाले दिन",
+        "view_timeline": "टाइमलाइन",
+        "view_clips": "क्लिप",
+        "no_picture": "कोई चित्र नहीं"
       }
     }
   },

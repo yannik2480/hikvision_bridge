@@ -1007,6 +1007,8 @@
         "zoom_in": "Mărește",
         "zoom_out": "Micșorează",
         "previous_day": "Ziua anterioară",
+        "unread": "Necitite",
+        "mark_all_read": "Marchează tot ca citit",
         "next_day": "Ziua următoare",
         "source": "Sursă",
         "select_camera": "Alege o cameră.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Alegeți o zi",
         "previous_month": "Luna anterioară",
         "next_month": "Luna următoare",
-        "recording_days": "Zile cu înregistrări"
+        "recording_days": "Zile cu înregistrări",
+        "view_timeline": "Cronologie",
+        "view_clips": "Clipuri",
+        "no_picture": "Fără imagine"
       }
     }
   },

@@ -1007,6 +1007,8 @@
         "zoom_in": "জুম ইন",
         "zoom_out": "জুম আউট",
         "previous_day": "আগের দিন",
+        "unread": "অপঠিত",
+        "mark_all_read": "সব পঠিত হিসেবে চিহ্নিত করুন",
         "next_day": "পরের দিন",
         "source": "উৎস",
         "select_camera": "একটি ক্যামেরা বেছে নিন।",
@@ -1015,7 +1017,10 @@
         "pick_day": "দিন বেছে নিন",
         "previous_month": "আগের মাস",
         "next_month": "পরের মাস",
-        "recording_days": "রেকর্ডিং থাকা দিন"
+        "recording_days": "রেকর্ডিং থাকা দিন",
+        "view_timeline": "টাইমলাইন",
+        "view_clips": "ক্লিপ",
+        "no_picture": "কোনো ছবি নেই"
       }
     }
   },

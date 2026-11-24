@@ -1007,6 +1007,8 @@
         "zoom_in": "Přiblížit",
         "zoom_out": "Oddálit",
         "previous_day": "Předchozí den",
+        "unread": "Nepřečtené",
+        "mark_all_read": "Označit vše jako přečtené",
         "next_day": "Další den",
         "source": "Zdroj",
         "select_camera": "Vyberte kameru.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Vyberte den",
         "previous_month": "Předchozí měsíc",
         "next_month": "Další měsíc",
-        "recording_days": "Dny se záznamy"
+        "recording_days": "Dny se záznamy",
+        "view_timeline": "Časová osa",
+        "view_clips": "Záznamy",
+        "no_picture": "Bez obrázku"
       }
     }
   },

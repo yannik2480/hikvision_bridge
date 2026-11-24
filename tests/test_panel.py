@@ -85,13 +85,17 @@ def test_hls_args(tmp_path: Path) -> None:
     assert compatible[compatible.index("-c:v") + 1] == "libx264"
     assert "hvc1" not in compatible
     piped = sessions.hls_args(sessions.PIPE, sessions.QUALITY_ORIGINAL, "hevc", tmp_path)
-    assert piped[piped.index("-i") - 3 : piped.index("-i") + 2] == [
+    assert piped[piped.index("-i") - 5 : piped.index("-i") + 2] == [
         "mpeg",
+        "-fflags",
+        "+genpts",
         "-analyzeduration",
         "2000000",
         "-i",
         sessions.PIPE,
     ]
+    # RTSP streams carry their time stamps: nothing is made up for them.
+    assert "+genpts" not in original
     assert "hvc1" in piped
     assert "-rtsp_transport" not in piped
     assert piped[piped.index("-hls_segment_filename") + 1] == str(tmp_path / "seg%05d.m4s")

@@ -1007,6 +1007,8 @@
         "zoom_in": "ズームイン",
         "zoom_out": "ズームアウト",
         "previous_day": "前の日",
+        "unread": "未読",
+        "mark_all_read": "すべて既読にする",
         "next_day": "次の日",
         "source": "ソース",
         "select_camera": "カメラを選択してください。",
@@ -1015,7 +1017,10 @@
         "pick_day": "日を選択",
         "previous_month": "前の月",
         "next_month": "次の月",
-        "recording_days": "録画のある日"
+        "recording_days": "録画のある日",
+        "view_timeline": "タイムライン",
+        "view_clips": "クリップ",
+        "no_picture": "画像なし"
       }
     }
   },

@@ -1007,6 +1007,8 @@
         "zoom_in": "Yakınlaştır",
         "zoom_out": "Uzaklaştır",
         "previous_day": "Önceki gün",
+        "unread": "Okunmamış",
+        "mark_all_read": "Tümünü okundu olarak işaretle",
         "next_day": "Sonraki gün",
         "source": "Kaynak",
         "select_camera": "Bir kamera seçin.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Gün seçin",
         "previous_month": "Önceki ay",
         "next_month": "Sonraki ay",
-        "recording_days": "Kayıt olan günler"
+        "recording_days": "Kayıt olan günler",
+        "view_timeline": "Zaman çizelgesi",
+        "view_clips": "Klipler",
+        "no_picture": "Görüntü yok"
       }
     }
   },

@@ -1007,6 +1007,8 @@
         "zoom_in": "بزرگ‌نمایی",
         "zoom_out": "کوچک‌نمایی",
         "previous_day": "روز قبل",
+        "unread": "خوانده‌نشده",
+        "mark_all_read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
         "next_day": "روز بعد",
         "source": "منبع",
         "select_camera": "یک دوربین انتخاب کنید.",
@@ -1015,7 +1017,10 @@
         "pick_day": "انتخاب روز",
         "previous_month": "ماه قبل",
         "next_month": "ماه بعد",
-        "recording_days": "روزهای دارای ضبط"
+        "recording_days": "روزهای دارای ضبط",
+        "view_timeline": "خط زمان",
+        "view_clips": "کلیپ‌ها",
+        "no_picture": "تصویری نیست"
       }
     }
   },

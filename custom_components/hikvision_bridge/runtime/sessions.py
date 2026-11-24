@@ -202,7 +202,9 @@ def hls_args(
     """
     args = ["-hide_banner", "-loglevel", "error"]
     if url == PIPE:
-        args += ["-f", "mpeg"]
+        # Recorder streams leave the time stamps out of some packets; ffmpeg then makes up
+        # the missing ones, else copied video reaches the playlist with gaps and jitter.
+        args += ["-f", "mpeg", "-fflags", "+genpts"]
     else:
         args += ["-rtsp_transport", "tcp", "-timeout", str(RTSP_TIMEOUT)]
         if audio is False:

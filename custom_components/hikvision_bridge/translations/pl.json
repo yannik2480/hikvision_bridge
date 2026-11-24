@@ -1007,6 +1007,8 @@
         "zoom_in": "Powiększ",
         "zoom_out": "Pomniejsz",
         "previous_day": "Poprzedni dzień",
+        "unread": "Nieprzeczytane",
+        "mark_all_read": "Oznacz wszystkie jako przeczytane",
         "next_day": "Następny dzień",
         "source": "Źródło",
         "select_camera": "Wybierz kamerę.",
@@ -1015,7 +1017,10 @@
         "pick_day": "Wybierz dzień",
         "previous_month": "Poprzedni miesiąc",
         "next_month": "Następny miesiąc",
-        "recording_days": "Dni z nagraniami"
+        "recording_days": "Dni z nagraniami",
+        "view_timeline": "Oś czasu",
+        "view_clips": "Klipy",
+        "no_picture": "Brak obrazu"
       }
     }
   },
