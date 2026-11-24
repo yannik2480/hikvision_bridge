@@ -288,6 +288,9 @@ def test_ffmpeg_args() -> None:
     assert "frag_keyframe+empty_moov+default_base_moof" in copy
     assert copy[-1] == "pipe:1"
     assert "hvc1" not in playback.ffmpeg_args("mp4", "h264")
+    # Program streams from the recorder may lack time stamps on some packets.
+    assert copy[copy.index("-fflags") + 1] == "+genpts"
+    assert copy.index("-fflags") < copy.index("-i")
     saved = playback.ffmpeg_args("mp4", "hevc", target="/media/x.mp4", offset=5, duration=10)
     assert "+faststart" in saved
     assert saved[saved.index("-ss") + 1] == "5.000"

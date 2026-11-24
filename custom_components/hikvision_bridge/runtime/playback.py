@@ -174,7 +174,7 @@ def ffmpeg_args(
     duration: float | None = None,
 ) -> list[str]:
     """Arguments converting a program stream on stdin to ``fmt`` (not for the original)."""
-    args = ["-hide_banner", "-loglevel", "error", "-f", "mpeg", "-i", "pipe:0"]
+    args = ["-hide_banner", "-loglevel", "error", "-f", "mpeg", "-fflags", "+genpts", "-i", "pipe:0"]
     if offset:
         args += ["-ss", f"{offset:.3f}"]
     if duration:
