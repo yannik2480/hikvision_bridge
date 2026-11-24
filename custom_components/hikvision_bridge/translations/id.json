@@ -1012,7 +1012,11 @@
         "pick_day": "Pilih hari",
         "previous_month": "Bulan sebelumnya",
         "next_month": "Bulan berikutnya",
-        "recording_days": "Hari dengan rekaman"
+        "recording_days": "Hari dengan rekaman",
+        "streams": "Stream",
+        "stream_camera": "Kamera",
+        "stream_name": "Nama",
+        "start_muted": "Mulai tanpa suara"
       }
     }
   },

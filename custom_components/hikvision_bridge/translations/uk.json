@@ -1012,7 +1012,11 @@
         "pick_day": "Вибрати день",
         "previous_month": "Попередній місяць",
         "next_month": "Наступний місяць",
-        "recording_days": "Дні із записами"
+        "recording_days": "Дні із записами",
+        "streams": "Потоки",
+        "stream_camera": "Камера",
+        "stream_name": "Назва",
+        "start_muted": "Запускати без звуку"
       }
     }
   },

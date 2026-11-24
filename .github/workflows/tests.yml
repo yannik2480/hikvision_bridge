@@ -21,6 +21,16 @@ jobs:
       - run: ruff check custom_components tests scripts
       - run: ruff format --check custom_components tests scripts
 
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          # The cards run in the browsers; Node only runs the tests of the live card
+          node-version: "24"
+      - run: node --test "tests/frontend/*.test.mjs"
+
   pytest:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}

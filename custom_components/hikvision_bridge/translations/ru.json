@@ -1012,7 +1012,11 @@
         "pick_day": "Выбрать день",
         "previous_month": "Предыдущий месяц",
         "next_month": "Следующий месяц",
-        "recording_days": "Дни с записями"
+        "recording_days": "Дни с записями",
+        "streams": "Потоки",
+        "stream_camera": "Камера",
+        "stream_name": "Название",
+        "start_muted": "Запускать без звука"
       }
     }
   },

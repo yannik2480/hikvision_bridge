@@ -1,4 +1,4 @@
-"""Recordings panel in the sidebar and the dashboard card, served from this folder."""
+"""Recordings panel in the sidebar and the dashboard cards, served from this folder."""
 
 from __future__ import annotations
 
@@ -21,7 +21,9 @@ from .runtime import sessions
 
 URL_BASE = "/hikvision_bridge_static"
 PANEL_PATH = "hikvision-bridge"
+# The panel and the recordings card; the live card. Both import player.js from this folder.
 MODULE = "hikvision-bridge.js"
+LIVE_CARD_MODULE = "hikvision-bridge-live-card.js"
 FOLDER = Path(__file__).parent / "frontend"
 # The panel is one for all entries, so its settings are kept apart from any entry.
 STORE_KEY = f"{DOMAIN}.panel"
@@ -44,7 +46,15 @@ def _clean(key: str, value: Any) -> Any:
 
 
 def _fingerprint() -> str:
-    return hashlib.sha256((FOLDER / MODULE).read_bytes()).hexdigest()[:12]
+    """A hash of every file of the frontend, the version in the path they are served under.
+
+    In the path rather than a query, the modules they import (player.js) change with them.
+    """
+    digest = hashlib.sha256()
+    for file in sorted(FOLDER.iterdir()):
+        digest.update(file.name.encode())
+        digest.update(file.read_bytes())
+    return digest.hexdigest()[:12]
 
 
 class _PanelState:
@@ -115,10 +125,12 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     from homeassistant.components import frontend  # noqa: PLC0415
     from homeassistant.components.http import StaticPathConfig  # noqa: PLC0415
 
+    # The fingerprint makes browsers load the changed files after an update.
+    base = f"{URL_BASE}/{await hass.async_add_executor_job(_fingerprint)}"
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(URL_BASE, str(FOLDER), cache_headers=False)]
+        [StaticPathConfig(base, str(FOLDER), cache_headers=False)]
     )
-    # The fingerprint makes browsers load a changed file after an update.
-    state.url = f"{URL_BASE}/{MODULE}?v={await hass.async_add_executor_job(_fingerprint)}"
+    state.url = f"{base}/{MODULE}"
     frontend.add_extra_js_url(hass, state.url)
+    frontend.add_extra_js_url(hass, f"{base}/{LIVE_CARD_MODULE}")
     await _async_apply(hass)

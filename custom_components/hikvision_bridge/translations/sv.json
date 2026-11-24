@@ -1012,7 +1012,11 @@
         "pick_day": "Välj en dag",
         "previous_month": "Föregående månad",
         "next_month": "Nästa månad",
-        "recording_days": "Dagar med inspelningar"
+        "recording_days": "Dagar med inspelningar",
+        "streams": "Strömmar",
+        "stream_camera": "Kamera",
+        "stream_name": "Namn",
+        "start_muted": "Starta utan ljud"
       }
     }
   },

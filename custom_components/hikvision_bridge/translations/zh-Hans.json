@@ -1012,7 +1012,11 @@
         "pick_day": "选择日期",
         "previous_month": "上个月",
         "next_month": "下个月",
-        "recording_days": "有录像的日期"
+        "recording_days": "有录像的日期",
+        "streams": "视频流",
+        "stream_camera": "摄像机",
+        "stream_name": "名称",
+        "start_muted": "静音启动"
       }
     }
   },

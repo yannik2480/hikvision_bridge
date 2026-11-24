@@ -1012,7 +1012,11 @@
         "pick_day": "দিন বেছে নিন",
         "previous_month": "আগের মাস",
         "next_month": "পরের মাস",
-        "recording_days": "রেকর্ডিং থাকা দিন"
+        "recording_days": "রেকর্ডিং থাকা দিন",
+        "streams": "স্ট্রিম",
+        "stream_camera": "ক্যামেরা",
+        "stream_name": "নাম",
+        "start_muted": "শব্দ ছাড়া শুরু করুন"
       }
     }
   },

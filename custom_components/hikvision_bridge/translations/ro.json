@@ -1012,7 +1012,11 @@
         "pick_day": "Alegeți o zi",
         "previous_month": "Luna anterioară",
         "next_month": "Luna următoare",
-        "recording_days": "Zile cu înregistrări"
+        "recording_days": "Zile cu înregistrări",
+        "streams": "Fluxuri",
+        "stream_camera": "Cameră",
+        "stream_name": "Nume",
+        "start_muted": "Pornește fără sunet"
       }
     }
   },

@@ -1012,7 +1012,11 @@
         "pick_day": "날짜 선택",
         "previous_month": "이전 달",
         "next_month": "다음 달",
-        "recording_days": "녹화가 있는 날"
+        "recording_days": "녹화가 있는 날",
+        "streams": "스트림",
+        "stream_camera": "카메라",
+        "stream_name": "이름",
+        "start_muted": "소리 없이 시작"
       }
     }
   },

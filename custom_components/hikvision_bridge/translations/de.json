@@ -1012,7 +1012,11 @@
         "pick_day": "Tag auswählen",
         "previous_month": "Vorheriger Monat",
         "next_month": "Nächster Monat",
-        "recording_days": "Tage mit Aufnahmen"
+        "recording_days": "Tage mit Aufnahmen",
+        "streams": "Streams",
+        "stream_camera": "Kamera",
+        "stream_name": "Name",
+        "start_muted": "Ohne Ton starten"
       }
     }
   },

@@ -1012,7 +1012,11 @@
         "pick_day": "Επιλογή ημέρας",
         "previous_month": "Προηγούμενος μήνας",
         "next_month": "Επόμενος μήνας",
-        "recording_days": "Ημέρες με εγγραφές"
+        "recording_days": "Ημέρες με εγγραφές",
+        "streams": "Ροές",
+        "stream_camera": "Κάμερα",
+        "stream_name": "Όνομα",
+        "start_muted": "Έναρξη χωρίς ήχο"
       }
     }
   },

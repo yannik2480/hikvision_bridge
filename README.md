@@ -228,6 +228,27 @@ instant; it stays about a minute ahead of the player. Devices that do not offer 
 over RTSP instead (real time, no decryption). A second viewer of the same camera's recordings replaces
 the first.
 
+### Live card
+
+For a dashboard that only shows the live picture, such as a door station on a wall tablet, the live
+card plays the picture with its sound and has a button for each of its streams. It is in the card
+picker as **Hikvision live**, with a visual editor that lists the streams in the order of their
+buttons; the first one plays when the card shows.
+
+```yaml
+type: custom:hikvision-bridge-live-card
+streams:
+  - entity: camera.front_door_main_stream   # a camera entity of the integration
+    name: Door                              # optional, the name of the entity without it
+  - entity: camera.front_door_sub_stream
+muted: false   # start with sound; browsers may still wait for a click on the page
+```
+
+A card with a single stream can name it with `entity: camera.front_door_main_stream` instead of
+`streams`. The card plays the streams as the panel does: over WebRTC when Home Assistant offers it for
+the camera, which keeps the device's G.711 sound, otherwise over HLS, with the sound converted for
+the streams Home Assistant would play silent. It stops the stream while the page is hidden.
+
 ## Installation
 
 ### HACS (recommended)
@@ -570,6 +591,12 @@ sh scripts/test.sh
 ```
 
 Tests use simulated devices; no test talks to real hardware.
+
+The live card has tests of its own, run with Node.js:
+
+```sh
+node --test "tests/frontend/*.test.mjs"
+```
 
 ## Languages
 

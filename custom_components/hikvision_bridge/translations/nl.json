@@ -1012,7 +1012,11 @@
         "pick_day": "Kies een dag",
         "previous_month": "Vorige maand",
         "next_month": "Volgende maand",
-        "recording_days": "Dagen met opnamen"
+        "recording_days": "Dagen met opnamen",
+        "streams": "Streams",
+        "stream_camera": "Camera",
+        "stream_name": "Naam",
+        "start_muted": "Starten zonder geluid"
       }
     }
   },

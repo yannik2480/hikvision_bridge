@@ -6,6 +6,7 @@ import asyncio
 from datetime import timedelta
 from pathlib import Path
 import stat
+from unittest.mock import AsyncMock, Mock
 
 from aiohttp import web
 from homeassistant.const import Platform
@@ -16,6 +17,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 import pytest
 
+from custom_components.hikvision_bridge import panel
 from custom_components.hikvision_bridge.const import DOMAIN, OPT_HIDDEN_CHANNELS
 from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from custom_components.hikvision_bridge.model.features import recordings
@@ -51,6 +53,38 @@ def _script(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, body: str) -> None:
 
 def _found() -> list[recordings.Recording]:
     return recordings.parse_results(parse(result(MODEL_CLIPS, "OK")), "101")[0]
+
+
+async def test_frontend_is_served_under_its_fingerprint(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from homeassistant.components import frontend  # noqa: PLC0415
+
+    served = []
+    added = []
+    hass.config.components.add("frontend")
+    hass.http = Mock(async_register_static_paths=AsyncMock(side_effect=served.extend))
+    monkeypatch.setattr(frontend, "add_extra_js_url", lambda _hass, url: added.append(url))
+    await panel.async_register_frontend(hass)
+
+    # The version is in the path, so the modules the files import (player.js) follow it.
+    fingerprint = panel._fingerprint()
+    base = f"{panel.URL_BASE}/{fingerprint}"
+    assert [(s.url_path, s.path) for s in served] == [(base, str(panel.FOLDER))]
+    assert added == [f"{base}/hikvision-bridge.js", f"{base}/hikvision-bridge-live-card.js"]
+    assert panel._state(hass).url == added[0]
+    assert all((panel.FOLDER / url.rsplit("/", 1)[1]).is_file() for url in added)
+    assert (panel.FOLDER / "player.js").is_file()
+
+
+def test_fingerprint_changes_with_any_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(panel, "FOLDER", tmp_path)
+    (tmp_path / "hikvision-bridge.js").write_text("panel")
+    (tmp_path / "player.js").write_text("player")
+    before = panel._fingerprint()
+    assert panel._fingerprint() == before
+    (tmp_path / "player.js").write_text("player, changed")
+    assert panel._fingerprint() != before
 
 
 def test_stretches_join_adjacent_recordings() -> None:

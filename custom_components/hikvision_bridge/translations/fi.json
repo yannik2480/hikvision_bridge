@@ -1012,7 +1012,11 @@
         "pick_day": "Valitse päivä",
         "previous_month": "Edellinen kuukausi",
         "next_month": "Seuraava kuukausi",
-        "recording_days": "Päivät, joilla on tallenteita"
+        "recording_days": "Päivät, joilla on tallenteita",
+        "streams": "Striimit",
+        "stream_camera": "Kamera",
+        "stream_name": "Nimi",
+        "start_muted": "Aloita ilman ääntä"
       }
     }
   },

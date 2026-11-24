@@ -1012,7 +1012,11 @@
         "pick_day": "Nap kiválasztása",
         "previous_month": "Előző hónap",
         "next_month": "Következő hónap",
-        "recording_days": "Napok felvételekkel"
+        "recording_days": "Napok felvételekkel",
+        "streams": "Streamek",
+        "stream_camera": "Kamera",
+        "stream_name": "Név",
+        "start_muted": "Indítás hang nélkül"
       }
     }
   },

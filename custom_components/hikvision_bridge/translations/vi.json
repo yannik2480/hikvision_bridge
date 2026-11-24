@@ -1012,7 +1012,11 @@
         "pick_day": "Chọn ngày",
         "previous_month": "Tháng trước",
         "next_month": "Tháng sau",
-        "recording_days": "Ngày có bản ghi"
+        "recording_days": "Ngày có bản ghi",
+        "streams": "Luồng",
+        "stream_camera": "Camera",
+        "stream_name": "Tên",
+        "start_muted": "Bắt đầu không có âm thanh"
       }
     }
   },
