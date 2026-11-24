@@ -26,9 +26,11 @@ import { Microphone, unavailable } from "./talk.js";
  * @property {string} [type]
  * @property {Stream[]} [streams] The streams, in the order of their buttons; the first plays.
  * @property {string} [entity] A camera entity: the card with this one stream.
- * @property {boolean} [muted] Starts without sound; true without the option.
+ * @property {boolean} [sound] Starts with sound; true without the option (browsers may still
+ *   wait for a touch on the page).
  * @property {boolean} [microphone] Starts talking through the device as the picture shows; false
  *   without the option.
+ * @property {boolean} [live_badge] Shows "Live" over the picture; true without the option.
  *
  * @typedef {object} BridgeCamera A camera as `hikvision_bridge/cameras` describes it.
  * @property {string} entry_id
@@ -67,8 +69,9 @@ export const TEXT = {
   streams: "Streams",
   stream_camera: "Camera",
   stream_name: "Name",
-  start_muted: "Start without sound",
-  start_talking: "Start with the microphone on",
+  start_sound: "Start with sound",
+  start_microphone: "Start with the microphone",
+  live_badge: "Show the Live badge",
   talk_start: "Talk",
   talk_stop: "Stop talking",
   talk_https: "The microphone needs a secure connection (HTTPS).",
@@ -86,7 +89,7 @@ export const TALK_ENDS = { replaced: "talk_replaced", device: "talk_ended", unlo
 const NOTICE_SECONDS = 5;
 
 /** The options of the card that are what it does without them. */
-export const DEFAULTS = { muted: true, microphone: false };
+export const DEFAULTS = { sound: true, microphone: false, live_badge: true };
 
 /**
  * Return the streams of a card: its list, or its one entity.
@@ -122,7 +125,7 @@ export function checkConfig(config) {
       throw new Error(`The name of ${stream.entity} must be a text`);
     }
   }
-  for (const option of /** @type {const} */ (["muted", "microphone"])) {
+  for (const option of /** @type {const} */ (["sound", "microphone", "live_badge"])) {
     if (config[option] !== undefined && typeof config[option] !== "boolean") {
       throw new Error(`${option} must be true or false`);
     }
@@ -187,8 +190,9 @@ export function editorSchema(text) {
         },
       },
     },
-    { name: "muted", label: text("start_muted"), selector: { boolean: {} } },
-    { name: "microphone", label: text("start_talking"), selector: { boolean: {} } },
+    { name: "sound", label: text("start_sound"), selector: { boolean: {} } },
+    { name: "microphone", label: text("start_microphone"), selector: { boolean: {} } },
+    { name: "live_badge", label: text("live_badge"), selector: { boolean: {} } },
   ];
 }
 
@@ -482,7 +486,8 @@ if (globalThis.customElements && globalThis.HTMLElement) {
       checkConfig(config);
       const changed = JSON.stringify(streamsOf(config)) !== JSON.stringify(streamsOf(this.#config));
       this.#config = config;
-      this.sound = !(config.muted ?? DEFAULTS.muted);
+      this.sound = config.sound ?? DEFAULTS.sound;
+      this.update();
       if (!changed || !this.player) return;
       this.#current = 0;
       this.#render();
@@ -774,7 +779,7 @@ if (globalThis.customElements && globalThis.HTMLElement) {
 
     update() {
       const badge = this.shadowRoot?.querySelector(".badge");
-      badge?.toggleAttribute("hidden", !this.player?.level);
+      badge?.toggleAttribute("hidden", !this.player?.level || !(this.#config.live_badge ?? DEFAULTS.live_badge));
       this.#labels();
     }
 

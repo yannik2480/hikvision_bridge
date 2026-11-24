@@ -241,8 +241,9 @@ streams:
   - entity: camera.front_door_main_stream   # a camera entity of the integration
     name: Door                              # optional, the name of the entity without it
   - entity: camera.front_door_sub_stream
-muted: false        # start with sound; browsers may still wait for a click on the page
-microphone: false   # true: start with the microphone on (devices with a speaker)
+sound: true         # start with sound; browsers may still wait for a click on the page
+microphone: false   # start with the microphone on (devices with a speaker)
+live_badge: true    # the red Live badge over the picture
 ```
 
 A card with a single stream can name it with `entity: camera.front_door_main_stream` instead of

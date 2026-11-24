@@ -25,7 +25,7 @@ const SUB = "camera.front_door_sub_stream";
 /** The texts of the integration a frontend in German has. */
 const GERMAN = {
   "component.hikvision_bridge.selector.ui.options.streams": "Streams",
-  "component.hikvision_bridge.selector.ui.options.start_muted": "Ohne Ton starten",
+  "component.hikvision_bridge.selector.ui.options.start_sound": "Mit Ton starten",
   "component.hikvision_bridge.entity.camera.main_stream.name": "Hauptstream",
 };
 
@@ -39,7 +39,7 @@ describe("the configuration", () => {
   });
 
   it("accepts streams of camera entities, or one entity", () => {
-    checkConfig({ streams: [{ entity: MAIN, name: "Door" }, { entity: SUB }], muted: false });
+    checkConfig({ streams: [{ entity: MAIN, name: "Door" }, { entity: SUB }], sound: false, live_badge: false });
     checkConfig({ entity: MAIN, microphone: true });
   });
 
@@ -53,7 +53,8 @@ describe("the configuration", () => {
       [{ streams: [{ url: "doorbell", media: "video,audio" }] }, /entity of a camera/],
       [{ entity: "sensor.door" }, /entity of a camera/],
       [{ streams: [{ entity: MAIN, name: 1 }] }, /name of camera.front_door_main_stream/],
-      [{ entity: MAIN, muted: "no" }, /muted must be true or false/],
+      [{ entity: MAIN, sound: "no" }, /sound must be true or false/],
+      [{ entity: MAIN, live_badge: 1 }, /live_badge must be true or false/],
       [{ entity: MAIN, microphone: "on" }, /microphone must be true or false/],
     ];
     for (const [config, message] of wrong) {
@@ -66,8 +67,9 @@ describe("the visual editor", () => {
   it("edits a card of one entity as a list of one stream", () => {
     assert.deepEqual(editorData({ type: `custom:${CARD}`, entity: MAIN }), {
       type: `custom:${CARD}`,
-      muted: true,
+      sound: true,
       microphone: false,
+      live_badge: true,
       streams: [{ entity: MAIN }],
     });
   });
@@ -76,8 +78,9 @@ describe("the visual editor", () => {
     const value = {
       type: `custom:${CARD}`,
       entity: MAIN,
-      muted: true,
+      sound: true,
       microphone: false,
+      live_badge: true,
       streams: [{ entity: MAIN, name: "  Door  " }, { entity: SUB, name: " " }, { name: "half added" }],
     };
 
@@ -85,12 +88,13 @@ describe("the visual editor", () => {
       type: `custom:${CARD}`,
       streams: [{ entity: MAIN, name: "Door" }, { entity: SUB }],
     });
-    assert.equal(cleanConfig({ streams: [], muted: false }).muted, false);
+    assert.equal(cleanConfig({ streams: [], sound: false }).sound, false);
+    assert.equal(cleanConfig({ streams: [], live_badge: false }).live_badge, false);
     assert.equal(cleanConfig({ streams: [], microphone: true }).microphone, true);
   });
 
   it("lists the streams with a camera of the integration and a name", () => {
-    const [streams, muted, microphone] = editorSchema(translator(GERMAN));
+    const [streams, sound, microphone, badge] = editorSchema(translator(GERMAN));
 
     assert.equal(streams.name, "streams");
     assert.equal(streams.selector.object.multiple, true);
@@ -98,9 +102,10 @@ describe("the visual editor", () => {
       entity: { domain: "camera", integration: "hikvision_bridge" },
     });
     assert.equal(streams.selector.object.fields.entity.label, TEXT.stream_camera);
-    assert.equal(muted.label, "Ohne Ton starten");
+    assert.equal(sound.label, "Mit Ton starten");
     assert.equal(microphone.name, "microphone");
-    assert.equal(microphone.label, TEXT.start_talking);
+    assert.equal(microphone.label, TEXT.start_microphone);
+    assert.equal(badge.name, "live_badge");
   });
 });
 
@@ -152,7 +157,7 @@ describe("the texts", () => {
   it("are translated, else in English, else the key", () => {
     const text = translator(GERMAN);
 
-    assert.equal(text("start_muted"), "Ohne Ton starten");
+    assert.equal(text("start_sound"), "Mit Ton starten");
     assert.equal(text("sound_on"), "Sound on");
     assert.equal(text("unknown_key"), "unknown_key");
   });
