@@ -59,6 +59,8 @@ const TEXT = {
   zoom_out: "Zoom out",
   previous_day: "Previous day",
   next_day: "Next day",
+  unread: "Unread",
+  mark_all_read: "Mark all read",
   source: "Source",
   recorder: "Recorder",
   card: "Memory card",
@@ -571,6 +573,20 @@ class Timeline {
       ctx.shadowBlur = 2;
       ctx.fill(new Path2D(eventSymbol(ev.kind)), "evenodd");
       ctx.restore();
+    }
+
+    // An event not read yet carries a dot in the corner of its part.
+    for (const ev of events) {
+      if (ev.read) continue;
+      const cx = Math.max(4, Math.min(width - 4, x(ev.start) + 4));
+      ctx.beginPath();
+      ctx.arc(cx, recY + 4, 4, 0, Math.PI * 2);
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+      ctx.lineWidth = 1;
     }
 
     // Now and playhead.
@@ -1284,6 +1300,8 @@ class Viewer {
           <button class="icon-button" data-action="day-next">${ICONS.right}</button>
           <button class="today" data-action="today"></button>
           <span class="spacer"></span>
+          <span class="unread" hidden></span>
+          <button class="mark-read" data-action="mark-all-read" hidden></button>
           <button class="icon-button" data-action="zoom-out">${ICONS.minus}</button>
           <button class="icon-button" data-action="zoom-in">${ICONS.plus}</button>
         </div>
@@ -1529,6 +1547,7 @@ class Viewer {
     this._qualityOptions();
     this._speedOptions();
     this._legend();
+    this._unreadBar();
   }
 
   _speedOptions() {
@@ -1649,6 +1668,7 @@ class Viewer {
       this.timeline.loading = this.loading = true;
       this.timeline.draw();
       this._hint();
+      this._unreadBar();
     }
     try {
       const result = await this.hass.callWS({
@@ -1660,7 +1680,8 @@ class Viewer {
         end: new Date(day.getTime() + DAY).toISOString(),
       });
       if (key !== this._timelineKey) return;
-      const parse = (list) => list.map((i) => ({ ...i, start: new Date(i.start).getTime(), end: new Date(i.end).getTime() }));
+      // iso keeps the server's own start: the read state of an event is keyed by it.
+      const parse = (list) => list.map((i) => ({ ...i, iso: i.start, start: new Date(i.start).getTime(), end: new Date(i.end).getTime() }));
       this.data = { recordings: parse(result.recordings), events: parse(result.events) };
     } catch (_err) {
       if (key !== this._timelineKey) return;
@@ -1671,7 +1692,62 @@ class Viewer {
     this.timeline.events = this.data.events;
     this.timeline.draw();
     this._legend();
+    this._unreadBar();
     this._hint();
+  }
+
+  // Events of the day not read yet, with the button that marks them all read.
+  _unreadBar() {
+    const count = this.data.events.filter((ev) => !ev.read).length;
+    const badge = this.root.querySelector(".unread");
+    const button = this.root.querySelector(".mark-read");
+    badge.textContent = `${this.t.ui("unread")} ${count}`;
+    button.textContent = this.t.ui("mark_all_read");
+    badge.hidden = button.hidden = count === 0;
+  }
+
+  // Opening a clip reads the events it shows: the ones around the moment played from.
+  _opened(time) {
+    const opened = this.data.events.filter((ev) => !ev.read && ev.start <= time && time <= ev.end);
+    if (opened.length) this._markRead(opened);
+  }
+
+  _markRead(events) {
+    const camera = this.camera;
+    if (!camera || !events.length) return;
+    for (const ev of events) ev.read = true;
+    this.timeline.draw();
+    this._unreadBar();
+    this.hass
+      .callWS({
+        type: `${DOMAIN}/events/read`,
+        entry_id: camera.entry_id,
+        channel_id: camera.channel_id,
+        events: events.map((ev) => ({ entity_id: ev.entity_id, start: ev.iso })),
+      })
+      .catch(() => {});
+  }
+
+  async _markAll() {
+    const camera = this.camera;
+    const day = this.day;
+    if (!camera) return;
+    try {
+      await this.hass.callWS({
+        type: `${DOMAIN}/events/read_all`,
+        entry_id: camera.entry_id,
+        channel_id: camera.channel_id,
+        start: day.toISOString(),
+        end: new Date(day.getTime() + DAY).toISOString(),
+      });
+    } catch (_err) {
+      return;
+    }
+    // Another camera or day may be on screen by now: only what is still shown changes.
+    if (this.camera !== camera || this.day !== day) return;
+    for (const ev of this.data.events) ev.read = true;
+    this.timeline.draw();
+    this._unreadBar();
   }
 
   _hint() {
@@ -1719,6 +1795,7 @@ class Viewer {
     } finally {
       target.done = true;
     }
+    this._opened(target.time);
     this.update();
   }
 
@@ -1808,6 +1885,9 @@ class Viewer {
         break;
       case "calendar":
         this.calendar.toggle();
+        break;
+      case "mark-all-read":
+        this._markAll();
         break;
       case "zoom-in":
         this.timeline.zoom(1);
@@ -2003,6 +2083,8 @@ class HikvisionBridgePanel extends HTMLElement {
         .day-bar { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
         .day-bar .spacer { flex: 1; }
         .today { background: none; border: 1px solid var(--hb-line); border-radius: 16px; padding: 4px 12px; cursor: pointer; margin-left: 4px; min-height: 32px; }
+        .unread { font-size: 13px; color: var(--hb-muted); white-space: nowrap; font-variant-numeric: tabular-nums; margin-right: 4px; }
+        .mark-read { background: none; border: 1px solid var(--hb-line); border-radius: 16px; padding: 4px 12px; cursor: pointer; min-height: 32px; color: inherit; font: inherit; font-size: 13px; }
         .timeline { height: 84px; background: var(--hb-surface); padding: 0 12px; }
         .legend, .hint { background: var(--hb-surface); }
         .empty { padding: 24px; color: var(--hb-muted); }
@@ -2225,6 +2307,8 @@ class HikvisionBridgeCard extends HTMLElement {
         .day-bar { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
         .day-bar .spacer { flex: 1; }
         .today { background: none; border: 1px solid var(--hb-line); border-radius: 16px; padding: 2px 10px; cursor: pointer; }
+        .unread { font-size: 12px; color: var(--hb-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .mark-read { background: none; border: 1px solid var(--hb-line); border-radius: 16px; padding: 2px 10px; cursor: pointer; color: inherit; font: inherit; font-size: 12px; }
         .timeline { height: 64px; padding: 0 8px; }
       </style>
       <ha-card><div class="card"></div></ha-card>`;

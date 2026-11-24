@@ -1004,6 +1004,8 @@
         "zoom_in": "Aproximar",
         "zoom_out": "Afastar",
         "previous_day": "Dia anterior",
+        "unread": "Não lidos",
+        "mark_all_read": "Marcar todos como lidos",
         "next_day": "Dia seguinte",
         "source": "Origem",
         "select_camera": "Escolha uma câmara.",

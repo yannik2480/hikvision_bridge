@@ -1004,6 +1004,8 @@
         "zoom_in": "ज़ूम इन",
         "zoom_out": "ज़ूम आउट",
         "previous_day": "पिछला दिन",
+        "unread": "अपठित",
+        "mark_all_read": "सभी को पढ़ा हुआ चिह्नित करें",
         "next_day": "अगला दिन",
         "source": "स्रोत",
         "select_camera": "एक कैमरा चुनें।",

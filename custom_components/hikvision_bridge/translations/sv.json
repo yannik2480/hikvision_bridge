@@ -1004,6 +1004,8 @@
         "zoom_in": "Zooma in",
         "zoom_out": "Zooma ut",
         "previous_day": "Föregående dag",
+        "unread": "Olästa",
+        "mark_all_read": "Markera alla som lästa",
         "next_day": "Nästa dag",
         "source": "Källa",
         "select_camera": "Välj en kamera.",

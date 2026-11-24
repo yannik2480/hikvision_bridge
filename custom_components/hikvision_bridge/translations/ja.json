@@ -1004,6 +1004,8 @@
         "zoom_in": "ズームイン",
         "zoom_out": "ズームアウト",
         "previous_day": "前の日",
+        "unread": "未読",
+        "mark_all_read": "すべて既読にする",
         "next_day": "次の日",
         "source": "ソース",
         "select_camera": "カメラを選択してください。",

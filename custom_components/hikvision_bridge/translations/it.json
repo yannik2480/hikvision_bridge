@@ -1004,6 +1004,8 @@
         "zoom_in": "Ingrandisci",
         "zoom_out": "Riduci",
         "previous_day": "Giorno precedente",
+        "unread": "Non letti",
+        "mark_all_read": "Segna tutti come letti",
         "next_day": "Giorno successivo",
         "source": "Sorgente",
         "select_camera": "Scegli una telecamera.",

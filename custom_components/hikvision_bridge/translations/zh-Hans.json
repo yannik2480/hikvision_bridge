@@ -1004,6 +1004,8 @@
         "zoom_in": "放大",
         "zoom_out": "缩小",
         "previous_day": "前一天",
+        "unread": "未读",
+        "mark_all_read": "全部标为已读",
         "next_day": "后一天",
         "source": "来源",
         "select_camera": "请选择摄像机。",
