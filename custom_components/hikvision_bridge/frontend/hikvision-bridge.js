@@ -967,7 +967,7 @@ class Player {
 
   // ---- recordings
 
-  async play(camera, source, time, quality) {
+  async play(camera, source, time, quality, resumeAt = null) {
     this.mode = "playback";
     this.quality = quality;
     this.camera = camera;
@@ -975,10 +975,10 @@ class Player {
     let level = quality === "auto" ? "original" : quality;
     if (quality === "auto" && camera.codec && camera.codec.includes("265") && !this.canHevc) level = "compatible";
     this._applySpeed();
-    await this._play(time, level);
+    await this._play(time, level, resumeAt);
   }
 
-  async _play(time, level) {
+  async _play(time, level, resumeAt = null) {
     const token = ++this.token;
     this.host.busy(true);
     this.host.clearError();
@@ -1005,6 +1005,15 @@ class Player {
       // Paused players stop asking for the playlist; keep the session alive meanwhile.
       this._keepAlive = setInterval(() => fetch(this.session ? this.session.url : "", { cache: "no-store" }).catch(() => {}), 20e3);
       await this._attach(session.url, token);
+      // A session starts at the key frame before the wanted time: play on from that time,
+      // not from the key frame, so the part before it is not shown a second time.
+      if (resumeAt != null && token === this.token && this.session.start < resumeAt) {
+        try {
+          this.video.currentTime = (resumeAt - this.session.start) / 1000;
+        } catch (_err) {
+          /* the video cannot seek yet: it plays from the key frame */
+        }
+      }
       this.host.update();
     } catch (err) {
       if (token !== this.token) return;
@@ -1690,6 +1699,7 @@ class Viewer {
   async seek(date) {
     if (!this.camera || !this.camera.sources.length) return;
     if (date.getTime() > Date.now()) return this.goLive();
+    this._earlyEnd = null;
     const wasLive = this.mode === "live";
     this.mode = "playback";
     if (wasLive) {
@@ -1727,9 +1737,17 @@ class Viewer {
     // A session ends early when the device broke off the download: carry on from there.
     const position = this.player.position;
     if (position != null && position < this.player.session.end - 5000) {
-      this.player.play(this.camera, this.source, position, this.quality);
-      return;
+      // A restart that ends where the last one ended got no further: the device breaks off
+      // there every time, so carry on with the next recording instead of looping.
+      const previous = this._earlyEnd;
+      this._earlyEnd = position;
+      if (previous == null || position > previous + 1000) {
+        this.player.play(this.camera, this.source, position, this.quality, position);
+        return;
+      }
+      this._earlyEnd = null;
     }
+    this._earlyEnd = null;
     const next = this.data.recordings.find((r) => r.start > this.player.session.end - 1000);
     if (next) this.player.play(this.camera, this.source, next.start, this.quality);
   }
