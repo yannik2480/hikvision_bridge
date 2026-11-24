@@ -62,6 +62,9 @@ class ChannelCamera(BridgeEntity, Camera):
         transport = bridge.entry.options.get(OPT_RTSP_TRANSPORT, RTSP_TCP)
         self.stream_options["rtsp_transport"] = transport
         self._was_playable = self._playable
+        # The snapshot in the stream's own size, once the device has given one: a later refusal
+        # of that size is the device busy (two-way audio open, ...), not a lack of support.
+        self._sized_picture: bytes | None = None
 
     @property
     def _decryption_code(self) -> str | None:
@@ -203,13 +206,23 @@ class ChannelCamera(BridgeEntity, Camera):
         for path in paths:
             if path in link.unsupported:
                 continue
+            sized = "?" in path
             try:
                 reply = await link.read_bytes(path)
-            except Unsupported:
-                continue
-            except DeviceRejected as err:
-                refused = err
-                if "?" in path:
+            except (Unsupported, DeviceRejected) as err:
+                if isinstance(err, DeviceRejected):
+                    refused = err
+                if sized and self._sized_picture is not None:
+                    # The size worked before: keep asking for it, and show the last picture
+                    # meanwhile rather than one in the device's default size (often 4:3).
+                    link.unsupported.discard(path)
+                    _LOGGER.debug(
+                        "Snapshot of channel %s refused for now, last one kept: %s",
+                        self.channel_id,
+                        detail(err),
+                    )
+                    return self._sized_picture
+                if sized:
                     # The device refuses the size parameters: use its default size from now on.
                     link.unsupported.add(path)
                 continue
@@ -217,6 +230,8 @@ class ChannelCamera(BridgeEntity, Camera):
                 _LOGGER.debug("Snapshot of channel %s failed: %s", self.channel_id, detail(err))
                 return None
             if reply.content_type.startswith("image/"):
+                if sized:
+                    self._sized_picture = reply.body
                 return reply.body
         if refused is not None:
             _LOGGER.debug(

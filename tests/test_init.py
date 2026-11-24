@@ -178,6 +178,47 @@ async def test_snapshot_resolution_rejected_falls_back_to_plain_picture(
     await hass.async_block_till_done()
 
 
+async def test_snapshot_size_refused_once_keeps_the_last_picture(
+    hass: HomeAssistant, serve
+) -> None:
+    """A size that worked and is refused later (the device busy, two-way audio open) stays.
+
+    Falling back to the plain picture would give the device's default size, often 4:3, and
+    keep it until a restart: dashboards built for the stream's shape would stretch.
+    """
+    device = FakeDevice("nvr")
+    res_path = "/ISAPI/ContentMgmt/StreamingProxy/channels/101/picture?videoResolutionWidth=3840&videoResolutionHeight=2160"
+    server = await serve(device)
+    entry = device_entry(server, device)
+    await _set_up_entry(hass, entry)
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    camera = next(e.entity_id for e in entities if e.unique_id.endswith("_stream_1"))
+    camera_obj = hass.data["camera"].get_entity(camera)
+    bridge = entry.runtime_data
+
+    sized = await camera_obj.async_camera_image()
+    assert sized == b"\xff\xd8\xff\xe0fakejpeg\xff\xd9"
+
+    for status, sub_status in ((500, "deviceBusy"), (403, "notSupport")):
+        device.overrides[res_path] = (
+            status,
+            f"<ResponseStatus><statusCode>4</statusCode><subStatusCode>{sub_status}</subStatusCode></ResponseStatus>",
+        )
+        device.requests.clear()
+        assert await camera_obj.async_camera_image() == sized
+        # Not the plain picture, and the size is asked for again next time.
+        assert not any(path.endswith("/picture") for _, path in device.requests)
+        assert res_path not in bridge.link.unsupported
+
+    del device.overrides[res_path]
+    device.requests.clear()
+    assert await camera_obj.async_camera_image() == sized
+    assert ("GET", res_path) in device.requests
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 async def test_diagnostics_leak_nothing(hass: HomeAssistant, serve) -> None:
     device = FakeDevice("nvr")
     server = await serve(device)
