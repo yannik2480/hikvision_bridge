@@ -71,6 +71,9 @@ const TEXT = {
   previous_month: "Previous month",
   next_month: "Next month",
   recording_days: "Days with recordings",
+  view_timeline: "Timeline",
+  view_clips: "Clips",
+  no_picture: "No picture",
 };
 
 const KIND_COLORS = {
@@ -135,6 +138,38 @@ function joinRecordings(recordings) {
     joined.push({ start: rec.start, end: rec.end, kind: rec.kind });
   }
   return joined;
+}
+
+// Clips of the day for the clip list: the files of one recording of one kind make one clip,
+// shown by the picture of its first file.
+function clipsOf(recordings) {
+  const clips = [];
+  for (const rec of [...recordings].sort((a, b) => a.start - b.start)) {
+    const last = clips[clips.length - 1];
+    if (last && rec.kind === last.kind && rec.start - last.end <= JOIN_GAP) {
+      last.end = Math.max(last.end, rec.end);
+      continue;
+    }
+    clips.push({ start: rec.start, end: rec.end, kind: rec.kind, token: rec.token });
+  }
+  return clips;
+}
+
+// The view of the timeline area the user chose last: the timeline or the clip list.
+const VIEW_KEY = `${DOMAIN}.view`;
+function savedView() {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "clips" ? "clips" : "timeline";
+  } catch (_err) {
+    return "timeline"; // storage blocked (private window): the default view
+  }
+}
+function rememberView(view) {
+  try {
+    localStorage.setItem(VIEW_KEY, view);
+  } catch (_err) {
+    // not remembered
+  }
 }
 
 // Whether hls.js has appended a sound track: Home Assistant's live HLS drops camera audio
@@ -358,6 +393,20 @@ const STYLE = `
   .legend span.event::before { display: none; }
   .legend span.event svg { width: 16px; height: 16px; padding: 2px; border-radius: 50%; background: var(--c); fill: #fff; box-sizing: border-box; }
   .hint { font-size: 12px; color: var(--hb-muted); padding: 0 12px 4px; }
+  .view-switch { flex: none; }
+  .view-switch button { font-size: 13px; }
+  .clips { height: 200px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; align-content: start; padding: 4px 12px 8px; background: var(--hb-surface); }
+  .clips[hidden] { display: none; }
+  .clip { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
+  .clip .thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #000; border-radius: 6px; border-left: 4px solid var(--c, var(--hb-line)); box-sizing: border-box; }
+  .clip:hover .thumb { outline: 2px solid color-mix(in srgb, var(--hb-accent) 50%, transparent); }
+  .clip.active .thumb { outline: 2px solid var(--hb-accent); }
+  .clip img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .2s; }
+  .clip img.loaded { opacity: 1; }
+  .clip .none { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; font-size: 12px; color: var(--hb-muted); }
+  .clip.failed .none { display: flex; }
+  .clip .clip-time { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .clip .clip-kind { font-size: 12px; color: var(--hb-muted); }
 `;
 
 /* ------------------------------------------------------------------ timeline */
@@ -1302,10 +1351,15 @@ class Viewer {
           <span class="spacer"></span>
           <span class="unread" hidden></span>
           <button class="mark-read" data-action="mark-all-read" hidden></button>
-          <button class="icon-button" data-action="zoom-out">${ICONS.minus}</button>
-          <button class="icon-button" data-action="zoom-in">${ICONS.plus}</button>
+          <div class="segmented view-switch">
+            <button data-action="view-timeline"></button>
+            <button data-action="view-clips"></button>
+          </div>
+          <button class="icon-button zoom" data-action="zoom-out">${ICONS.minus}</button>
+          <button class="icon-button zoom" data-action="zoom-in">${ICONS.plus}</button>
         </div>
         <div class="timeline"></div>
+        <div class="clips" hidden></div>
         <div class="legend"></div>
         <div class="hint" hidden></div>
       </div>`;
@@ -1316,6 +1370,13 @@ class Viewer {
     this.timeline = new Timeline(root.querySelector(".timeline"), (date) => this.seek(date));
     root.querySelector(".controls").addEventListener("click", (e) => this._click(e));
     root.querySelector(".day-bar").addEventListener("click", (e) => this._click(e));
+    root.querySelector(".clips").addEventListener("click", (e) => this._click(e));
+    this.view = savedView();
+    this._clips = [];
+    this._clipSignature = null;
+    this._clipObserver = null;
+    this._activeClip = -1;
+    this._applyView();
     root.querySelector(".quality").addEventListener("change", (e) => this.setQuality(e.target.value));
     root.querySelector(".speed").addEventListener("change", (e) => this.setSpeed(Number(e.target.value)));
     root.querySelector(".source").addEventListener("change", (e) => {
@@ -1354,6 +1415,7 @@ class Viewer {
     clearInterval(this._refresh);
     this._stageSize.disconnect();
     this.timeline.destroy();
+    this._clipObserver?.disconnect();
     this.player.stop();
   }
 
@@ -1535,6 +1597,8 @@ class Viewer {
     this.root.querySelector(".live-button span").textContent = t("live");
     this._soundButton();
     this.root.querySelector(".today").textContent = t("today");
+    this.root.querySelector('[data-action="view-timeline"]').textContent = t("view_timeline");
+    this.root.querySelector('[data-action="view-clips"]').textContent = t("view_clips");
     const picker = this.root.querySelector(".date-button");
     picker.title = t("pick_day");
     picker.setAttribute("aria-label", t("pick_day"));
@@ -1667,6 +1731,7 @@ class Viewer {
       this.timeline.loadingText = this.t.ui("loading");
       this.timeline.loading = this.loading = true;
       this.timeline.draw();
+      this._renderClips();
       this._hint();
       this._unreadBar();
     }
@@ -1693,6 +1758,7 @@ class Viewer {
     this.timeline.draw();
     this._legend();
     this._unreadBar();
+    this._renderClips();
     this._hint();
   }
 
@@ -1748,6 +1814,97 @@ class Viewer {
     for (const ev of this.data.events) ev.read = true;
     this.timeline.draw();
     this._unreadBar();
+  }
+
+  // ---- clip list: one picture per recording, loaded when it scrolls into view
+
+  _setView(view) {
+    if (this.view === view) return;
+    this.view = view;
+    rememberView(view);
+    this._applyView();
+  }
+
+  _applyView() {
+    const clips = this.view === "clips";
+    this.root.querySelector(".timeline").hidden = clips;
+    this.root.querySelector(".clips").hidden = !clips;
+    for (const zoom of this.root.querySelectorAll(".zoom")) zoom.hidden = clips;
+    for (const button of this.root.querySelectorAll("[data-action^='view-']")) {
+      button.classList.toggle("active", button.dataset.action === `view-${this.view}`);
+    }
+    if (clips) this._renderClips(true);
+  }
+
+  _renderClips(force = false) {
+    const box = this.root.querySelector(".clips");
+    const camera = this.camera;
+    const source = this.source;
+    this._clips = camera && source
+      ? clipsOf(this.data.recordings).map((clip) => ({
+          ...clip,
+          thumb: `/api/${DOMAIN}/thumbnail/${camera.entry_id}/${camera.channel_id}/${source}/${clip.token}`,
+        }))
+      : [];
+    const signature = `${camera ? `${camera.entry_id}/${camera.channel_id}/${source}` : ""}#${this._clips
+      .map((c) => `${c.start}|${c.end}|${c.kind}|${c.token}`)
+      .join(";")}`;
+    if (!force && signature === this._clipSignature) return;
+    this._clipSignature = signature;
+    this._activeClip = -1;
+    this._clipObserver?.disconnect();
+    this._clipObserver = null;
+    box.innerHTML = this._clips
+      .map((clip, index) => {
+        const time = `${clock(new Date(clip.start), false)} - ${clock(new Date(clip.end), false)}`;
+        const kind = this.t.kind(clip.kind);
+        return `<button class="clip" data-action="clip" data-index="${index}" style="--c:${KIND_COLORS[clip.kind] || KIND_COLORS.other}" aria-label="${time} ${kind}">
+          <span class="thumb"><img alt="" data-index="${index}"><span class="none">${this.t.ui("no_picture")}</span></span>
+          <span class="clip-time">${time}</span><span class="clip-kind">${kind}</span>
+        </button>`;
+      })
+      .join("");
+    const images = box.querySelectorAll("img");
+    if (typeof IntersectionObserver === "function") {
+      this._clipObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            this._clipObserver.unobserve(entry.target);
+            this._loadPicture(entry.target);
+          }
+        },
+        { root: box, rootMargin: "160px" },
+      );
+      for (const img of images) this._clipObserver.observe(img);
+    } else {
+      for (const img of images) this._loadPicture(img);
+    }
+  }
+
+  async _loadPicture(img) {
+    const clip = this._clips[Number(img.dataset.index)];
+    if (!clip) return;
+    const card = img.closest(".clip");
+    img.onload = () => img.classList.add("loaded");
+    img.onerror = () => card.classList.add("failed");
+    try {
+      // Picture requests carry no login header: the path is signed for this user.
+      const signed = await this.hass.callWS({ type: "auth/sign_path", path: clip.thumb, expires: 3600 });
+      img.src = signed.path;
+    } catch (_err) {
+      card.classList.add("failed");
+    }
+  }
+
+  // Highlights the clip the playhead is in.
+  _markClip(position) {
+    const index = position == null ? -1 : this._clips.findIndex((c) => c.start <= position && position < c.end);
+    if (index === this._activeClip) return;
+    this._activeClip = index;
+    const box = this.root.querySelector(".clips");
+    box.querySelector(".clip.active")?.classList.remove("active");
+    box.querySelector(`.clip[data-index="${index}"]`)?.classList.add("active");
   }
 
   _hint() {
@@ -1859,6 +2016,15 @@ class Viewer {
       case "next": {
         const next = events.find((ev) => ev.start > position + 1000);
         if (next) this.seek(new Date(next.start));
+        break;
+      }
+      case "view-timeline":
+      case "view-clips":
+        this._setView(action.slice("view-".length));
+        break;
+      case "clip": {
+        const clip = this._clips[Number(e.target.closest("[data-action]").dataset.index)];
+        if (clip) this.seek(new Date(clip.start));
         break;
       }
       case "live":
@@ -1980,6 +2146,7 @@ class Viewer {
   }
 
   _frame() {
+    if (this.view === "clips") this._markClip(this.player.position ?? this.timeline.playhead);
     const target = this._target;
     if (target && (!target.done || this.player.base == null || this.video.seeking)) {
       this.timeline.playhead = target.time;
@@ -2127,6 +2294,7 @@ class HikvisionBridgePanel extends HTMLElement {
           .cam .sub { display: none; }
           .stage { min-height: 200px; }
           .timeline { height: 72px; padding: 0 6px; }
+          .clips { height: 170px; padding: 4px 6px 8px; }
           .day-bar { padding: 0 2px; }
         }
         @media (max-width: 860px) and (orientation: portrait) {

@@ -1014,7 +1014,10 @@
         "pick_day": "Tag auswählen",
         "previous_month": "Vorheriger Monat",
         "next_month": "Nächster Monat",
-        "recording_days": "Tage mit Aufnahmen"
+        "recording_days": "Tage mit Aufnahmen",
+        "view_timeline": "Zeitleiste",
+        "view_clips": "Clips",
+        "no_picture": "Kein Bild"
       }
     }
   },

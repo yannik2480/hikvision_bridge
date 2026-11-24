@@ -1014,7 +1014,10 @@
         "pick_day": "Vyberte den",
         "previous_month": "Předchozí měsíc",
         "next_month": "Další měsíc",
-        "recording_days": "Dny se záznamy"
+        "recording_days": "Dny se záznamy",
+        "view_timeline": "Časová osa",
+        "view_clips": "Záznamy",
+        "no_picture": "Bez obrázku"
       }
     }
   },

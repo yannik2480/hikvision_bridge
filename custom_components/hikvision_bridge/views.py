@@ -38,8 +38,12 @@ RECORDING_URL = "/api/hikvision_bridge/recording/{entry_id}/{channel_id}/{source
 THUMBNAIL_URL = "/api/hikvision_bridge/thumbnail/{entry_id}/{channel_id}/{source}/{token}"
 _PLAYBACK_URI = re.compile(r"^rtsp://[^/\s]+/Streaming/tracks/\d+/?\?[^\s<>]*$", re.IGNORECASE)
 THUMBNAIL_CACHE = 256
+# Pictures are small (about 320 pixels wide), but the cache stays bounded in bytes as well.
+THUMBNAIL_CACHE_BYTES = 8 * 1024 * 1024
 # Each thumbnail opens a download; recorders serve only a few at a time.
 THUMBNAIL_PARALLEL = 2
+# A download the device does not finish in this time gives up (and is not cached).
+THUMBNAIL_TIMEOUT = 30
 HLS = "application/vnd.apple.mpegurl"
 _VOD_PART = re.compile(r"^([0-9]{1,7})\.m4s$")
 
@@ -176,15 +180,44 @@ class RecordingView(HomeAssistantView):
 
 
 class ThumbnailView(HomeAssistantView):
-    """First picture of a recorded file."""
+    """First picture of a recorded file.
+
+    Pictures are cached per recorded file, bounded by count and by bytes. A file without a
+    picture (encrypted, or no video in it) is remembered as an empty entry, so that opening
+    the clip list again does not download it again. Failures that may pass (a busy device,
+    a timeout) are not remembered.
+    """
 
     url = THUMBNAIL_URL
     name = "api:hikvision_bridge:thumbnail"
     requires_auth = True
 
     def __init__(self) -> None:
+        # Key -> picture; b"" for a file without one.
         self._cache: OrderedDict[str, bytes] = OrderedDict()
         self._gate = asyncio.Semaphore(THUMBNAIL_PARALLEL)
+
+    def _remember(self, key: str, image: bytes) -> None:
+        self._cache[key] = image
+        self._cache.move_to_end(key)
+        while len(self._cache) > THUMBNAIL_CACHE or (
+            sum(len(value) for value in self._cache.values()) > THUMBNAIL_CACHE_BYTES
+        ):
+            self._cache.popitem(last=False)
+
+    async def _picture(self, hass: HomeAssistant, playback: PlaybackSource, uri: str) -> bytes:
+        """The picture of a recorded file; b"" if it has none. Raises for failures to retry."""
+        try:
+            async with (
+                asyncio.timeout(THUMBNAIL_TIMEOUT),
+                self._gate,
+                open_recording(playback, uri) as (_, chunks),
+            ):
+                return await run_ffmpeg(
+                    playback_module.ffmpeg_binary(hass), thumbnail_args(), chunks
+                )
+        except (RecordingEncrypted, NoRecording):
+            return b""
 
     async def get(
         self, request: web.Request, entry_id: str, channel_id: str, source: str, token: str
@@ -197,21 +230,20 @@ class ThumbnailView(HomeAssistantView):
             return web.Response(status=404)
         if (cached := self._cache.get(key)) is not None:
             self._cache.move_to_end(key)
-            return web.Response(body=cached, content_type="image/jpeg")
+            if not cached:
+                return web.Response(status=404)
+            return web.Response(
+                body=cached, content_type="image/jpeg", headers={"Cache-Control": "max-age=86400"}
+            )
         _, playback = found
         try:
-            async with self._gate, open_recording(playback, uri) as (_, chunks):
-                image = await run_ffmpeg(
-                    playback_module.ffmpeg_binary(hass), thumbnail_args(), chunks
-                )
-        except (RecordingEncrypted, NoRecording, BridgeFault, FileNotFoundError) as err:
-            _LOGGER.debug("No thumbnail: %s", type(err).__name__)
+            image = await self._picture(hass, playback, uri)
+        except (BridgeFault, FileNotFoundError, TimeoutError) as err:
+            _LOGGER.debug("No thumbnail for now: %s", type(err).__name__)
             return web.Response(status=404)
+        self._remember(key, image)
         if not image:
             return web.Response(status=404)
-        self._cache[key] = image
-        while len(self._cache) > THUMBNAIL_CACHE:
-            self._cache.popitem(last=False)
         return web.Response(
             body=image, content_type="image/jpeg", headers={"Cache-Control": "max-age=86400"}
         )

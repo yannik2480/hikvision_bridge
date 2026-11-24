@@ -1014,7 +1014,10 @@
         "pick_day": "Nap kiválasztása",
         "previous_month": "Előző hónap",
         "next_month": "Következő hónap",
-        "recording_days": "Napok felvételekkel"
+        "recording_days": "Napok felvételekkel",
+        "view_timeline": "Idővonal",
+        "view_clips": "Klipek",
+        "no_picture": "Nincs kép"
       }
     }
   },

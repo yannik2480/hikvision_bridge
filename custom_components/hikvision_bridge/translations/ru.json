@@ -1014,7 +1014,10 @@
         "pick_day": "Выбрать день",
         "previous_month": "Предыдущий месяц",
         "next_month": "Следующий месяц",
-        "recording_days": "Дни с записями"
+        "recording_days": "Дни с записями",
+        "view_timeline": "Временная шкала",
+        "view_clips": "Фрагменты",
+        "no_picture": "Нет изображения"
       }
     }
   },

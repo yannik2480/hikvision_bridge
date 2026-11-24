@@ -1014,7 +1014,10 @@
         "pick_day": "Vælg en dag",
         "previous_month": "Forrige måned",
         "next_month": "Næste måned",
-        "recording_days": "Dage med optagelser"
+        "recording_days": "Dage med optagelser",
+        "view_timeline": "Tidslinje",
+        "view_clips": "Klip",
+        "no_picture": "Intet billede"
       }
     }
   },

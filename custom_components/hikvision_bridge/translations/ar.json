@@ -1014,7 +1014,10 @@
         "pick_day": "اختر يومًا",
         "previous_month": "الشهر السابق",
         "next_month": "الشهر التالي",
-        "recording_days": "أيام بها تسجيلات"
+        "recording_days": "أيام بها تسجيلات",
+        "view_timeline": "الجدول الزمني",
+        "view_clips": "المقاطع",
+        "no_picture": "لا توجد صورة"
       }
     }
   },

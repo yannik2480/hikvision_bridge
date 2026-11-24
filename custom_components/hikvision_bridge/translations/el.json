@@ -1014,7 +1014,10 @@
         "pick_day": "Επιλογή ημέρας",
         "previous_month": "Προηγούμενος μήνας",
         "next_month": "Επόμενος μήνας",
-        "recording_days": "Ημέρες με εγγραφές"
+        "recording_days": "Ημέρες με εγγραφές",
+        "view_timeline": "Χρονολόγιο",
+        "view_clips": "Κλιπ",
+        "no_picture": "Χωρίς εικόνα"
       }
     }
   },
