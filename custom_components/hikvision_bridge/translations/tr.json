@@ -1016,7 +1016,15 @@
         "streams": "Yayınlar",
         "stream_camera": "Kamera",
         "stream_name": "Ad",
-        "start_muted": "Sessiz başlat"
+        "start_muted": "Sessiz başlat",
+        "talk_start": "Konuş",
+        "talk_stop": "Konuşmayı bitir",
+        "talk_https": "Mikrofon için güvenli bir bağlantı (HTTPS) gerekir.",
+        "talk_unsupported": "Bu tarayıcı mikrofonu gönderemiyor.",
+        "talk_denied": "Tarayıcı mikrofona izin vermedi.",
+        "talk_failed": "Cihaz sesi kabul etmedi.",
+        "talk_replaced": "Şu anda bu cihaz üzerinden başka biri konuşuyor.",
+        "talk_ended": "Cihaz görüşmeyi sonlandırdı."
       }
     }
   },

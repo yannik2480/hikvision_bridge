@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .features.image import ImageCapability
     from .features.intercom import IntercomCapabilities
     from .features.ptz import PtzCapability
+    from .features.talk import TalkChannel
 
 
 class DeviceShape(StrEnum):
@@ -164,6 +165,8 @@ class DeviceProfile:
     recording: bool = False
     armable_inputs: tuple[str, ...] = ()
     intercom: IntercomCapabilities | None = None
+    # Where Home Assistant's sound plays on the device (two-way audio), if it has a G.711 one.
+    talk: TalkChannel | None = None
 
     def trigger_for(self, kind: Kind, channel_id: str | None) -> TriggerLink | None:
         for trigger in self.triggers:

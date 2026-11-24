@@ -1016,7 +1016,15 @@
         "streams": "Streamek",
         "stream_camera": "Kamera",
         "stream_name": "Név",
-        "start_muted": "Indítás hang nélkül"
+        "start_muted": "Indítás hang nélkül",
+        "talk_start": "Beszéd",
+        "talk_stop": "Beszéd vége",
+        "talk_https": "A mikrofonhoz biztonságos kapcsolat (HTTPS) kell.",
+        "talk_unsupported": "Ez a böngésző nem tudja küldeni a mikrofont.",
+        "talk_denied": "A böngésző nem engedélyezte a mikrofont.",
+        "talk_failed": "Az eszköz nem fogadta a hangot.",
+        "talk_replaced": "Most valaki más beszél ezen az eszközön keresztül.",
+        "talk_ended": "Az eszköz befejezte a beszélgetést."
       }
     }
   },

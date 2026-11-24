@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 import ipaddress
 import json
@@ -644,3 +644,139 @@ class IsapiLink:
                 response.close()
             return
         raise self._blocked or BadCredentials("rejected")
+
+    async def open_upload(
+        self, path: str, *, content_type: str = "application/octet-stream"
+    ) -> Upload:
+        """Open a request whose body is sent for as long as it lasts (two-way audio).
+
+        Hikvision devices take it as ``Content-Length: 0``, answer at once and then read the
+        rest of the connection as the body, which HTTP clients cannot send: this is plain
+        HTTP/1.1 over a socket, signed and refused the same way as every other request.
+        """
+        self._raise_if_blocked()
+        for attempt in range(2):
+            async with self._gate:
+                self._check_open()
+                if not self._auth_checked:
+                    await self._establish()
+                signed = self._signed_state()
+                headers = {
+                    "Host": URL(self.endpoint.base).raw_authority,
+                    "Accept": "*/*",
+                    "Content-Type": content_type,
+                    "Content-Length": "0",
+                }
+                if self._signer is not None:
+                    headers["Authorization"] = self._signer.authorization("PUT", path)
+                upload = await self._connect()
+                try:
+                    status, reply_headers, data = await upload.request("PUT", path, headers)
+                except BaseException:
+                    upload.close()
+                    raise
+                if status == 401:
+                    upload.close()
+                    challenges = [v for k, v in reply_headers if k.lower() == "www-authenticate"]
+                    fault = self._after_refusal(attempt, challenges, data, signed)
+                    if fault is None:
+                        continue
+                    raise fault
+                if status != 200:
+                    upload.close()
+                    raise classify(status, decode(data)) or DeviceRejected(f"HTTP {status}", status)
+                self._mark_success(signed)
+                return upload
+        raise self._blocked or BadCredentials("rejected")
+
+    async def _connect(self) -> Upload:
+        """A socket to the device, with the link's TLS settings."""
+        secure: ssl.SSLContext | bool = self._tls.get("ssl", self.endpoint.scheme == "https")
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.endpoint.host, self.endpoint.port, ssl=secure),
+                self._connect_timeout,
+            )
+        except ssl.SSLCertVerificationError as err:
+            raise TlsUntrusted(str(err)) from err
+        except ssl.SSLError as err:
+            raise Unreachable(f"TLS handshake failed: {err}") from err
+        except (TimeoutError, OSError) as err:
+            raise Unreachable(f"{type(err).__name__}: {err}") from err
+        return Upload(reader, writer, self._connect_timeout)
+
+
+# Upper bound of the head and of a refusal's body read from a raw upload.
+_UPLOAD_REPLY_LIMIT = 64 * 1024
+# Data queued for the device beyond this is dropped: the device stopped reading.
+UPLOAD_BACKLOG = 16 * 1024
+
+
+class Upload:
+    """An open raw upload: write the body, close when done."""
+
+    def __init__(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, timeout: float
+    ) -> None:
+        self._reader = reader
+        self._writer = writer
+        self._timeout = timeout
+
+    async def request(
+        self, method: str, path: str, headers: dict[str, str]
+    ) -> tuple[int, list[tuple[str, str]], bytes]:
+        """Send the head of the request; the status, headers and any body of the reply."""
+        lines = [f"{method} {path} HTTP/1.1", *(f"{k}: {v}" for k, v in headers.items())]
+        try:
+            self._writer.write(("\r\n".join(lines) + "\r\n\r\n").encode())
+            await self._writer.drain()
+            head = await asyncio.wait_for(self._reader.readuntil(b"\r\n\r\n"), self._timeout)
+        except (asyncio.IncompleteReadError, asyncio.LimitOverrunError) as err:
+            raise Unreachable(f"no reply to the upload: {type(err).__name__}") from err
+        except (TimeoutError, OSError) as err:
+            raise Unreachable(f"{type(err).__name__}: {err}") from err
+        status_line, *header_lines = head.decode("latin-1").split("\r\n")
+        parts = status_line.split(" ", 2)
+        if len(parts) < 2 or not parts[0].startswith("HTTP/") or not parts[1].isdigit():
+            raise DeviceRejected("unreadable status line", 0)
+        reply_headers = [
+            (name.strip(), value.strip())
+            for name, _, value in (line.partition(":") for line in header_lines if line)
+        ]
+        status = int(parts[1])
+        data = b""
+        if status != 200:
+            length = next(
+                (v for k, v in reply_headers if k.lower() == "content-length" and v.isdigit()),
+                "0",
+            )
+            with suppress(asyncio.IncompleteReadError, TimeoutError, OSError):
+                data = await asyncio.wait_for(
+                    self._reader.readexactly(min(int(length), _UPLOAD_REPLY_LIMIT)),
+                    self._timeout,
+                )
+        return status, reply_headers, data
+
+    @property
+    def closed(self) -> bool:
+        """Whether the device ended the upload: it closed the connection."""
+        return self._reader.at_eof() or self._writer.is_closing()
+
+    async def wait_closed_by_device(self) -> None:
+        """Return once the device closes the connection; anything it sends is skipped."""
+        with suppress(OSError):
+            while await self._reader.read(1024):
+                pass
+
+    def write(self, data: bytes) -> bool:
+        """Queue data for the device; False when it was dropped because the device lags."""
+        if self._writer.is_closing():
+            return False
+        transport = self._writer.transport
+        if transport.get_write_buffer_size() > UPLOAD_BACKLOG:
+            return False
+        self._writer.write(data)
+        return True
+
+    def close(self) -> None:
+        self._writer.close()

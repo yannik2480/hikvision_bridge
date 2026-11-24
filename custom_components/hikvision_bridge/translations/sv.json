@@ -1016,7 +1016,15 @@
         "streams": "Strömmar",
         "stream_camera": "Kamera",
         "stream_name": "Namn",
-        "start_muted": "Starta utan ljud"
+        "start_muted": "Starta utan ljud",
+        "talk_start": "Prata",
+        "talk_stop": "Sluta prata",
+        "talk_https": "Mikrofonen kräver en säker anslutning (HTTPS).",
+        "talk_unsupported": "Den här webbläsaren kan inte skicka mikrofonen.",
+        "talk_denied": "Webbläsaren tillät inte mikrofonen.",
+        "talk_failed": "Enheten tog inte emot ljudet.",
+        "talk_replaced": "Någon annan pratar nu genom den här enheten.",
+        "talk_ended": "Enheten avslutade samtalet."
       }
     }
   },

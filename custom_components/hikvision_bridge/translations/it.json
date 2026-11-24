@@ -1016,7 +1016,15 @@
         "streams": "Flussi",
         "stream_camera": "Telecamera",
         "stream_name": "Nome",
-        "start_muted": "Avvia senza audio"
+        "start_muted": "Avvia senza audio",
+        "talk_start": "Parla",
+        "talk_stop": "Smetti di parlare",
+        "talk_https": "Il microfono richiede una connessione sicura (HTTPS).",
+        "talk_unsupported": "Questo browser non può inviare il microfono.",
+        "talk_denied": "Il browser non ha consentito il microfono.",
+        "talk_failed": "Il dispositivo non ha accettato l'audio.",
+        "talk_replaced": "Ora qualcun altro sta parlando tramite questo dispositivo.",
+        "talk_ended": "Il dispositivo ha terminato la conversazione."
       }
     }
   },

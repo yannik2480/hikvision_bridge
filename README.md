@@ -249,6 +249,15 @@ A card with a single stream can name it with `entity: camera.front_door_main_str
 the camera, which keeps the device's G.711 sound, otherwise over HLS, with the sound converted for
 the streams Home Assistant would play silent. It stops the stream while the page is hidden.
 
+When the device has a speaker (a door station, or a camera with an audio output), the card has a
+**Talk** button: it opens the device's two-way audio and sends the microphone of the browser until
+it is pressed again, the page is left, or someone else starts talking through the same device. The
+sound goes through Home Assistant's own connection, encoded in the browser in the G.711 variant
+the device asks for, so nothing else needs to be installed. Browsers only give the microphone to
+pages opened over HTTPS (for example through Home Assistant Cloud, a reverse proxy or a local
+certificate); the button tells when the page is not. The browser's echo cancellation stays on, so
+both sides can talk at the same time while the picture plays over WebRTC.
+
 ## Installation
 
 ### HACS (recommended)

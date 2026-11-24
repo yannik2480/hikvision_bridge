@@ -1016,7 +1016,15 @@
         "streams": "Streams",
         "stream_camera": "Kamera",
         "stream_name": "Name",
-        "start_muted": "Ohne Ton starten"
+        "start_muted": "Ohne Ton starten",
+        "talk_start": "Sprechen",
+        "talk_stop": "Sprechen beenden",
+        "talk_https": "Das Mikrofon braucht eine sichere Verbindung (HTTPS).",
+        "talk_unsupported": "Dieser Browser kann das Mikrofon nicht senden.",
+        "talk_denied": "Der Browser hat das Mikrofon nicht erlaubt.",
+        "talk_failed": "Das Gerät hat den Ton nicht angenommen.",
+        "talk_replaced": "Jemand anderes spricht jetzt über dieses Gerät.",
+        "talk_ended": "Das Gerät hat das Gespräch beendet."
       }
     }
   },

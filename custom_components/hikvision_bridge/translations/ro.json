@@ -1016,7 +1016,15 @@
         "streams": "Fluxuri",
         "stream_camera": "Cameră",
         "stream_name": "Nume",
-        "start_muted": "Pornește fără sunet"
+        "start_muted": "Pornește fără sunet",
+        "talk_start": "Vorbește",
+        "talk_stop": "Oprește vorbirea",
+        "talk_https": "Microfonul are nevoie de o conexiune securizată (HTTPS).",
+        "talk_unsupported": "Acest browser nu poate trimite microfonul.",
+        "talk_denied": "Browserul nu a permis microfonul.",
+        "talk_failed": "Dispozitivul nu a acceptat sunetul.",
+        "talk_replaced": "Altcineva vorbește acum prin acest dispozitiv.",
+        "talk_ended": "Dispozitivul a încheiat conversația."
       }
     }
   },

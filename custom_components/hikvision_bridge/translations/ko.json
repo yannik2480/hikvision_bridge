@@ -1016,7 +1016,15 @@
         "streams": "스트림",
         "stream_camera": "카메라",
         "stream_name": "이름",
-        "start_muted": "소리 없이 시작"
+        "start_muted": "소리 없이 시작",
+        "talk_start": "말하기",
+        "talk_stop": "말하기 중지",
+        "talk_https": "마이크를 사용하려면 보안 연결(HTTPS)이 필요합니다.",
+        "talk_unsupported": "이 브라우저는 마이크를 보낼 수 없습니다.",
+        "talk_denied": "브라우저가 마이크를 허용하지 않았습니다.",
+        "talk_failed": "장치가 소리를 받아들이지 않았습니다.",
+        "talk_replaced": "다른 사람이 지금 이 장치로 말하고 있습니다.",
+        "talk_ended": "장치가 통화를 종료했습니다."
       }
     }
   },

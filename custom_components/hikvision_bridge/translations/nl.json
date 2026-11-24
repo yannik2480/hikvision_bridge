@@ -1016,7 +1016,15 @@
         "streams": "Streams",
         "stream_camera": "Camera",
         "stream_name": "Naam",
-        "start_muted": "Starten zonder geluid"
+        "start_muted": "Starten zonder geluid",
+        "talk_start": "Spreken",
+        "talk_stop": "Stoppen met spreken",
+        "talk_https": "De microfoon heeft een beveiligde verbinding (HTTPS) nodig.",
+        "talk_unsupported": "Deze browser kan de microfoon niet verzenden.",
+        "talk_denied": "De browser heeft de microfoon niet toegestaan.",
+        "talk_failed": "Het apparaat heeft het geluid niet geaccepteerd.",
+        "talk_replaced": "Iemand anders spreekt nu via dit apparaat.",
+        "talk_ended": "Het apparaat heeft het gesprek beëindigd."
       }
     }
   },

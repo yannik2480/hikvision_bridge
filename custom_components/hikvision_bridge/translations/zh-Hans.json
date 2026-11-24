@@ -1016,7 +1016,15 @@
         "streams": "视频流",
         "stream_camera": "摄像机",
         "stream_name": "名称",
-        "start_muted": "静音启动"
+        "start_muted": "静音启动",
+        "talk_start": "对讲",
+        "talk_stop": "停止对讲",
+        "talk_https": "麦克风需要安全连接 (HTTPS)。",
+        "talk_unsupported": "此浏览器无法发送麦克风声音。",
+        "talk_denied": "浏览器未允许使用麦克风。",
+        "talk_failed": "设备未接受声音。",
+        "talk_replaced": "现在有其他人正在通过此设备对讲。",
+        "talk_ended": "设备已结束对讲。"
       }
     }
   },

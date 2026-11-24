@@ -1016,7 +1016,15 @@
         "streams": "Luồng",
         "stream_camera": "Camera",
         "stream_name": "Tên",
-        "start_muted": "Bắt đầu không có âm thanh"
+        "start_muted": "Bắt đầu không có âm thanh",
+        "talk_start": "Nói",
+        "talk_stop": "Ngừng nói",
+        "talk_https": "Micrô cần kết nối bảo mật (HTTPS).",
+        "talk_unsupported": "Trình duyệt này không thể gửi micrô.",
+        "talk_denied": "Trình duyệt không cho phép micrô.",
+        "talk_failed": "Thiết bị không nhận âm thanh.",
+        "talk_replaced": "Hiện có người khác đang nói qua thiết bị này.",
+        "talk_ended": "Thiết bị đã kết thúc cuộc nói chuyện."
       }
     }
   },

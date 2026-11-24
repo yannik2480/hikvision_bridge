@@ -1016,7 +1016,15 @@
         "streams": "Stream",
         "stream_camera": "Kamera",
         "stream_name": "Nama",
-        "start_muted": "Mulai tanpa suara"
+        "start_muted": "Mulai tanpa suara",
+        "talk_start": "Bicara",
+        "talk_stop": "Berhenti bicara",
+        "talk_https": "Mikrofon memerlukan koneksi aman (HTTPS).",
+        "talk_unsupported": "Browser ini tidak dapat mengirim mikrofon.",
+        "talk_denied": "Browser tidak mengizinkan mikrofon.",
+        "talk_failed": "Perangkat tidak menerima suara.",
+        "talk_replaced": "Orang lain sekarang berbicara melalui perangkat ini.",
+        "talk_ended": "Perangkat mengakhiri percakapan."
       }
     }
   },

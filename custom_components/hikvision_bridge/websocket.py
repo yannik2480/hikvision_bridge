@@ -1,7 +1,8 @@
-"""Websocket commands of the recordings panel and card: cameras, timeline, playback."""
+"""Websocket commands of the panel and the cards: cameras, timeline, playback, talk."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any
@@ -23,7 +24,7 @@ from .const import (
     SUBENTRY_CHANNEL_LINK,
 )
 from .model.features import recordings
-from .runtime import identity, sessions
+from .runtime import identity, sessions, talk
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import pick_source, sources
 from .views import encode_token
@@ -52,6 +53,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_playback_start)
     websocket_api.async_register_command(hass, ws_playback_stop)
     websocket_api.async_register_command(hass, ws_live_sound)
+    websocket_api.async_register_command(hass, ws_talk)
 
 
 def _bridges(hass: HomeAssistant) -> list[DeviceBridge]:
@@ -113,6 +115,8 @@ def ws_cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
                         str(s.rank): s.audio_codec for s in channel.streams if s.rank <= 2
                     },
                     "codec": main.codec if main else None,
+                    # Whether the device plays Home Assistant's sound (the live card's microphone)
+                    "talk": profile.talk is not None,
                     "resolution": f"{main.width}x{main.height}" if main and main.width else None,
                 }
             )
@@ -418,3 +422,65 @@ async def ws_live_sound(
         connection.send_error(msg["id"], "no_ffmpeg", "ffmpeg is not available")
         return
     connection.send_result(msg["id"], {"session_id": session.session_id, "url": session.url})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/talk", vol.Required("entry_id"): str}
+)
+@websocket_api.async_response
+async def ws_talk(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Talk through the device's speaker for as long as the subscription lasts.
+
+    Once the device accepted, an event says which binary handler takes the microphone and in
+    which G.711 variant; the browser then sends it 20 ms at a time. Unsubscribing, or the
+    browser leaving, ends the talk; the device ending it, or another talk taking over, is told
+    as an "ended" event.
+    """
+    bridge = _bridge(hass, msg["entry_id"])
+    channel = bridge.profile.talk if bridge is not None else None
+    if bridge is None or channel is None:
+        connection.send_error(msg["id"], "not_found", "The device has no two-way audio")
+        return
+    msg_id = msg["id"]
+    unregister: Callable[[], None] | None = None
+    stopping = False
+
+    @callback
+    def ended(reason: talk.TalkEnd) -> None:
+        if unregister is not None:
+            unregister()
+        connection.subscriptions.pop(msg_id, None)
+        if not stopping:
+            connection.send_message(
+                websocket_api.event_message(msg_id, {"type": "ended", "reason": reason})
+            )
+
+    try:
+        session = await talk.manager(hass).start(bridge.entry.entry_id, bridge.link, channel, ended)
+    except talk.TalkError as err:
+        connection.send_error(msg_id, err.reason, err.reason)
+        return
+
+    @callback
+    def receive(
+        _hass: HomeAssistant, _connection: websocket_api.ActiveConnection, data: bytes
+    ) -> None:
+        session.send(data)
+
+    handler_id, unregister = connection.async_register_binary_handler(receive)
+
+    @callback
+    def stop() -> None:
+        nonlocal stopping
+        stopping = True
+        hass.async_create_task(session.close(talk.TalkEnd.STOPPED))
+
+    connection.subscriptions[msg_id] = stop
+    connection.send_result(msg_id)
+    connection.send_message(
+        websocket_api.event_message(
+            msg_id, {"type": "started", "handler_id": handler_id, "codec": session.codec}
+        )
+    )

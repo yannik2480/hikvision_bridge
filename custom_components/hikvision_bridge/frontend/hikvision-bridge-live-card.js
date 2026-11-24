@@ -15,6 +15,7 @@
  */
 
 import { DOMAIN, Player } from "./player.js";
+import { Microphone, unavailable } from "./talk.js";
 
 /**
  * @typedef {object} Stream A stream the card can show.
@@ -31,6 +32,7 @@ import { DOMAIN, Player } from "./player.js";
  * @property {string} entry_id
  * @property {string} channel_id
  * @property {{ high?: string, low?: string }} live The camera entities of its main and sub stream.
+ * @property {boolean} [talk] Whether its device plays sound from Home Assistant (the microphone).
  *
  * @typedef {"high" | "low"} Level The main stream, or the sub stream.
  *
@@ -39,7 +41,7 @@ import { DOMAIN, Player } from "./player.js";
  * @property {Record<string, { platform?: string, device_id?: string | null, translation_key?: string }>} [entities]
  * @property {string} [language]
  * @property {(message: Record<string, any>) => Promise<any>} callWS
- * @property {any} [connection]
+ * @property {any} connection
  *
  * @typedef {Record<string, string>} Resources Translations, as `frontend/get_translations` returns them.
  *
@@ -64,7 +66,21 @@ export const TEXT = {
   stream_camera: "Camera",
   stream_name: "Name",
   start_muted: "Start without sound",
+  talk_start: "Talk",
+  talk_stop: "Stop talking",
+  talk_https: "The microphone needs a secure connection (HTTPS).",
+  talk_unsupported: "This browser cannot send the microphone.",
+  talk_denied: "The browser did not allow the microphone.",
+  talk_failed: "The device did not accept the sound.",
+  talk_replaced: "Someone else is now talking through this device.",
+  talk_ended: "The device ended the talk.",
 };
+
+/** What the card tells when a talk ends without the person stopping it, by the reason. */
+export const TALK_ENDS = { replaced: "talk_replaced", device: "talk_ended", unloaded: "talk_ended" };
+
+/** Seconds a notice about the microphone stays on the picture. */
+const NOTICE_SECONDS = 5;
 
 /** The options of the card that are what it does without them. */
 export const DEFAULTS = { muted: true };
@@ -274,6 +290,9 @@ const ICONS = {
   soundOn: icon(
     "M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.84-5 6.7v2.07c4-.91 7-4.49 7-8.77S18 4.14 14 3.23M16.5 12c0-1.77-1-3.29-2.5-4.03V16c1.5-.71 2.5-2.24 2.5-4M3 9v6h4l5 5V4L7 9H3z",
   ),
+  microphone: icon(
+    "M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3m7 9c0 3.53-2.61 6.44-6 6.93V21h-2v-3.07c-3.39-.49-6-3.4-6-6.93h2a5 5 0 0 0 5 5 5 5 0 0 0 5-5h2z",
+  ),
   soundOff: icon(
     "M12 4 9.91 6.09 12 8.18M4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.26c-.67.51-1.42.93-2.25 1.2v2.07c1.38-.32 2.63-.95 3.68-1.81L19.73 21 21 19.73l-9-9M19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71m-2.5 0c0-1.77-1-3.29-2.5-4.03v2.21l2.45 2.45c.05-.2.05-.42.05-.63z",
   ),
@@ -302,6 +321,14 @@ const STYLE = `
   .icon-button:hover { background: color-mix(in srgb, var(--hb-text) 10%, transparent); }
   .icon-button:disabled { opacity: .35; cursor: default; background: none; }
   .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
+  .talk { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--hb-line); background: none; border-radius: 18px; padding: 4px 14px 4px 10px; cursor: pointer; min-height: 36px; }
+  .talk[hidden] { display: none; }
+  .talk svg { width: 20px; height: 20px; fill: currentColor; }
+  .talk[aria-pressed="true"] { background: #e5484d; border-color: #e5484d; color: #fff; }
+  .talk.starting { opacity: .6; }
+  .talk:disabled { opacity: .35; cursor: default; }
+  .notice { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff; padding: 8px 14px; border-radius: 8px; max-width: 80%; text-align: center; pointer-events: none; }
+  .notice[hidden] { display: none; }
 `;
 
 if (globalThis.customElements && globalThis.HTMLElement) {
@@ -408,6 +435,18 @@ if (globalThis.customElements && globalThis.HTMLElement) {
     /** @type {boolean | null} Whether the stream has a sound track; null until known. */
     hasAudio = null;
 
+    /** @type {BridgeCamera | undefined} The camera of the stream shown. */
+    #camera;
+
+    /** @type {Microphone | null} The talk through the camera's device, while it lasts. */
+    #microphone = null;
+
+    /** Whether the talk is still starting: the permission, then the device. */
+    #starting = false;
+
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    #noticeTimer;
+
     /** @type {string | null} */
     #error = null;
 
@@ -475,6 +514,7 @@ if (globalThis.customElements && globalThis.HTMLElement) {
 
     disconnectedCallback() {
       document.removeEventListener("visibilitychange", this.#onVisibility);
+      this.#stopTalking();
       this.player?.stop();
       this.player = null;
     }
@@ -489,9 +529,11 @@ if (globalThis.customElements && globalThis.HTMLElement) {
             <video playsinline muted></video>
             <span class="badge" hidden></span>
             <div class="overlay"></div>
+            <div class="notice" role="status" hidden></div>
           </div>
           <div class="bar">
             <div class="streams" role="group"></div>
+            <button class="talk" data-action="talk" aria-pressed="false" hidden>${ICONS.microphone}<span></span></button>
             <span class="spacer"></span>
             <button class="icon-button" data-action="sound">${ICONS.soundOff}</button>
             <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
@@ -545,6 +587,10 @@ if (globalThis.customElements && globalThis.HTMLElement) {
         return;
       }
       this.#error = null;
+      // Main and sub stream are one device: the talk goes on; another device ends it
+      if (this.#microphone && this.#microphone.entryId !== found.camera.entry_id) this.#stopTalking();
+      this.#camera = found.camera;
+      this.#labels();
       await this.player?.live(found.camera, found.level);
     }
 
@@ -562,6 +608,9 @@ if (globalThis.customElements && globalThis.HTMLElement) {
         this.sound = this.video.muted;
         this.video.muted = !this.sound;
         if (this.video.paused) this.player?.resume();
+      } else if (target.dataset.action === "talk") {
+        if (this.#microphone) this.#stopTalking();
+        else this.#startTalking();
       } else if (target.dataset.action === "fullscreen") {
         const stage = /** @type {HTMLElement} */ (this.shadowRoot?.querySelector(".stage"));
         const video = /** @type {any} */ (this.video);
@@ -574,8 +623,52 @@ if (globalThis.customElements && globalThis.HTMLElement) {
     /** Stop the stream while the page is hidden, and play it again when it shows. */
     #visibility() {
       if (!this.player) return;
-      if (document.hidden) this.player.stop();
-      else this.#play();
+      if (document.hidden) {
+        this.#stopTalking();
+        this.player.stop();
+      } else this.#play();
+    }
+
+    /** Open the camera's device for the microphone; it ends when stopped or by the device. */
+    async #startTalking() {
+      const camera = this.#camera;
+      if (!camera?.talk || !this.#hass || this.#starting) return;
+      const microphone = new Microphone(this.#hass, camera.entry_id, (reason) => {
+        if (this.#microphone !== microphone) return;
+        this.#microphone = null;
+        this.#labels();
+        const notice = TALK_ENDS[/** @type {keyof TALK_ENDS} */ (reason)];
+        if (notice) this.#notice(notice);
+      });
+      this.#microphone = microphone;
+      this.#starting = true;
+      this.#labels();
+      try {
+        await microphone.start();
+      } catch (err) {
+        if (this.#microphone === microphone) this.#microphone = null;
+        this.#notice(/** @type {Error} */ (err).message);
+      } finally {
+        this.#starting = false;
+        this.#labels();
+      }
+    }
+
+    #stopTalking() {
+      const microphone = this.#microphone;
+      this.#microphone = null;
+      microphone?.stop();
+      this.#labels();
+    }
+
+    /** @param {string} key A text of the card, shown for a few seconds over the picture. */
+    #notice(key) {
+      const notice = /** @type {HTMLElement | null} */ (this.shadowRoot?.querySelector(".notice"));
+      if (!notice) return;
+      notice.textContent = translator(this.#resources)(key);
+      notice.hidden = false;
+      clearTimeout(this.#noticeTimer);
+      this.#noticeTimer = setTimeout(() => (notice.hidden = true), NOTICE_SECONDS * 1000);
     }
 
     /** Label the badge and the buttons in the language of the user. */
@@ -587,6 +680,20 @@ if (globalThis.customElements && globalThis.HTMLElement) {
       const fullscreen = root?.querySelector('[data-action="fullscreen"]');
       fullscreen?.setAttribute("title", text("fullscreen"));
       fullscreen?.setAttribute("aria-label", text("fullscreen"));
+      const talk = /** @type {HTMLButtonElement | null} */ (root?.querySelector('[data-action="talk"]'));
+      if (talk) {
+        const talking = Boolean(this.#microphone);
+        const problem = unavailable(/** @type {any} */ (globalThis));
+        talk.hidden = !this.#camera?.talk;
+        talk.disabled = Boolean(problem);
+        talk.classList.toggle("starting", this.#starting);
+        talk.setAttribute("aria-pressed", String(talking && !this.#starting));
+        const label = text(talking ? "talk_stop" : "talk_start");
+        talk.title = problem ? text(problem) : label;
+        talk.setAttribute("aria-label", talk.title);
+        const caption = talk.querySelector("span");
+        if (caption) caption.textContent = label;
+      }
       const sound = /** @type {HTMLButtonElement | null} */ (root?.querySelector('[data-action="sound"]'));
       if (!sound || !this.video) return;
       const muted = this.video.muted;

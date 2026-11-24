@@ -1016,7 +1016,15 @@
         "streams": "Streamy",
         "stream_camera": "Kamera",
         "stream_name": "Název",
-        "start_muted": "Spustit bez zvuku"
+        "start_muted": "Spustit bez zvuku",
+        "talk_start": "Mluvit",
+        "talk_stop": "Přestat mluvit",
+        "talk_https": "Mikrofon vyžaduje zabezpečené připojení (HTTPS).",
+        "talk_unsupported": "Tento prohlížeč nemůže odesílat mikrofon.",
+        "talk_denied": "Prohlížeč nepovolil mikrofon.",
+        "talk_failed": "Zařízení zvuk nepřijalo.",
+        "talk_replaced": "Přes toto zařízení teď mluví někdo jiný.",
+        "talk_ended": "Zařízení hovor ukončilo."
       }
     }
   },

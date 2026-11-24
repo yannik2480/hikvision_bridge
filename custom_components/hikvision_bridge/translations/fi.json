@@ -1016,7 +1016,15 @@
         "streams": "Striimit",
         "stream_camera": "Kamera",
         "stream_name": "Nimi",
-        "start_muted": "Aloita ilman ääntä"
+        "start_muted": "Aloita ilman ääntä",
+        "talk_start": "Puhu",
+        "talk_stop": "Lopeta puhuminen",
+        "talk_https": "Mikrofoni tarvitsee suojatun yhteyden (HTTPS).",
+        "talk_unsupported": "Tämä selain ei voi lähettää mikrofonia.",
+        "talk_denied": "Selain ei sallinut mikrofonia.",
+        "talk_failed": "Laite ei ottanut ääntä vastaan.",
+        "talk_replaced": "Joku muu puhuu nyt tämän laitteen kautta.",
+        "talk_ended": "Laite lopetti puhelun."
       }
     }
   },

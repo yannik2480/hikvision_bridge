@@ -1016,7 +1016,15 @@
         "streams": "Flux",
         "stream_camera": "Caméra",
         "stream_name": "Nom",
-        "start_muted": "Démarrer sans son"
+        "start_muted": "Démarrer sans son",
+        "talk_start": "Parler",
+        "talk_stop": "Arrêter de parler",
+        "talk_https": "Le microphone nécessite une connexion sécurisée (HTTPS).",
+        "talk_unsupported": "Ce navigateur ne peut pas envoyer le microphone.",
+        "talk_denied": "Le navigateur n'a pas autorisé le microphone.",
+        "talk_failed": "L'appareil n'a pas accepté le son.",
+        "talk_replaced": "Quelqu'un d'autre parle maintenant via cet appareil.",
+        "talk_ended": "L'appareil a mis fin à la conversation."
       }
     }
   },

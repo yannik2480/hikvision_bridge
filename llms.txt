@@ -30,7 +30,7 @@ Use this file as the authoritative overview of the project. The full user guide 
 - Health: event connection, event delay, stream encryption, IP address, optional uptime, CPU, memory and reboot count (diagnostic).
 - Recordings: recorder and memory-card recordings in the Home Assistant media browser, by day and kind, with thumbnails. Seekable playback, MP4, or H.264 conversion. Saving to the media folder.
 - Sidebar panel and dashboard card: camera list, live view, a timeline of recordings and detections to scrub through.
-- Live card (`custom:hikvision-bridge-live-card`): live picture and sound of a camera, with a button for each configured stream (for example main and sub stream of a door station).
+- Live card (`custom:hikvision-bridge-live-card`): live picture and sound of a camera, with a button for each configured stream (for example main and sub stream of a door station), and a Talk button that sends the browser's microphone to devices with a speaker (two-way audio, needs HTTPS).
 - Video intercom and doorbell: remote door unlock button, call status sensor (`idle`, `ringing`, `on_call`), ringing binary sensor, doorbell event entity, access event log.
 - Hik-Connect (optional): cloud connection per device, stream encryption status, alarm control panels for security areas and groups (arm away, arm home/silent, disarm), intercom door opening (not yet verified on hardware).
 - Actions (services): `add_center_links`, `isapi_request` (read-only unless confirmed), `ptz_move`, `ptz_preset`, `set_notification_host`, `search_recordings`, `download_recording`, `cloud_create_area`, `cloud_update_area`, `cloud_delete_area`.

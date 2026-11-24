@@ -1016,7 +1016,15 @@
         "streams": "Streams",
         "stream_camera": "Kamera",
         "stream_name": "Navn",
-        "start_muted": "Start uden lyd"
+        "start_muted": "Start uden lyd",
+        "talk_start": "Tal",
+        "talk_stop": "Stop med at tale",
+        "talk_https": "Mikrofonen kræver en sikker forbindelse (HTTPS).",
+        "talk_unsupported": "Denne browser kan ikke sende mikrofonen.",
+        "talk_denied": "Browseren tillod ikke mikrofonen.",
+        "talk_failed": "Enheden tog ikke imod lyden.",
+        "talk_replaced": "En anden taler nu gennem denne enhed.",
+        "talk_ended": "Enheden afsluttede samtalen."
       }
     }
   },

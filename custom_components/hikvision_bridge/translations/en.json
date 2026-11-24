@@ -1016,7 +1016,15 @@
         "streams": "Streams",
         "stream_camera": "Camera",
         "stream_name": "Name",
-        "start_muted": "Start without sound"
+        "start_muted": "Start without sound",
+        "talk_start": "Talk",
+        "talk_stop": "Stop talking",
+        "talk_https": "The microphone needs a secure connection (HTTPS).",
+        "talk_unsupported": "This browser cannot send the microphone.",
+        "talk_denied": "The browser did not allow the microphone.",
+        "talk_failed": "The device did not accept the sound.",
+        "talk_replaced": "Someone else is now talking through this device.",
+        "talk_ended": "The device ended the talk."
       }
     }
   },

@@ -9,7 +9,7 @@ from ..wire.faults import NotIsapi
 from ..wire.link import IsapiLink
 from ..wire.scrub import scrubbed_logger
 from ..wire.xmlview import XmlNode
-from .features import detection, intercom, io, linkage, privacy, storage
+from .features import detection, intercom, io, linkage, privacy, storage, talk
 from .ids import numeric_id
 from .inventory import (
     ChannelProfile,
@@ -264,6 +264,9 @@ async def discover(link: IsapiLink, *, probe_switches: bool = True) -> DevicePro
         profile.risky_password = bool(user_check.flag("isRiskPassword", False))
     if shape == DeviceShape.INTERCOM or (identity.device_type or "").lower() == "vis":
         profile.intercom = await intercom.read_capabilities(link)
+    # Recorders pass sound to their cameras' own channels, which are not reached here.
+    if not shape.records:
+        profile.talk = await talk.read(link)
 
     if probe_switches:
         await probe_switchable(link, profile)
