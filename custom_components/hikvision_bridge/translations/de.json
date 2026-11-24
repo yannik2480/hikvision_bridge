@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Name",
         "start_muted": "Ohne Ton starten",
+        "start_talking": "Mit eingeschaltetem Mikrofon starten",
         "talk_start": "Sprechen",
         "talk_stop": "Sprechen beenden",
         "talk_https": "Das Mikrofon braucht eine sichere Verbindung (HTTPS).",

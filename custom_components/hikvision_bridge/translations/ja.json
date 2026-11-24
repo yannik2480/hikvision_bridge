@@ -1017,6 +1017,7 @@
         "stream_camera": "カメラ",
         "stream_name": "名前",
         "start_muted": "音声なしで開始",
+        "start_talking": "マイクをオンにして開始",
         "talk_start": "話す",
         "talk_stop": "話すのをやめる",
         "talk_https": "マイクには安全な接続 (HTTPS) が必要です。",

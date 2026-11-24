@@ -36,8 +36,9 @@ def test_the_first_g711_channel_is_used() -> None:
     assert CHANNEL.path == "/ISAPI/System/TwoWayAudio/channels/1"
     other = CHANNELS.replace("G.711ulaw", "G.726")
     assert parse_channels(parse(other)) is None
-    off = CHANNELS.replace("<enabled>true", "<enabled>false")
-    assert parse_channels(parse(off)) is None
+    # Devices report the channel disabled while nobody talks: it is used all the same.
+    idle = CHANNELS.replace("<enabled>true", "<enabled>false")
+    assert parse_channels(parse(idle)) == CHANNEL
     assert parse_channels(None) is None
 
 

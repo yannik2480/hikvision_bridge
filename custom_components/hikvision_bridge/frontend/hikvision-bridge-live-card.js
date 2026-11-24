@@ -27,6 +27,8 @@ import { Microphone, unavailable } from "./talk.js";
  * @property {Stream[]} [streams] The streams, in the order of their buttons; the first plays.
  * @property {string} [entity] A camera entity: the card with this one stream.
  * @property {boolean} [muted] Starts without sound; true without the option.
+ * @property {boolean} [microphone] Starts talking through the device as the picture shows; false
+ *   without the option.
  *
  * @typedef {object} BridgeCamera A camera as `hikvision_bridge/cameras` describes it.
  * @property {string} entry_id
@@ -66,6 +68,7 @@ export const TEXT = {
   stream_camera: "Camera",
   stream_name: "Name",
   start_muted: "Start without sound",
+  start_talking: "Start with the microphone on",
   talk_start: "Talk",
   talk_stop: "Stop talking",
   talk_https: "The microphone needs a secure connection (HTTPS).",
@@ -83,7 +86,7 @@ export const TALK_ENDS = { replaced: "talk_replaced", device: "talk_ended", unlo
 const NOTICE_SECONDS = 5;
 
 /** The options of the card that are what it does without them. */
-export const DEFAULTS = { muted: true };
+export const DEFAULTS = { muted: true, microphone: false };
 
 /**
  * Return the streams of a card: its list, or its one entity.
@@ -119,8 +122,10 @@ export function checkConfig(config) {
       throw new Error(`The name of ${stream.entity} must be a text`);
     }
   }
-  if (config.muted !== undefined && typeof config.muted !== "boolean") {
-    throw new Error("muted must be true or false");
+  for (const option of /** @type {const} */ (["muted", "microphone"])) {
+    if (config[option] !== undefined && typeof config[option] !== "boolean") {
+      throw new Error(`${option} must be true or false`);
+    }
   }
 }
 
@@ -183,6 +188,7 @@ export function editorSchema(text) {
       },
     },
     { name: "muted", label: text("start_muted"), selector: { boolean: {} } },
+    { name: "microphone", label: text("start_talking"), selector: { boolean: {} } },
   ];
 }
 
@@ -293,6 +299,9 @@ const ICONS = {
   microphone: icon(
     "M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3m7 9c0 3.53-2.61 6.44-6 6.93V21h-2v-3.07c-3.39-.49-6-3.4-6-6.93h2a5 5 0 0 0 5 5 5 5 0 0 0 5-5h2z",
   ),
+  microphoneOff: icon(
+    "M19 11c0 1.19-.34 2.3-.9 3.28l-1.23-1.23c.27-.62.43-1.31.43-2.05H19m-4 .16L9 5.18V5a3 3 0 0 1 3-3 3 3 0 0 1 3 3v6.16M4.27 3 21 19.73 19.73 21l-4.19-4.19c-.77.46-1.63.77-2.54.91V21h-2v-3.28c-3.28-.49-6-3.31-6-6.72h1.7c0 3 2.54 5.1 5.3 5.1.81 0 1.6-.19 2.31-.52l-1.66-1.66L12 14a3 3 0 0 1-3-3v-.72L3 4.27 4.27 3z",
+  ),
   soundOff: icon(
     "M12 4 9.91 6.09 12 8.18M4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.26c-.67.51-1.42.93-2.25 1.2v2.07c1.38-.32 2.63-.95 3.68-1.81L19.73 21 21 19.73l-9-9M19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71m-2.5 0c0-1.77-1-3.29-2.5-4.03v2.21l2.45 2.45c.05-.2.05-.42.05-.63z",
   ),
@@ -321,12 +330,8 @@ const STYLE = `
   .icon-button:hover { background: color-mix(in srgb, var(--hb-text) 10%, transparent); }
   .icon-button:disabled { opacity: .35; cursor: default; background: none; }
   .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
-  .talk { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--hb-line); background: none; border-radius: 18px; padding: 4px 14px 4px 10px; cursor: pointer; min-height: 36px; }
-  .talk[hidden] { display: none; }
-  .talk svg { width: 20px; height: 20px; fill: currentColor; }
-  .talk[aria-pressed="true"] { background: #e5484d; border-color: #e5484d; color: #fff; }
-  .talk.starting { opacity: .6; }
-  .talk:disabled { opacity: .35; cursor: default; }
+  .icon-button[data-action="talk"][aria-pressed="true"] { color: #e5484d; }
+  .icon-button[data-action="talk"].starting { opacity: .6; }
   .notice { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff; padding: 8px 14px; border-radius: 8px; max-width: 80%; text-align: center; pointer-events: none; }
   .notice[hidden] { display: none; }
 `;
@@ -441,6 +446,9 @@ if (globalThis.customElements && globalThis.HTMLElement) {
     /** @type {Microphone | null} The talk through the camera's device, while it lasts. */
     #microphone = null;
 
+    /** Whether the person turned the microphone off: it then stays off until turned on. */
+    #turnedOff = false;
+
     /** Whether the talk is still starting: the permission, then the device. */
     #starting = false;
 
@@ -533,8 +541,8 @@ if (globalThis.customElements && globalThis.HTMLElement) {
           </div>
           <div class="bar">
             <div class="streams" role="group"></div>
-            <button class="talk" data-action="talk" aria-pressed="false" hidden>${ICONS.microphone}<span></span></button>
             <span class="spacer"></span>
+            <button class="icon-button" data-action="talk" aria-pressed="false" hidden>${ICONS.microphoneOff}</button>
             <button class="icon-button" data-action="sound">${ICONS.soundOff}</button>
             <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
           </div>
@@ -542,6 +550,8 @@ if (globalThis.customElements && globalThis.HTMLElement) {
       this.video = /** @type {HTMLVideoElement} */ (root.querySelector("video"));
       this.video.addEventListener("volumechange", () => this.#labels());
       root.querySelector(".bar")?.addEventListener("click", (event) => this.#click(event));
+      // A microphone turned on with the card may wait for a first touch before the browser runs it
+      root.addEventListener("pointerdown", () => this.#microphone?.resume());
       this.player = new Player(this);
       this.#render();
       this.#play();
@@ -591,6 +601,9 @@ if (globalThis.customElements && globalThis.HTMLElement) {
       if (this.#microphone && this.#microphone.entryId !== found.camera.entry_id) this.#stopTalking();
       this.#camera = found.camera;
       this.#labels();
+      if (this.#config.microphone && found.camera.talk && !this.#microphone && !this.#turnedOff) {
+        this.#startTalking();
+      }
       await this.player?.live(found.camera, found.level);
     }
 
@@ -609,6 +622,7 @@ if (globalThis.customElements && globalThis.HTMLElement) {
         this.video.muted = !this.sound;
         if (this.video.paused) this.player?.resume();
       } else if (target.dataset.action === "talk") {
+        this.#turnedOff = Boolean(this.#microphone);
         if (this.#microphone) this.#stopTalking();
         else this.#startTalking();
       } else if (target.dataset.action === "fullscreen") {
@@ -688,11 +702,9 @@ if (globalThis.customElements && globalThis.HTMLElement) {
         talk.disabled = Boolean(problem);
         talk.classList.toggle("starting", this.#starting);
         talk.setAttribute("aria-pressed", String(talking && !this.#starting));
-        const label = text(talking ? "talk_stop" : "talk_start");
-        talk.title = problem ? text(problem) : label;
+        talk.innerHTML = talking ? ICONS.microphone : ICONS.microphoneOff;
+        talk.title = problem ? text(problem) : text(talking ? "talk_stop" : "talk_start");
         talk.setAttribute("aria-label", talk.title);
-        const caption = talk.querySelector("span");
-        if (caption) caption.textContent = label;
       }
       const sound = /** @type {HTMLButtonElement | null} */ (root?.querySelector('[data-action="sound"]'));
       if (!sound || !this.video) return;

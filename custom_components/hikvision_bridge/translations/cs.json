@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Název",
         "start_muted": "Spustit bez zvuku",
+        "start_talking": "Spustit se zapnutým mikrofonem",
         "talk_start": "Mluvit",
         "talk_stop": "Přestat mluvit",
         "talk_https": "Mikrofon vyžaduje zabezpečené připojení (HTTPS).",

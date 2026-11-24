@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Név",
         "start_muted": "Indítás hang nélkül",
+        "start_talking": "Indítás bekapcsolt mikrofonnal",
         "talk_start": "Beszéd",
         "talk_stop": "Beszéd vége",
         "talk_https": "A mikrofonhoz biztonságos kapcsolat (HTTPS) kell.",

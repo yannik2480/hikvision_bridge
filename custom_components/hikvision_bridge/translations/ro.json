@@ -1017,6 +1017,7 @@
         "stream_camera": "Cameră",
         "stream_name": "Nume",
         "start_muted": "Pornește fără sunet",
+        "start_talking": "Pornește cu microfonul activ",
         "talk_start": "Vorbește",
         "talk_stop": "Oprește vorbirea",
         "talk_https": "Microfonul are nevoie de o conexiune securizată (HTTPS).",

@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Nimi",
         "start_muted": "Aloita ilman ääntä",
+        "start_talking": "Aloita mikrofoni päällä",
         "talk_start": "Puhu",
         "talk_stop": "Lopeta puhuminen",
         "talk_https": "Mikrofoni tarvitsee suojatun yhteyden (HTTPS).",

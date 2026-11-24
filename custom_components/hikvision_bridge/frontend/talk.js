@@ -81,7 +81,7 @@ export class Microphone {
   async start() {
     const problem = unavailable(/** @type {any} */ (globalThis));
     if (problem) throw new Error(problem);
-    // Created in the click that started the talk, so the browser lets it run
+    // Created in the click that started the talk, the browser lets it run at once
     this.context = new AudioContext();
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: MICROPHONE });
@@ -122,7 +122,15 @@ export class Microphone {
     });
     node.port.onmessage = ({ data }) => this.#send(data);
     this.context.createMediaStreamSource(this.stream).connect(node);
-    await this.context.resume();
+    this.resume();
+  }
+
+  /**
+   * Let the audio run. Started without a touch on the page (a card that opens with the
+   * microphone on), browsers hold it until the first one: the card calls this on every touch.
+   */
+  resume() {
+    this.context?.resume().catch(() => {});
   }
 
   /** @param {Uint8Array} frame */

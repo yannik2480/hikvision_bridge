@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Nama",
         "start_muted": "Mulai tanpa suara",
+        "start_talking": "Mulai dengan mikrofon menyala",
         "talk_start": "Bicara",
         "talk_stop": "Berhenti bicara",
         "talk_https": "Mikrofon memerlukan koneksi aman (HTTPS).",

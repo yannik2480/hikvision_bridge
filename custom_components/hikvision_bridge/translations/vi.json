@@ -1017,6 +1017,7 @@
         "stream_camera": "Camera",
         "stream_name": "Tên",
         "start_muted": "Bắt đầu không có âm thanh",
+        "start_talking": "Bắt đầu với micrô bật",
         "talk_start": "Nói",
         "talk_stop": "Ngừng nói",
         "talk_https": "Micrô cần kết nối bảo mật (HTTPS).",

@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Namn",
         "start_muted": "Starta utan ljud",
+        "start_talking": "Starta med mikrofonen på",
         "talk_start": "Prata",
         "talk_stop": "Sluta prata",
         "talk_https": "Mikrofonen kräver en säker anslutning (HTTPS).",

@@ -1017,6 +1017,7 @@
         "stream_camera": "Kamera",
         "stream_name": "Ad",
         "start_muted": "Sessiz başlat",
+        "start_talking": "Mikrofon açık başlat",
         "talk_start": "Konuş",
         "talk_stop": "Konuşmayı bitir",
         "talk_https": "Mikrofon için güvenli bir bağlantı (HTTPS) gerekir.",

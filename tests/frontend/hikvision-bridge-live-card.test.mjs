@@ -40,7 +40,7 @@ describe("the configuration", () => {
 
   it("accepts streams of camera entities, or one entity", () => {
     checkConfig({ streams: [{ entity: MAIN, name: "Door" }, { entity: SUB }], muted: false });
-    checkConfig({ entity: MAIN });
+    checkConfig({ entity: MAIN, microphone: true });
   });
 
   it("explains what is wrong", () => {
@@ -54,6 +54,7 @@ describe("the configuration", () => {
       [{ entity: "sensor.door" }, /entity of a camera/],
       [{ streams: [{ entity: MAIN, name: 1 }] }, /name of camera.front_door_main_stream/],
       [{ entity: MAIN, muted: "no" }, /muted must be true or false/],
+      [{ entity: MAIN, microphone: "on" }, /microphone must be true or false/],
     ];
     for (const [config, message] of wrong) {
       assert.throws(() => checkConfig(config), message, JSON.stringify(config));
@@ -66,6 +67,7 @@ describe("the visual editor", () => {
     assert.deepEqual(editorData({ type: `custom:${CARD}`, entity: MAIN }), {
       type: `custom:${CARD}`,
       muted: true,
+      microphone: false,
       streams: [{ entity: MAIN }],
     });
   });
@@ -75,6 +77,7 @@ describe("the visual editor", () => {
       type: `custom:${CARD}`,
       entity: MAIN,
       muted: true,
+      microphone: false,
       streams: [{ entity: MAIN, name: "  Door  " }, { entity: SUB, name: " " }, { name: "half added" }],
     };
 
@@ -83,10 +86,11 @@ describe("the visual editor", () => {
       streams: [{ entity: MAIN, name: "Door" }, { entity: SUB }],
     });
     assert.equal(cleanConfig({ streams: [], muted: false }).muted, false);
+    assert.equal(cleanConfig({ streams: [], microphone: true }).microphone, true);
   });
 
   it("lists the streams with a camera of the integration and a name", () => {
-    const [streams, muted] = editorSchema(translator(GERMAN));
+    const [streams, muted, microphone] = editorSchema(translator(GERMAN));
 
     assert.equal(streams.name, "streams");
     assert.equal(streams.selector.object.multiple, true);
@@ -95,6 +99,8 @@ describe("the visual editor", () => {
     });
     assert.equal(streams.selector.object.fields.entity.label, TEXT.stream_camera);
     assert.equal(muted.label, "Ohne Ton starten");
+    assert.equal(microphone.name, "microphone");
+    assert.equal(microphone.label, TEXT.start_talking);
   });
 });
 

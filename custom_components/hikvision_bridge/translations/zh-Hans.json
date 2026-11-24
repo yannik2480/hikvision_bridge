@@ -1017,6 +1017,7 @@
         "stream_camera": "摄像机",
         "stream_name": "名称",
         "start_muted": "静音启动",
+        "start_talking": "启动时打开麦克风",
         "talk_start": "对讲",
         "talk_stop": "停止对讲",
         "talk_https": "麦克风需要安全连接 (HTTPS)。",

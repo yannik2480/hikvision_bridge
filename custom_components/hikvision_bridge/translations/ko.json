@@ -1017,6 +1017,7 @@
         "stream_camera": "카메라",
         "stream_name": "이름",
         "start_muted": "소리 없이 시작",
+        "start_talking": "마이크를 켠 상태로 시작",
         "talk_start": "말하기",
         "talk_stop": "말하기 중지",
         "talk_https": "마이크를 사용하려면 보안 연결(HTTPS)이 필요합니다.",

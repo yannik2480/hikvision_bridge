@@ -1017,6 +1017,7 @@
         "stream_camera": "Κάμερα",
         "stream_name": "Όνομα",
         "start_muted": "Έναρξη χωρίς ήχο",
+        "start_talking": "Έναρξη με ανοιχτό μικρόφωνο",
         "talk_start": "Ομιλία",
         "talk_stop": "Τέλος ομιλίας",
         "talk_https": "Το μικρόφωνο χρειάζεται ασφαλή σύνδεση (HTTPS).",
