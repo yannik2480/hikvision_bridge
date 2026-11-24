@@ -1004,6 +1004,8 @@
         "zoom_in": "تكبير",
         "zoom_out": "تصغير",
         "previous_day": "اليوم السابق",
+        "unread": "غير مقروء",
+        "mark_all_read": "تحديد الكل كمقروء",
         "next_day": "اليوم التالي",
         "source": "المصدر",
         "select_camera": "اختر كاميرا.",

@@ -1004,6 +1004,8 @@
         "zoom_in": "Nagyítás",
         "zoom_out": "Kicsinyítés",
         "previous_day": "Előző nap",
+        "unread": "Olvasatlan",
+        "mark_all_read": "Összes megjelölése olvasottként",
         "next_day": "Következő nap",
         "source": "Forrás",
         "select_camera": "Válassz kamerát.",

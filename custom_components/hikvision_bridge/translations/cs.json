@@ -1004,6 +1004,8 @@
         "zoom_in": "Přiblížit",
         "zoom_out": "Oddálit",
         "previous_day": "Předchozí den",
+        "unread": "Nepřečtené",
+        "mark_all_read": "Označit vše jako přečtené",
         "next_day": "Další den",
         "source": "Zdroj",
         "select_camera": "Vyberte kameru.",

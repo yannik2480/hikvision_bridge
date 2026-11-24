@@ -1004,6 +1004,8 @@
         "zoom_in": "Lähennä",
         "zoom_out": "Loitonna",
         "previous_day": "Edellinen päivä",
+        "unread": "Lukematta",
+        "mark_all_read": "Merkitse kaikki luetuiksi",
         "next_day": "Seuraava päivä",
         "source": "Lähde",
         "select_camera": "Valitse kamera.",

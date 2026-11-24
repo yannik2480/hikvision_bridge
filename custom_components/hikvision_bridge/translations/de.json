@@ -1004,6 +1004,8 @@
         "zoom_in": "Hineinzoomen",
         "zoom_out": "Herauszoomen",
         "previous_day": "Vorheriger Tag",
+        "unread": "Ungelesen",
+        "mark_all_read": "Alle als gelesen markieren",
         "next_day": "Nächster Tag",
         "source": "Quelle",
         "select_camera": "Wähle eine Kamera.",

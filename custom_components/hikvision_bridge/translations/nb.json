@@ -1004,6 +1004,8 @@
         "zoom_in": "Zoom inn",
         "zoom_out": "Zoom ut",
         "previous_day": "Forrige dag",
+        "unread": "Ulest",
+        "mark_all_read": "Merk alle som lest",
         "next_day": "Neste dag",
         "source": "Kilde",
         "select_camera": "Velg et kamera.",

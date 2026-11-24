@@ -1004,6 +1004,8 @@
         "zoom_in": "Inzoomen",
         "zoom_out": "Uitzoomen",
         "previous_day": "Vorige dag",
+        "unread": "Ongelezen",
+        "mark_all_read": "Alles als gelezen markeren",
         "next_day": "Volgende dag",
         "source": "Bron",
         "select_camera": "Kies een camera.",

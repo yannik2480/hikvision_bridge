@@ -1004,6 +1004,8 @@
         "zoom_in": "Yakınlaştır",
         "zoom_out": "Uzaklaştır",
         "previous_day": "Önceki gün",
+        "unread": "Okunmamış",
+        "mark_all_read": "Tümünü okundu olarak işaretle",
         "next_day": "Sonraki gün",
         "source": "Kaynak",
         "select_camera": "Bir kamera seçin.",

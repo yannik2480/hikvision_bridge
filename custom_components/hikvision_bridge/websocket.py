@@ -23,7 +23,7 @@ from .const import (
     SUBENTRY_CHANNEL_LINK,
 )
 from .model.features import recordings
-from .runtime import identity, sessions
+from .runtime import event_reads, identity, sessions
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import pick_source, sources
 from .views import encode_token
@@ -36,12 +36,16 @@ MAX_WINDOW = timedelta(days=2)
 # Before the wanted moment: the recording that contains it may have started earlier.
 LOOK_BACK = timedelta(hours=3)
 LOOK_AHEAD = timedelta(hours=6)
+# Events marked read in one message; a clip opened at a time holds only a few.
+MAX_MARKED = 200
 
 _CHANNEL = {
     vol.Required("entry_id"): str,
     vol.Required("channel_id"): str,
     vol.Required("source"): str,
 }
+_CAMERA = {vol.Required("entry_id"): str, vol.Required("channel_id"): str}
+_EVENT_ITEM = {vol.Required("entity_id"): str, vol.Required("start"): str}
 
 
 @callback
@@ -52,6 +56,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_playback_start)
     websocket_api.async_register_command(hass, ws_playback_stop)
     websocket_api.async_register_command(hass, ws_live_sound)
+    websocket_api.async_register_command(hass, ws_events_read)
+    websocket_api.async_register_command(hass, ws_events_read_all)
 
 
 def _bridges(hass: HomeAssistant) -> list[DeviceBridge]:
@@ -214,6 +220,7 @@ async def ws_timeline(
             error = type(err).__name__
             _LOGGER.debug("No recordings list from the %s: %s", source.key, detail(err))
     events = await _events(hass, _event_entities(hass, bridge, msg["channel_id"]), start, end)
+    reads = event_reads.get(hass)
     connection.send_result(
         msg["id"],
         {
@@ -228,7 +235,10 @@ async def ws_timeline(
                 }
                 for r in found
             ],
-            "events": events,
+            "events": [
+                {**ev, "read": reads.is_read(connection.user.id, ev["entity_id"], ev["start"])}
+                for ev in events
+            ],
         },
     )
 
@@ -260,6 +270,76 @@ async def ws_days(
         except BridgeFault as err:
             _LOGGER.debug("No recorded days from the %s: %s", source.key, detail(err))
     connection.send_result(msg["id"], {"days": days})
+
+
+def _event_keys(
+    hass: HomeAssistant, bridge: DeviceBridge, channel_id: str, items: list[dict]
+) -> list[str] | None:
+    """Read keys of the events named by a client; None if one is not an event of the camera."""
+    known = _event_entities(hass, bridge, channel_id)
+    keys = []
+    for item in items:
+        if item["entity_id"] not in known:
+            return None
+        keys.append(event_reads.event_key(item["entity_id"], _time(item["start"]).isoformat()))
+    return keys
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/events/read",
+        **_CAMERA,
+        vol.Required("events"): vol.All([_EVENT_ITEM], vol.Length(min=1, max=MAX_MARKED)),
+    }
+)
+@callback
+def ws_events_read(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Events the user has opened or marked read; only for this user."""
+    bridge = _bridge(hass, msg["entry_id"])
+    if bridge is None or msg["channel_id"] not in bridge.profile.channels:
+        connection.send_error(msg["id"], "not_found", "Unknown camera")
+        return
+    try:
+        keys = _event_keys(hass, bridge, msg["channel_id"], msg["events"])
+    except vol.Invalid:
+        connection.send_error(msg["id"], "invalid_format", "Invalid time")
+        return
+    if keys is None:
+        connection.send_error(msg["id"], "not_found", "Unknown event")
+        return
+    event_reads.get(hass).mark(connection.user.id, keys)
+    connection.send_result(msg["id"], {})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/events/read_all",
+        **_CAMERA,
+        vol.Required("start"): str,
+        vol.Required("end"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_events_read_all(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Every event of a time window read by this user; answers how many were unread."""
+    bridge = _bridge(hass, msg["entry_id"])
+    if bridge is None or msg["channel_id"] not in bridge.profile.channels:
+        connection.send_error(msg["id"], "not_found", "Unknown camera")
+        return
+    try:
+        start, end = _time(msg["start"]), _time(msg["end"])
+    except vol.Invalid:
+        connection.send_error(msg["id"], "invalid_format", "Invalid time")
+        return
+    end = min(end, start + MAX_WINDOW)
+    events = await _events(hass, _event_entities(hass, bridge, msg["channel_id"]), start, end)
+    keys = [event_reads.event_key(ev["entity_id"], ev["start"]) for ev in events]
+    marked = event_reads.get(hass).mark(connection.user.id, keys)
+    connection.send_result(msg["id"], {"marked": marked})
 
 
 def _may_stop(
