@@ -963,7 +963,7 @@
         "continuous": "Jatkuva",
         "motion": "Liike",
         "alarm": "Hälytystulo",
-        "event": "Älykäs tapahtuma",
+        "event": "Tapahtuma",
         "manual": "Manuaalinen",
         "other": "Muu"
       }

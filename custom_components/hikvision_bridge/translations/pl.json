@@ -963,7 +963,7 @@
         "continuous": "Ciągłe",
         "motion": "Ruch",
         "alarm": "Wejście alarmowe",
-        "event": "Zdarzenie inteligentne",
+        "event": "Zdarzenie",
         "manual": "Ręcznie",
         "other": "Inne"
       }

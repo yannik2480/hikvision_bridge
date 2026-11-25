@@ -963,7 +963,7 @@
         "continuous": "连续录像",
         "motion": "移动",
         "alarm": "报警输入",
-        "event": "智能事件",
+        "event": "事件",
         "manual": "手动",
         "other": "其他"
       }

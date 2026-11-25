@@ -963,7 +963,7 @@
         "continuous": "常時録画",
         "motion": "動き",
         "alarm": "アラーム入力",
-        "event": "スマートイベント",
+        "event": "イベント",
         "manual": "手動",
         "other": "その他"
       }

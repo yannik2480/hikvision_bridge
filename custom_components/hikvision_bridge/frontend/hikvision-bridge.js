@@ -1718,6 +1718,15 @@ class Viewer {
     this._legend();
   }
 
+  // The recordings of the day joined into clips, as the clip list shows them.
+  _joinedClips() {
+    if (this._joinedOf !== this.data.recordings) {
+      this._joinedOf = this.data.recordings;
+      this._joined = clipsOf(this.data.recordings);
+    }
+    return this._joined;
+  }
+
   // The recording file that contains a moment, if any.
   _recordingAt(time) {
     return this.data.recordings.find((r) => r.start <= time && time < r.end) || null;
@@ -1856,6 +1865,17 @@ class Viewer {
   _opened(time) {
     const opened = this.data.events.filter((ev) => !ev.read && ev.start <= time && time <= ev.end);
     if (opened.length) this._markRead(opened);
+  }
+
+  // An event is read once the playhead plays through it. Clips start before their events
+  // (the recorder keeps the seconds before), so opening a clip alone does not read them. A
+  // short event between two frames still counts: the playhead covers the stretch it moved.
+  _playedThrough(position) {
+    const last = this._readUpTo;
+    this._readUpTo = position;
+    const from = last != null && position >= last && position - last < 2000 ? last : position;
+    const played = this.data.events.filter((ev) => !ev.read && ev.start <= position && ev.end >= from);
+    if (played.length) this._markRead(played);
   }
 
   _markRead(events) {
@@ -2016,6 +2036,7 @@ class Viewer {
     this.timeline.followPlayhead = true;
     this._eventCursor = null;
     this._brokeOff = null;
+    this._readUpTo = null;
     const wasLive = this.mode === "live";
     this.mode = "playback";
     if (wasLive) {
@@ -2094,8 +2115,9 @@ class Viewer {
     const action = e.target.closest("[data-action]")?.dataset.action;
     if (!action) return;
     const position = this.player.position ?? Date.now();
+    // Without events to show (none, or all kinds switched off), previous/next go by recording.
     const shown = this._shownEvents();
-    const events = shown.length ? shown : this.data.events.length ? [] : this.data.recordings;
+    const events = shown.length ? shown : this.data.recordings;
     // After a jump to the start of an event's recording, the next jump counts from that event,
     // not from the earlier start of its recording.
     const cursor = this._eventCursor;
@@ -2254,10 +2276,17 @@ class Viewer {
     this._hint();
   }
 
-  // Seek bar of the recording file playing now, with the position and length in that file.
+  // Seek bar of the clip playing now, with the position and length in it. A clip is the same as
+  // in the clip list: recorders list one recording in several parts (one per trigger), and a
+  // bar of the part alone grew in steps while the clip played. Continuous recording would join
+  // into a whole day, so it keeps the bar of its file.
   _clipBar(position) {
     const bar = this.root.querySelector(".clip");
-    const clip = this.mode === "playback" && position != null ? this._recordingAt(position) : null;
+    const recording = this.mode === "playback" && position != null ? this._recordingAt(position) : null;
+    const clip =
+      recording && recording.kind !== "continuous"
+        ? this._joinedClips().find((c) => c.start <= position && position < c.end) || recording
+        : recording;
     this._clip = clip;
     bar.hidden = !clip;
     if (!clip || this._clipDrag) return;
@@ -2292,6 +2321,7 @@ class Viewer {
         }
         this.timeline.draw();
       }
+      if (this.mode === "playback" && this.player.session) this._playedThrough(position);
       if (this.mode === "playback" && this.player.session && position >= this.player.session.end - 500 && !this.video.paused) {
         this.video.pause();
         this.onEnded();

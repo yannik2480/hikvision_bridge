@@ -963,7 +963,7 @@
         "continuous": "연속 녹화",
         "motion": "동작",
         "alarm": "알람 입력",
-        "event": "스마트 이벤트",
+        "event": "이벤트",
         "manual": "수동",
         "other": "기타"
       }

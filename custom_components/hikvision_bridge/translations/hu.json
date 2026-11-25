@@ -963,7 +963,7 @@
         "continuous": "Folyamatos",
         "motion": "Mozgás",
         "alarm": "Riasztási bemenet",
-        "event": "Intelligens esemény",
+        "event": "Esemény",
         "manual": "Kézi",
         "other": "Egyéb"
       }

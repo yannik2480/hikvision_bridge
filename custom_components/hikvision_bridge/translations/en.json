@@ -963,7 +963,7 @@
         "continuous": "Continuous",
         "motion": "Motion",
         "alarm": "Alarm input",
-        "event": "Smart event",
+        "event": "Event",
         "manual": "Manual",
         "other": "Other"
       }

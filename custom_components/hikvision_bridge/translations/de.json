@@ -963,7 +963,7 @@
         "continuous": "Daueraufnahme",
         "motion": "Bewegung",
         "alarm": "Alarmeingang",
-        "event": "Smart-Ereignis",
+        "event": "Ereignis",
         "manual": "Manuell",
         "other": "Sonstige"
       }

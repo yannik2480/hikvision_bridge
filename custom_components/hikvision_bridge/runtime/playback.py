@@ -13,6 +13,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
+import struct
 from urllib.parse import quote, urlsplit
 from weakref import WeakKeyDictionary
 
@@ -206,6 +207,98 @@ def ffmpeg_args(
         flags = "frag_keyframe+empty_moov+default_base_moof" if streaming else "+faststart"
         args += ["-movflags", flags, "-f", "mp4"]
     return [*args, "-y", target]
+
+
+# Longest header (ftyp and moov) waited for before the output passes unchanged.
+HEADER_LIMIT = 1024 * 1024
+
+
+def with_duration(header: bytes, seconds: float) -> bytes:
+    """The ftyp and moov of a fragmented MP4 with its length set to ``seconds``.
+
+    A streamed MP4 is written before its length is known, so its header says 0 and players
+    show a length that grows while the video loads. The movie (mvhd), its tracks (tkhd) and
+    their media (mdhd) get the length; fragments longer than it still play on.
+    """
+    out = bytearray(header)
+    movie_scale = 0
+
+    def put(at: int, version: int, units: float) -> None:
+        if version == 1:
+            struct.pack_into(">Q", out, at, min(int(units), 2**64 - 1))
+        else:
+            struct.pack_into(">I", out, at, min(int(units), 2**32 - 1))
+
+    def walk(start: int, end: int) -> None:
+        nonlocal movie_scale
+        position = start
+        while position + 8 <= end:
+            size, kind = struct.unpack_from(">I4s", out, position)
+            if size < 8 or position + size > end:
+                return
+            body = position + 8
+            if kind in (b"moov", b"trak", b"mdia"):
+                walk(body, position + size)
+            elif kind in (b"mvhd", b"mdhd") and size >= 32:
+                version = out[body]
+                # Creation and change times are 8 bytes each in version 1, else 4.
+                at = body + (20 if version == 1 else 12)
+                scale = struct.unpack_from(">I", out, at)[0]
+                if kind == b"mvhd":
+                    movie_scale = scale
+                put(at + 4, version, seconds * scale)
+            elif kind == b"tkhd" and size >= 32 and movie_scale:
+                version = out[body]
+                # After the times, the track id and 4 reserved bytes.
+                put(body + (28 if version == 1 else 20), version, seconds * movie_scale)
+            position += size
+
+    walk(0, len(out))
+    return bytes(out)
+
+
+def header_end(data: bytes | bytearray) -> int | None:
+    """Where the moov of a fragmented MP4 ends; None while it is incomplete, 0 if there is none."""
+    position = 0
+    while position + 8 <= len(data):
+        size, kind = struct.unpack_from(">I4s", data, position)
+        if size < 8 or kind not in (b"ftyp", b"moov", b"free"):
+            return 0
+        if position + size > len(data):
+            return None
+        position += size
+        if kind == b"moov":
+            return position
+    return None
+
+
+class DurationStamp:
+    """Sets the length into the header of a streamed MP4 as it passes (see ``with_duration``)."""
+
+    def __init__(self, seconds: float) -> None:
+        self.seconds = seconds
+        self._held = bytearray()
+        self._done = False
+
+    def feed(self, data: bytes) -> bytes:
+        """What to send on; the start is held back until the header is complete."""
+        if self._done:
+            return data
+        self._held += data
+        end = header_end(self._held)
+        if end is None and len(self._held) <= HEADER_LIMIT:
+            return b""
+        self._done = True
+        held, self._held = bytes(self._held), bytearray()
+        if not end:
+            return held
+        return with_duration(held[:end], self.seconds) + held[end:]
+
+    def flush(self) -> bytes:
+        """What is still held back once the output ended."""
+        self._done = True
+        held, self._held = bytes(self._held), bytearray()
+        return held
 
 
 def thumbnail_args() -> list[str]:

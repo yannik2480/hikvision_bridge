@@ -12,7 +12,9 @@ play a time further into a file than they reach in READ_SECONDS over RTSP as wel
 a read that its pace shows will not reach the time in READ_SECONDS gives up after PACE_SECONDS.
 Where RTSP takes longer than READ_SECONDS to start on a device, the read may take that long.
 Devices that cannot download a time span play over RTSP first, which starts at the time.
-A recording that fails over RTSP is read from its file.
+A recording that fails over RTSP is read from its file. Near the start of a recorded file
+(FILE_FIRST_SECONDS) they read the file first, though: it comes much faster than RTSP starts,
+and it ends with the file, where RTSP waits for the device to close the playback.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -70,6 +72,8 @@ PACE_SECONDS = 5
 READ_SECONDS = 10
 # Download kept while no key frame was found yet; past it the file plays from its start.
 SKIP_SEARCH_BYTES = 8 * 1024 * 1024
+# Devices that play over RTSP first read a recorded file instead up to this far into it.
+FILE_FIRST_SECONDS = 15
 # From this far into a recorded file the device is asked to start it at the wanted time.
 LATER_START_SECONDS = 20
 # Bytes compared to tell whether the device sent a recorded file from its start anyway.
@@ -164,6 +168,14 @@ def covering(found: list[recordings.Recording], moment: datetime) -> recordings.
     return next((r for r in ordered if r.start <= moment < r.end), None) or next(
         (r for r in ordered if r.start > moment), None
     )
+
+
+def _near_file_start(found: list[recordings.Recording], moment: datetime) -> bool:
+    """Whether ``moment`` lies within FILE_FIRST_SECONDS of the start of its recorded file."""
+    recording = covering(found, moment)
+    if recording is None:
+        return False
+    return (moment - recording.start).total_seconds() <= FILE_FIRST_SECONDS
 
 
 def playback_uri(
@@ -534,7 +546,9 @@ class SessionManager:
             )
             try:
                 far = source.rtsp_first  # the recorded file is the fallback
-                if not source.rtsp_first and source.link not in self._rtsp_only:
+                if (
+                    not source.rtsp_first or _near_file_start(found or [], start)
+                ) and source.link not in self._rtsp_only:
                     try:
                         session = await self._download(
                             source, key, start, end, uri, quality, folder, found or [], origin
@@ -653,7 +667,8 @@ class SessionManager:
         ``far`` reads the file up to ``start`` even beyond the device's reach.
         """
         recording = covering(found, start)
-        if source.link not in self._by_file:
+        # A device that plays over RTSP first downloads no time span, only its files.
+        if source.link not in self._by_file and not source.rtsp_first:
             try:
                 return await self._from_download(
                     source, key, start, end, uri, quality, folder, "the time span", origin=origin

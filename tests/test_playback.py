@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import re
 import stat
+import struct
 from types import MappingProxyType
 
 from aiohttp import web
@@ -513,3 +514,77 @@ async def test_recorder_or_memory_card(hass: HomeAssistant, serve) -> None:
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+def _box(kind: bytes, body: bytes) -> bytes:
+    return struct.pack(">I4s", 8 + len(body), kind) + body
+
+
+def _header(version: int = 0) -> bytes:
+    """ftyp and moov of a streamed MP4: movie in ms, one track in 1/90000 s, all length 0."""
+    times = bytes(16 if version else 8)
+    wide = ">Q" if version else ">I"
+    mvhd = _box(
+        b"mvhd",
+        bytes([version, 0, 0, 0])
+        + times
+        + struct.pack(">I", 1000)
+        + struct.pack(wide, 0)
+        + bytes(80),
+    )
+    tkhd = _box(
+        b"tkhd",
+        bytes([version, 0, 0, 7])
+        + times
+        + struct.pack(">II", 1, 0)
+        + struct.pack(wide, 0)
+        + bytes(60),
+    )
+    mdhd = _box(
+        b"mdhd",
+        bytes([version, 0, 0, 0])
+        + times
+        + struct.pack(">I", 90000)
+        + struct.pack(wide, 0)
+        + bytes(4),
+    )
+    moov = _box(b"moov", mvhd + _box(b"trak", tkhd + _box(b"mdia", mdhd)) + _box(b"mvex", bytes(8)))
+    return _box(b"ftyp", b"isom" + bytes(4)) + moov
+
+
+@pytest.mark.parametrize("version", [0, 1])
+def test_streamed_mp4_gets_its_length(version: int) -> None:
+    """The header of a streamed MP4 says how long the video is, so players show it at once."""
+    header = _header(version)
+    fragment = _box(b"moof", bytes(16)) + _box(b"mdat", b"video")
+    stamp = playback.DurationStamp(50.0)
+    # The header arrives in pieces: nothing passes until it is complete.
+    sent = [
+        stamp.feed(header[:20]),
+        stamp.feed(header[20:] + fragment[:4]),
+        stamp.feed(fragment[4:]),
+    ]
+    assert sent[0] == b""
+    out = b"".join(sent) + stamp.flush()
+    assert len(out) == len(header) + len(fragment)
+    assert out.endswith(fragment)
+    wide = ">Q" if version else ">I"
+    times = 16 if version else 8
+
+    def field(kind: bytes, at: int) -> int:
+        body = out.index(kind) + 4
+        return struct.unpack_from(wide, out, body + 4 + times + at)[0]
+
+    assert field(b"mvhd", 4) == 50_000  # after the time scale
+    assert field(b"tkhd", 8) == 50_000  # after the track id and reserved bytes, movie scale
+    assert field(b"mdhd", 4) == 50 * 90000
+
+
+def test_stamp_leaves_other_output_alone() -> None:
+    """Output that is no MP4 (MPEG-TS, or ffmpeg wrote nothing usable) passes unchanged."""
+    stamp = playback.DurationStamp(10.0)
+    data = b"\x47" + bytes(187)
+    assert stamp.feed(data) == data
+    stamp = playback.DurationStamp(10.0)
+    assert stamp.feed(_header()[:30]) == b""
+    assert stamp.flush() == _header()[:30]

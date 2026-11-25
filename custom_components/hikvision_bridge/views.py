@@ -7,12 +7,15 @@ import base64
 import binascii
 from collections import OrderedDict
 import re
+from urllib.parse import parse_qsl, urlsplit
 
 from aiohttp import web
 from homeassistant.components.http import KEY_HASS, KEY_HASS_USER, HomeAssistantView
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, PLAYBACK_SEEKABLE
+from .const import DOMAIN, PLAYBACK_H264, PLAYBACK_MP4, PLAYBACK_SEEKABLE
+from .model.features import recordings
 from .runtime import playback as playback_module, sessions, vod
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import (
@@ -38,6 +41,8 @@ RECORDING_URL = "/api/hikvision_bridge/recording/{entry_id}/{channel_id}/{source
 THUMBNAIL_URL = "/api/hikvision_bridge/thumbnail/{entry_id}/{channel_id}/{source}/{token}"
 _PLAYBACK_URI = re.compile(r"^rtsp://[^/\s]+/Streaming/tracks/\d+/?\?[^\s<>]*$", re.IGNORECASE)
 THUMBNAIL_CACHE = 256
+# Formats streamed as fragmented MP4, whose header gets the length (see DurationStamp).
+MP4_FORMATS = (PLAYBACK_MP4, PLAYBACK_H264)
 # Pictures are small (about 320 pixels wide), but the cache stays bounded in bytes as well.
 THUMBNAIL_CACHE_BYTES = 8 * 1024 * 1024
 # Each thumbnail opens a download; recorders serve only a few at a time.
@@ -105,6 +110,26 @@ def _seconds(value: str | None) -> float | None:
     return number if number and number > 0 else None
 
 
+async def _length(
+    playback: PlaybackSource, uri: str, offset: float | None, duration: float | None
+) -> float | None:
+    """Seconds of video a recording request gives: the file from ``offset``, or ``duration``."""
+    if duration:
+        return duration
+    query = dict(parse_qsl(urlsplit(uri).query))
+    try:
+        wall = await recordings.wall_offset(playback.link)
+    except BridgeFault:
+        return None
+    start = recordings.parse_time(query.get("starttime"), wall)
+    end = recordings.parse_time(query.get("endtime"), wall)
+    if start is None or end is None:
+        return None
+    # A file still recording is listed up to the end of the search.
+    seconds = (min(end, dt_util.utcnow()) - start).total_seconds() - (offset or 0.0)
+    return seconds if seconds > 0 else None
+
+
 class RecordingView(HomeAssistantView):
     """One recorded file, converted while it downloads, or its playlist to play on demand."""
 
@@ -145,7 +170,13 @@ class RecordingView(HomeAssistantView):
             name = f"recording_{channel_id}.{EXTENSION[fmt]}"
             response.headers["Content-Disposition"] = f'attachment; filename="{name}"'
 
+        # Streamed MP4 has no length in its header; players then show one that grows.
+        length = await _length(playback, uri, offset, duration) if fmt in MP4_FORMATS else None
+        stamp = playback_module.DurationStamp(length) if length else None
+
         async def send(data: bytes) -> None:
+            if stamp is not None and not (data := stamp.feed(data)):
+                return
             # Started with the first data, so that earlier failures still get a status.
             if not response.prepared:
                 await response.prepare(request)
@@ -159,6 +190,8 @@ class RecordingView(HomeAssistantView):
                 else:
                     args = ffmpeg_args(fmt, head.codec, offset=offset, duration=duration)
                     await run_ffmpeg(playback_module.ffmpeg_binary(hass), args, chunks, send)
+                    if stamp is not None and (rest := stamp.flush()):
+                        await send(rest)
             if not response.prepared:
                 await response.prepare(request)
             await response.write_eof()

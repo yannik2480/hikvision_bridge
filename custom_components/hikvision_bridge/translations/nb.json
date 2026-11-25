@@ -963,7 +963,7 @@
         "continuous": "Kontinuerlig",
         "motion": "Bevegelse",
         "alarm": "Alarminngang",
-        "event": "Smart hendelse",
+        "event": "Hendelse",
         "manual": "Manuell",
         "other": "Annet"
       }

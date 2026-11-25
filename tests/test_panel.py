@@ -1023,6 +1023,62 @@ async def test_device_without_download_by_time_plays_over_rtsp_first(
     await manager.stop_all()
 
 
+async def test_device_without_download_by_time_reads_file_near_its_start(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Near the start of a recorded file, a device that plays over RTSP first reads the file.
+
+    The file comes faster than RTSP starts and ends with the file. No time span is asked for.
+    """
+    capabilities = (
+        200,
+        '<DownloadAbility version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
+        "<isSupportDownloadbyTime>false</isSupportDownloadbyTime>"
+        "<isSupportDownloadbyFileName>true</isSupportDownloadbyFileName></DownloadAbility>",
+    )
+    device, entry = await _setup(
+        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": capabilities}
+    )
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    device.responders[recordings.DOWNLOAD_PATH] = lambda _m, _b: web.Response(
+        body=data, content_type="application/binary"
+    )
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+    manager = sessions.manager(hass)
+
+    async def play(moment) -> str:
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/playback/start",
+                "entry_id": entry.entry_id,
+                "channel_id": "1",
+                "source": "auto",
+                "time": moment.isoformat(),
+            }
+        )
+        answer = await client.receive_json()
+        assert answer["success"], answer
+        session = manager.sessions[answer["result"]["session_id"]]
+        return await hass.async_add_executor_job((session.folder / "args").read_text)
+
+    # The start of the motion clip, and a few seconds into it: the file.
+    for moment in (START + timedelta(minutes=30), START + timedelta(minutes=30, seconds=5)):
+        assert "pipe:0" in await play(moment)
+        await manager.stop_all()
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert downloads
+    assert all("name=" in body for body in downloads)
+
+    # Further in: RTSP at the time, as before.
+    assert "/Streaming/tracks/101/?starttime=" in await play(START + timedelta(minutes=5))
+    await manager.stop_all()
+
+
 async def test_playback_start_replaced_while_starting(
     hass: HomeAssistant,
     serve,
