@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/yannik2480/hikvision_bridge/issues",
   "loggers": ["aiohikvision"],
   "requirements": ["aiohikvision==0.1.1"],
-  "version": "0.9.23b12"
+  "version": "0.9.23b13"
 }
