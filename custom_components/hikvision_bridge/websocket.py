@@ -395,6 +395,8 @@ async def ws_playback_start(
         connection.send_error(msg["id"], "no_recording", "No recording from this time on")
         return
     main = bridge.profile.channels[channel_id].main_stream
+    # The video keeps the time stamps of its recorded file, as the media browser's does.
+    file = sessions.covering(found, span[0])
     try:
         session = await manager.start(
             source,
@@ -407,6 +409,7 @@ async def ws_playback_start(
             found,
             ticket,
             connection.user.id,
+            origin=file.start if file is not None else None,
         )
     except sessions.SessionError as err:
         connection.send_error(msg["id"], err.reason, err.reason)
