@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
+from aiohikvision.isapi.wire.scrub import MASK, scrub_text
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PASSWORD, CONF_USERNAME
@@ -19,7 +20,6 @@ from .const import (
     OPT_STREAM_KEY,
     OPT_WEBHOOK_ID,
 )
-from .wire.scrub import MASK, scrub_text
 
 TO_REDACT = {
     CONF_PASSWORD,

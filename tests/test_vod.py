@@ -7,12 +7,12 @@ from pathlib import Path
 import re
 import struct
 
+from aiohikvision.isapi.model.features import recordings
 from homeassistant.components import media_source
 from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.hikvision_bridge.const import OPT_PLAYBACK, PLAYBACK_SEEKABLE
-from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import sessions, vod
 from custom_components.hikvision_bridge.views import encode_token
 from tests.model.test_recordings import program_stream

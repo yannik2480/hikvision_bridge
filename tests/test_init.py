@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from aiohikvision.isapi.model.discover import CLOUD_PATH
 from homeassistant.components.camera import CameraEntityFeature
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_OFF, STATE_ON, Platform
@@ -16,7 +17,6 @@ from homeassistant.helpers import (
 
 from custom_components.hikvision_bridge.const import DOMAIN, OPT_TRY_ENCRYPTED_STREAM
 from custom_components.hikvision_bridge.diagnostics import async_get_config_entry_diagnostics
-from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from tests.conftest import device_entry
 from tests.fakedevice import FIXTURES, FakeDevice
 

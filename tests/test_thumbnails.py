@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+from aiohikvision.isapi.wire.faults import BridgeFault
 from aiohttp import ClientSession
 from homeassistant.components.http import KEY_HASS
 from homeassistant.core import HomeAssistant
@@ -15,7 +16,6 @@ import pytest
 from custom_components.hikvision_bridge import views
 from custom_components.hikvision_bridge.runtime.playback import NoRecording
 from custom_components.hikvision_bridge.views import ThumbnailView, encode_token
-from custom_components.hikvision_bridge.wire.faults import BridgeFault
 from tests.test_panel import _setup
 
 URI = "rtsp://h/Streaming/tracks/101/?starttime=x"

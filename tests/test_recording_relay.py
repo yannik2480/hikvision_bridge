@@ -8,13 +8,13 @@ from pathlib import Path
 import stat
 from urllib.parse import urlsplit
 
+from aiohikvision.isapi.wire.link import Endpoint, IsapiLink
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 
 from custom_components.hikvision_bridge.runtime import playback, sessions
 from custom_components.hikvision_bridge.runtime.live import LiveRelay
-from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
 
 
 @pytest.mark.parametrize(

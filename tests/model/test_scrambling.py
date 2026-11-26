@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import random
 
+from aiohikvision.isapi.model.features import scrambling
+from aiohikvision.isapi.model.features.scrambling import ProgramStream
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-from custom_components.hikvision_bridge.model.features import scrambling
-from custom_components.hikvision_bridge.model.features.scrambling import ProgramStream
 
 CODE = "ABCDEF"
 VPS = b"\x40\x01" + b"\x0c\x01\xff\xff\x01\x60" + bytes(range(1, 16))  # 21 byte body

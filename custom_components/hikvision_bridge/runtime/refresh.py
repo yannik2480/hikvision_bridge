@@ -8,6 +8,17 @@ from dataclasses import dataclass, field
 import time
 from typing import TYPE_CHECKING
 
+from aiohikvision.isapi.model.discover import CLOUD_PATH, read_cloud_state
+from aiohikvision.isapi.model.features import adjust, detection, health, io, privacy, storage
+from aiohikvision.isapi.model.features.detection import DetectionState
+from aiohikvision.isapi.model.features.health import DeviceHealth
+from aiohikvision.isapi.model.features.image import ImageValue
+from aiohikvision.isapi.model.features.privacy import PrivacyState
+from aiohikvision.isapi.model.ids import numeric_id
+from aiohikvision.isapi.model.inventory import StorageUnit
+from aiohikvision.isapi.model.vocabulary import Kind
+from aiohikvision.isapi.wire.faults import BadCredentials, BridgeFault, LockedOut, Unreachable
+from aiohikvision.isapi.wire.scrub import scrubbed_logger
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -19,17 +30,6 @@ from ..const import (
     FAST_INTERVAL,
     GRACE_BEFORE_UNAVAILABLE,
 )
-from ..model.discover import CLOUD_PATH, read_cloud_state
-from ..model.features import adjust, detection, health, io, privacy, storage
-from ..model.features.detection import DetectionState
-from ..model.features.health import DeviceHealth
-from ..model.features.image import ImageValue
-from ..model.features.privacy import PrivacyState
-from ..model.ids import numeric_id
-from ..model.inventory import StorageUnit
-from ..model.vocabulary import Kind
-from ..wire.faults import BadCredentials, BridgeFault, LockedOut, Unreachable
-from ..wire.scrub import scrubbed_logger
 
 if TYPE_CHECKING:
     from .bridge import DeviceBridge

@@ -9,6 +9,10 @@ from datetime import timedelta
 from pathlib import Path
 import stat
 
+from aiohikvision.isapi.model.discover import CLOUD_PATH
+from aiohikvision.isapi.model.features import recordings
+from aiohikvision.isapi.model.features.scrambling import ProgramStream
+from aiohikvision.isapi.wire.xmlview import parse
 from aiohttp import web
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -19,11 +23,7 @@ from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.hikvision_bridge.const import DOMAIN, OPT_HIDDEN_CHANNELS
-from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
-from custom_components.hikvision_bridge.model.features import recordings
-from custom_components.hikvision_bridge.model.features.scrambling import ProgramStream
 from custom_components.hikvision_bridge.runtime import identity, playback, sessions
-from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
 from tests.model.test_recordings import CLIPS as MODEL_CLIPS, T0, result

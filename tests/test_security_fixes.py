@@ -9,6 +9,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+from aiohikvision.isapi.wire import faults
+from aiohikvision.isapi.wire.link import Reply
+from aiohikvision.isapi.wire.scrub import LOG_SCRUBBER, MASK, scrub_text
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import Context, HomeAssistant
@@ -18,9 +21,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.hikvision_bridge import async_remove_entry, config_flow
 from custom_components.hikvision_bridge.const import DOMAIN, SUBENTRY_CHANNEL_LINK
-from custom_components.hikvision_bridge.wire import faults
-from custom_components.hikvision_bridge.wire.link import Reply
-from custom_components.hikvision_bridge.wire.scrub import LOG_SCRUBBER, MASK, scrub_text
 from tests.test_actions_and_links import _main_device, recorder  # noqa: F401
 
 

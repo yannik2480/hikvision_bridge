@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import re
 
+from aiohikvision.isapi.model.inventory import ChannelProfile, DeviceProfile
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from ..const import DOMAIN
-from ..model.inventory import ChannelProfile, DeviceProfile
 
 VENDOR = "Hikvision"
 _UNSAFE = re.compile(r"[^a-z0-9]+")

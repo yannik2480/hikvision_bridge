@@ -7,6 +7,9 @@ from datetime import UTC, datetime, timedelta
 import json
 import logging
 
+from aiohikvision.isapi.model.vocabulary import Kind, canonical
+from aiohikvision.isapi.wire.feed import frame_from_json, frame_from_xml
+from aiohikvision.isapi.wire.xmlview import parse
 from aiohttp import web
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
@@ -15,12 +18,9 @@ import pytest
 from pytest_homeassistant_custom_component.common import async_capture_events
 
 from custom_components.hikvision_bridge.const import BUS_EVENT, OPT_ACCESS_LOG_SECONDS
-from custom_components.hikvision_bridge.model.vocabulary import Kind, canonical
 from custom_components.hikvision_bridge.runtime import bridge as bridge_mod
 from custom_components.hikvision_bridge.runtime.bridge import MAIN_FEED, DeviceBridge
 from custom_components.hikvision_bridge.runtime.router import DEVICE_SCOPE
-from custom_components.hikvision_bridge.wire.feed import frame_from_json, frame_from_xml
-from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice, event_xml, xml_part
 
@@ -240,7 +240,7 @@ async def test_door_station_stream_delivers_tamper_and_motion(
     def now() -> str:
         return datetime.now(UTC).isoformat(timespec="seconds")
 
-    caplog.set_level(logging.DEBUG, logger="custom_components.hikvision_bridge.wire.feed")
+    caplog.set_level(logging.DEBUG, logger="aiohikvision.isapi.wire.feed")
     device = FakeDevice(
         "camera_g2",
         stream_parts=[
@@ -412,7 +412,7 @@ async def test_door_station_stream_access_event_reaches_the_access_event_entity(
     def now() -> str:
         return datetime.now(UTC).isoformat(timespec="seconds")
 
-    caplog.set_level(logging.DEBUG, logger="custom_components.hikvision_bridge.wire.feed")
+    caplog.set_level(logging.DEBUG, logger="aiohikvision.isapi.wire.feed")
     device = FakeDevice(
         "camera_g2",
         stream_parts=[

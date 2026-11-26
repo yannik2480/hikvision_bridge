@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from aiohikvision.isapi.model.features import recordings
+from aiohikvision.isapi.wire.xmlview import parse
 import pytest
 
-from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import spool
 from custom_components.hikvision_bridge.views import _byte_range, recording_url
-from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.model.test_recordings import program_stream, result
 from tests.test_playback import CLIPS, _setup, fake_ffmpeg  # noqa: F401
 

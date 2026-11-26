@@ -1,3 +1,5 @@
 pytest-homeassistant-custom-component==0.13.373
 ruff==0.15.0
 PyTurboJPEG==1.8.0
+# Requirement of the integration (manifest.json), not installed by the test harness
+aiohikvision==0.1.1

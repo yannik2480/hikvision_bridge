@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.features import intercom, ptz
+from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
@@ -11,9 +13,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_ENTRY_KIND, DOMAIN, KIND_CLOUD
 from .entity import BridgeEntity, add_entities, drop_entities
-from .model.features import intercom, ptz
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault
 
 PARALLEL_UPDATES = 1
 

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.features import park, ptz
+from aiohikvision.isapi.model.features.image import ImageCapability, option_key
+from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -10,10 +13,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import BridgeEntity, ImageSettingEntity, add_entities, image_entities
-from .model.features import park, ptz
-from .model.features.image import ImageCapability, option_key
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault
 
 PARALLEL_UPDATES = 1
 

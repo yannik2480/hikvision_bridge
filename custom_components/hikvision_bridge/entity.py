@@ -5,6 +5,9 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 
+from aiohikvision.isapi.model.features import adjust
+from aiohikvision.isapi.model.features.image import ImageCapability, ImageValue
+from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -16,13 +19,10 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .model.features import adjust
-from .model.features.image import ImageCapability, ImageValue
 from .runtime import identity
 from .runtime.bridge import DeviceBridge
 from .runtime.refresh import StatusRefresher
 from .runtime.router import signal_state
-from .wire.faults import BridgeFault
 
 
 class BridgeEntity(Entity):

@@ -5,11 +5,11 @@ from __future__ import annotations
 import ssl
 from unittest.mock import MagicMock
 
+from aiohikvision.isapi.wire.link import Endpoint, IsapiLink
 import aiohttp
 from multidict import CIMultiDict
 
 from custom_components.hikvision_bridge.runtime.tls import device_context
-from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
 
 
 def _names(context: ssl.SSLContext) -> list[str]:

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from aiohikvision.isapi.model.features.image import ImageCapability, ImageValue
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -19,7 +20,6 @@ from homeassistant.util.color import brightness_to_value, value_to_brightness
 
 from .const import DOMAIN
 from .entity import PolledEntity, add_entities, async_write_setting
-from .model.features.image import ImageCapability, ImageValue
 from .runtime.bridge import DeviceBridge
 
 PARALLEL_UPDATES = 1

@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
+from aiohikvision.isapi.model.features.health import DeviceHealth
+from aiohikvision.isapi.model.inventory import StorageUnit
+from aiohikvision.isapi.model.vocabulary import Kind
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -17,9 +20,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .entity import PolledEntity, PushEntity, add_entities, drop_entities
-from .model.features.health import DeviceHealth
-from .model.inventory import StorageUnit
-from .model.vocabulary import Kind
 from .runtime import identity
 from .runtime.bridge import DeviceBridge
 
