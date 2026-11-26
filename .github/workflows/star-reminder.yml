@@ -19,19 +19,30 @@ jobs:
       (github.event.issue.user.type || github.event.pull_request.user.type) != 'Bot'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           script: |
             const item = context.payload.issue ?? context.payload.pull_request;
             const login = item.user.login;
             const marker = "<!-- star-reminder -->";
 
-            // Has the author already starred the repo?
-            const stargazers = await github.paginate(
-              github.rest.activity.listStargazersForRepo,
-              { ...context.repo, per_page: 100 },
-            );
-            if (stargazers.some((u) => u.login.toLowerCase() === login.toLowerCase())) return;
+            // Has the author already starred the repo? The repo's stargazer list
+            // is closed to the workflow token (403), but a user's starred list is
+            // public. Newest stars come first, so stop after a few pages.
+            const repoName = `${context.repo.owner}/${context.repo.repo}`.toLowerCase();
+            try {
+              let pages = 0;
+              for await (const { data } of github.paginate.iterator(
+                github.rest.activity.listReposStarredByUser,
+                { username: login, per_page: 100 },
+              )) {
+                if (data.some((r) => r.full_name.toLowerCase() === repoName)) return;
+                if (++pages >= 10) break;
+              }
+            } catch (err) {
+              // Stars hidden or not readable: ask anyway, but only once (below).
+              core.warning(`Could not read the stars of ${login}: ${err.message}`);
+            }
 
             // Ask only once per person: skip if one of their earlier
             // issues/PRs already got the reminder.
