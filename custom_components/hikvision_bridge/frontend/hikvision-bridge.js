@@ -331,6 +331,7 @@ const STYLE = `
     .controls .end { grid-area: end; }
     .controls select { font-size: 13px; padding: 4px; min-height: 32px; }
     .controls .icon-button { width: 36px; height: 36px; }
+    .controls .end { row-gap: 4px; }
     .day-bar .icon-button { width: 36px; height: 36px; }
     .legend { gap: 6px; padding: 0 8px 4px; }
   }
@@ -350,6 +351,13 @@ const STYLE = `
   @container (max-width: 480px) {
     .date-button .long { display: none; }
     .date-button .short { display: inline; }
+  }
+  /* Phone widths: the day bar takes two rows, the date and arrows above, the view and zoom below. */
+  @container (max-width: 560px) {
+    .day-bar { flex-wrap: wrap; row-gap: 4px; }
+    .day-bar .spacer { display: none; }
+    .day-bar .date-picker { flex: none; }
+    .day-bar .view-switch { margin-left: auto; }
   }
   .calendar {
     position: fixed; inset: auto; margin: 0; width: min(296px, calc(100vw - 16px)); box-sizing: border-box;
@@ -416,6 +424,7 @@ const STYLE = `
   .view-switch button { font-size: 13px; }
   .clips { height: 200px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; align-content: start; padding: 4px 12px 8px; background: var(--hb-surface); }
   .clips[hidden] { display: none; }
+  .zoom[hidden] { display: none; }
   .clip-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
   .clip-card .thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #000; border-radius: 6px; box-sizing: border-box; }
   .clip-card:hover .thumb { outline: 2px solid color-mix(in srgb, var(--hb-accent) 50%, transparent); }
@@ -2435,6 +2444,7 @@ class HikvisionBridgePanel extends HTMLElement {
         :host([cams-top]) .cam .sub { display: none; }
         @media (max-width: 860px) {
           .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 48px auto minmax(0, 1fr); }
+          main { overflow-y: auto; }
           header { padding: 0 4px; }
           header .layout-toggle { display: none; }
           :host([no-header]) header { display: flex; }
@@ -2455,9 +2465,10 @@ class HikvisionBridgePanel extends HTMLElement {
           .day-bar { padding: 0 2px; }
         }
         @media (max-width: 860px) and (orientation: portrait) {
-          main { overflow-y: auto; }
           .viewer { height: auto; }
           .stage { flex: none; aspect-ratio: 16 / 9; }
+          /* The page scrolls: the clip list keeps several rows of cards visible below the player. */
+          .clips { height: auto; min-height: 55vh; }
         }
       </style>
       <div class="layout">
