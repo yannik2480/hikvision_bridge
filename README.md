@@ -571,6 +571,13 @@ sh scripts/test.sh
 
 Tests use simulated devices; no test talks to real hardware.
 
+### Issue status
+
+Every time work on a GitHub issue starts, the issue gets the `in progress` label and a short
+comment saying what is being worked on (branch or PR if there is one). The label comes off when
+the fix ships in a release or the work stops. A comment on a closed issue no longer reopens it;
+open a new issue and link the old one instead.
+
 ## Languages
 
 The interface is translated into 30 languages: Arabic, Bengali, Chinese (Simplified), Czech, Danish,
