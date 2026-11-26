@@ -171,9 +171,11 @@ async def _spool_reply(
             first, last = max(0, found.written - span[1]), found.written - 1
         else:
             first, last = span
-            await found.wait_for(first)
-            if last is not None:
-                await found.wait_for(last)
+        # Headers are sent only once the first bytes are made: a conversion that fails before
+        # any output (such as an encrypted recording with a wrong code) answers with its error.
+        await found.wait_for(first)
+        if span is not None and span[0] is not None and last is not None:
+            await found.wait_for(last)
         if found.error is not None and found.written <= first:
             raise found.error
         if span is not None and first >= found.written:
@@ -258,9 +260,6 @@ class RecordingView(HomeAssistantView):
     url = RECORDING_URL
     name = "api:hikvision_bridge:recording"
     requires_auth = True
-
-    def __init__(self) -> None:
-        self._spools = spool.Spools()
 
     async def get(
         self,
@@ -359,12 +358,13 @@ class RecordingView(HomeAssistantView):
     ) -> web.StreamResponse:
         """Streamed MP4: converted into a spool that byte ranges are answered from (see spool)."""
         try:
-            found = self._spools.get(key)
+            spools = spool.manager(hass)
+            found = spools.get(key)
             if found is None:
                 # Streamed MP4 has no length in its header; players then show one that grows.
                 length = await _length(playback, uri, offset, duration)
                 # Asked for again while the length was looked up: that spool serves the request.
-                found = self._spools.get(key) or self._spools.open(
+                found = spools.get(key) or spools.open(
                     key,
                     _converter(
                         hass,

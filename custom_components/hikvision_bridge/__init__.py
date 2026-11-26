@@ -33,7 +33,7 @@ from .const import (
 from .model.discover import discover
 from .model.features import recordings
 from .panel import async_register_frontend
-from .runtime import event_reads, sessions, vod
+from .runtime import event_reads, sessions, spool, vod
 from .runtime.bridge import DeviceBridge, build_link
 from .runtime.hookin import async_register_webhook, async_unregister_webhook
 from .services import async_register_services
@@ -210,6 +210,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_unregister_webhook(hass, entry)
     await sessions.manager(hass).stop_entry(entry.entry_id)
     vod.drop_entry(hass, entry.entry_id)
+    spool.drop_entry(hass, entry.entry_id)
     await bridge.async_shutdown()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

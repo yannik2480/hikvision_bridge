@@ -5,20 +5,23 @@ downloads, so its bytes exist only once they are made: the converted output is w
 file as it comes, and every request for a range of it is answered from that file. Bytes
 made already come at once; bytes not made yet are waited for. A spool stops being made when
 no player reads it for a while, and its file is removed then (or once it is kept long enough
-after it was finished).
+after it was finished). Tasks run as Home Assistant background tasks, so they stop with it,
+and the spools of an entry are closed when the entry unloads.
 """
 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Hashable, Iterator
+from collections.abc import Awaitable, Callable, Coroutine, Hashable, Iterator
 import contextlib
 from contextlib import contextmanager
 import os
 from pathlib import Path
 import tempfile
 import time
-from typing import Final
+from typing import Any, Final
+
+from homeassistant.core import HomeAssistant
 
 # Seconds without a reader after which a spool that is still being made stops.
 IDLE_SECONDS: Final = 60
@@ -27,9 +30,12 @@ DONE_SECONDS: Final = 600
 # Spools at the same time; the least recently read one without a reader makes room.
 MAX_SPOOLS: Final = 4
 WATCH_SECONDS: Final = 5
+DATA_KEY: Final = "hikvision_bridge_spools"
 
 Write = Callable[[bytes], Awaitable[None]]
 Produce = Callable[[Write], Awaitable[None]]
+# Starts a task that Home Assistant tracks (hass.async_create_background_task).
+CreateTask = Callable[[Coroutine[Any, Any, None], str], "asyncio.Task[Any]"]
 
 
 class SpoolsFull(Exception):
@@ -55,6 +61,7 @@ class Spool:
         path: Path,
         produce: Produce,
         on_close: Callable[[Spool], None],
+        create_task: CreateTask,
     ) -> None:
         self.key = key
         self.path = path
@@ -66,17 +73,16 @@ class Spool:
         self._changed = asyncio.Event()
         self._produce = produce
         self._on_close = on_close
-        self._writer = None
-        self._started = False
+        self._writer: Any = None
         self._closed = False
-        loop = asyncio.get_running_loop()
-        self._producer = loop.create_task(self._run(), name="hikvision_bridge spool")
-        self._watcher = loop.create_task(self._watch(), name="hikvision_bridge spool watch")
+        self._producer = create_task(self._run(), "hikvision_bridge spool")
+        self._producer.add_done_callback(self._producer_done)
+        self._watcher = create_task(self._watch(), "hikvision_bridge spool watch")
+        self._watcher.add_done_callback(self._watcher_done)
 
     # ------------------------------------------------------------- making
 
     async def _run(self) -> None:
-        self._started = True
         try:
             self._writer = await asyncio.to_thread(self.path.open, "wb")
             await self._produce(self._write)
@@ -88,8 +94,16 @@ class Spool:
             if self._writer is not None:
                 self._writer.close()
             self._finish()
-            if self._closed:
-                self._remove()
+
+    def _producer_done(self, task: asyncio.Task[Any]) -> None:
+        # Runs after the writer is closed, so the file can go even on Windows.
+        if task.cancelled() or self._closed:
+            self._remove()
+
+    def _watcher_done(self, task: asyncio.Task[Any]) -> None:
+        # Stopped by Home Assistant: the spool stops too, and its file goes.
+        if task.cancelled():
+            self.close()
 
     async def _write(self, data: bytes) -> None:
         if self._closed or self._writer is None:
@@ -99,7 +113,6 @@ class Spool:
         self._notify()
 
     def _write_bytes(self, data: bytes) -> None:
-        assert self._writer is not None
         self._writer.write(data)
         self._writer.flush()
 
@@ -151,7 +164,7 @@ class Spool:
     # ------------------------------------------------------------- closing
 
     def close(self) -> None:
-        """Stops making the output and removes its file once nothing writes to it."""
+        """Stops making the output and removes its file (once nothing writes to it)."""
         if self._closed:
             return
         self._closed = True
@@ -159,15 +172,18 @@ class Spool:
         if self._watcher is not asyncio.current_task():
             self._watcher.cancel()
         self._producer.cancel()
-        if self._producer.done() or not self._started:
-            # Nothing runs to remove the file: the producer ended, or never started.
+        if self._producer.done():
             self._remove()
 
 
 class Spools:
-    """The spools in use, by key; a finished one with an error is dropped for a new try."""
+    """The spools in use, by key; a finished one with an error is dropped for a new try.
 
-    def __init__(self) -> None:
+    The key's first item is the config entry the spool is for (see ``close_entry``).
+    """
+
+    def __init__(self, create_task: CreateTask) -> None:
+        self._create_task = create_task
         self._spools: dict[Hashable, Spool] = {}
 
     def get(self, key: Hashable) -> Spool | None:
@@ -186,10 +202,29 @@ class Spools:
             min(idle, key=lambda spool: spool.used).close()
         descriptor, name = tempfile.mkstemp(prefix="hikvision_bridge_", suffix=".mp4")
         os.close(descriptor)
-        spool = Spool(key, Path(name), produce, self._forget)
+        spool = Spool(key, Path(name), produce, self._forget, self._create_task)
         self._spools[key] = spool
         return spool
+
+    def close_entry(self, entry_id: str) -> None:
+        """Stops the spools of a config entry that is unloading."""
+        for spool in [s for s in self._spools.values() if s.key[0] == entry_id]:
+            spool.close()
 
     def _forget(self, spool: Spool) -> None:
         if self._spools.get(spool.key) is spool:
             del self._spools[spool.key]
+
+
+def manager(hass: HomeAssistant) -> Spools:
+    """The spools of Home Assistant; their tasks are background tasks of it."""
+    if DATA_KEY not in hass.data:
+        hass.data[DATA_KEY] = Spools(hass.async_create_background_task)
+    spools: Spools = hass.data[DATA_KEY]
+    return spools
+
+
+def drop_entry(hass: HomeAssistant, entry_id: str) -> None:
+    """Stop the spools of a config entry (it is unloading)."""
+    if (spools := hass.data.get(DATA_KEY)) is not None:
+        spools.close_entry(entry_id)
