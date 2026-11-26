@@ -6,6 +6,7 @@ import asyncio
 import base64
 import binascii
 from collections import OrderedDict
+import math
 import re
 from urllib.parse import parse_qsl, urlsplit
 
@@ -16,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, PLAYBACK_H264, PLAYBACK_MP4, PLAYBACK_SEEKABLE
 from .model.features import recordings
-from .runtime import playback as playback_module, sessions, vod
+from .runtime import playback as playback_module, sessions, spool, vod
 from .runtime.bridge import DeviceBridge
 from .runtime.playback import (
     EXTENSION,
@@ -130,6 +131,127 @@ async def _length(
     return seconds if seconds > 0 else None
 
 
+_RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
+# Bytes read from a spool and sent at a time.
+SPOOL_READ = 256 * 1024
+
+
+def _byte_range(header: str | None) -> tuple[int | None, int | None] | None:
+    """The one byte range asked for: (first, last), or (None, n) for the last n bytes.
+
+    None for no range, or one this does not answer (several ranges, or last before first).
+    """
+    match = _RANGE.match((header or "").strip())
+    if match is None or not (match[1] or match[2]):
+        return None
+    if not match[1]:
+        return (None, int(match[2]))
+    first = int(match[1])
+    last = int(match[2]) if match[2] else None
+    if last is not None and last < first:
+        return None
+    return (first, last)
+
+
+async def _spool_reply(
+    request: web.Request, found: spool.Spool, headers: dict[str, str]
+) -> web.StreamResponse:
+    """Answers from a spool: a byte range (206), or all of it (200).
+
+    A range is answered with the bytes made so far if its end is not made yet; the player asks
+    for the rest. Bytes not made yet are waited for, so a seek ahead of the conversion waits.
+    The length is known (Content-Length) once the conversion is finished.
+    """
+    span = _byte_range(request.headers.get("Range"))
+    with found.reading():
+        if span is None:
+            first, last = 0, None
+        elif span[0] is None:
+            await found.wait_for(math.inf)
+            first, last = max(0, found.written - span[1]), found.written - 1
+        else:
+            first, last = span
+            await found.wait_for(first)
+            if last is not None:
+                await found.wait_for(last)
+        if found.error is not None and found.written <= first:
+            raise found.error
+        if span is not None and first >= found.written:
+            return web.Response(status=416, headers={"Content-Range": f"bytes */{found.written}"})
+        total = found.written if found.finished else None
+        if span is None:
+            end = None
+        elif last is None:
+            end = found.written - 1
+        else:
+            end = min(last, found.written - 1)
+        response = web.StreamResponse(
+            status=200 if span is None else 206,
+            headers={**headers, "Accept-Ranges": "bytes", "Cache-Control": "no-cache"},
+        )
+        if span is not None:
+            response.headers["Content-Range"] = (
+                f"bytes {first}-{end}/{'*' if total is None else total}"
+            )
+            response.content_length = end - first + 1
+        elif total is not None:
+            response.content_length = total
+        position = first
+        try:
+            await response.prepare(request)
+            while end is None or position <= end:
+                await found.wait_for(position)
+                if found.written <= position:
+                    break
+                stop = found.written - 1 if end is None else min(end, found.written - 1)
+                data = await found.read(position, min(SPOOL_READ, stop - position + 1))
+                if not data:
+                    break
+                await response.write(data)
+                position += len(data)
+        except ConnectionResetError:
+            # The player went away (closed, or seeking with a new request).
+            return response
+        incomplete = (end is not None and position <= end) or (
+            end is None and found.error is not None
+        )
+        if incomplete:
+            # Cut short: the player must not take part of it for the whole.
+            _abort(request)
+        else:
+            await response.write_eof()
+        return response
+
+
+def _converter(
+    hass: HomeAssistant,
+    playback: PlaybackSource,
+    *,
+    uri: str,
+    fmt: str,
+    offset: float | None,
+    duration: float | None,
+    length: float | None,
+) -> spool.Produce:
+    """Makes the streamed MP4 of a recording into what it is given (see spool)."""
+
+    async def produce(write: spool.Write) -> None:
+        stamp = playback_module.DurationStamp(length) if length else None
+
+        async def send(data: bytes) -> None:
+            if stamp is not None and not (data := stamp.feed(data)):
+                return
+            await write(data)
+
+        async with open_recording(playback, uri) as (head, chunks):
+            args = ffmpeg_args(fmt, head.codec, offset=offset, duration=duration)
+            await run_ffmpeg(playback_module.ffmpeg_binary(hass), args, chunks, send)
+        if stamp is not None and (rest := stamp.flush()):
+            await write(rest)
+
+    return produce
+
+
 class RecordingView(HomeAssistantView):
     """One recorded file, converted while it downloads, or its playlist to play on demand."""
 
@@ -137,9 +259,13 @@ class RecordingView(HomeAssistantView):
     name = "api:hikvision_bridge:recording"
     requires_auth = True
 
+    def __init__(self) -> None:
+        self._spools = spool.Spools()
+
     async def get(
         self,
         request: web.Request,
+        *,
         entry_id: str,
         channel_id: str,
         source: str,
@@ -165,18 +291,27 @@ class RecordingView(HomeAssistantView):
             )
         offset = _seconds(request.query.get("offset"))
         duration = _seconds(request.query.get("duration"))
-        response = web.StreamResponse(headers={"Content-Type": MIME[fmt]})
+        headers = {"Content-Type": MIME[fmt]}
         if request.query.get("download"):
             name = f"recording_{channel_id}.{EXTENSION[fmt]}"
-            response.headers["Content-Disposition"] = f'attachment; filename="{name}"'
+            headers["Content-Disposition"] = f'attachment; filename="{name}"'
+        if fmt in MP4_FORMATS:
+            key = (entry_id, channel_id, source, fmt, uri, offset, duration)
+            return await self._spooled(
+                request,
+                hass=hass,
+                playback=playback,
+                key=key,
+                fmt=fmt,
+                uri=uri,
+                offset=offset,
+                duration=duration,
+                headers=headers,
+            )
 
-        # Streamed MP4 has no length in its header; players then show one that grows.
-        length = await _length(playback, uri, offset, duration) if fmt in MP4_FORMATS else None
-        stamp = playback_module.DurationStamp(length) if length else None
+        response = web.StreamResponse(headers=headers)
 
         async def send(data: bytes) -> None:
-            if stamp is not None and not (data := stamp.feed(data)):
-                return
             # Started with the first data, so that earlier failures still get a status.
             if not response.prepared:
                 await response.prepare(request)
@@ -190,8 +325,6 @@ class RecordingView(HomeAssistantView):
                 else:
                     args = ffmpeg_args(fmt, head.codec, offset=offset, duration=duration)
                     await run_ffmpeg(playback_module.ffmpeg_binary(hass), args, chunks, send)
-                    if stamp is not None and (rest := stamp.flush()):
-                        await send(rest)
             if not response.prepared:
                 await response.prepare(request)
             await response.write_eof()
@@ -210,6 +343,51 @@ class RecordingView(HomeAssistantView):
             # The player went away (closed, or seeking with a new request).
             pass
         return response
+
+    async def _spooled(
+        self,
+        request: web.Request,
+        *,
+        hass: HomeAssistant,
+        playback: PlaybackSource,
+        key: tuple,
+        fmt: str,
+        uri: str,
+        offset: float | None,
+        duration: float | None,
+        headers: dict[str, str],
+    ) -> web.StreamResponse:
+        """Streamed MP4: converted into a spool that byte ranges are answered from (see spool)."""
+        try:
+            found = self._spools.get(key)
+            if found is None:
+                # Streamed MP4 has no length in its header; players then show one that grows.
+                length = await _length(playback, uri, offset, duration)
+                # Asked for again while the length was looked up: that spool serves the request.
+                found = self._spools.get(key) or self._spools.open(
+                    key,
+                    _converter(
+                        hass,
+                        playback,
+                        uri=uri,
+                        fmt=fmt,
+                        offset=offset,
+                        duration=duration,
+                        length=length,
+                    ),
+                )
+            return await _spool_reply(request, found, headers)
+        except RecordingEncrypted:
+            return web.Response(status=409, text="Encrypted recording; no verification code fits.")
+        except NoRecording:
+            return web.Response(status=502, text="No video in this recording.")
+        except BridgeFault as err:
+            _LOGGER.debug("Recording download failed: %s", type(err).__name__)
+            return web.Response(status=502, text=type(err).__name__)
+        except FileNotFoundError:
+            return web.Response(status=503, text="ffmpeg is not available.")
+        except spool.SpoolsFull:
+            return web.Response(status=503, text="Too many recordings are being converted.")
 
 
 class ThumbnailView(HomeAssistantView):
