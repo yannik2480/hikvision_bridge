@@ -139,6 +139,40 @@ async def test_quiet_stream_reconnects_without_dropping(run_feed, monkeypatch) -
     assert alarm.connected
 
 
+async def test_bare_200_without_multipart_gives_up_after_three_closes(
+    run_feed, monkeypatch
+) -> None:
+    # Door stations answer 200 with only an XML declaration and close at once (fw V2.2.x).
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 0.01)
+    monkeypatch.setattr(feed, "UNSUPPORTED_RETRY", 60.0)
+    body = '<?xml version="1.0" encoding="UTF-8"?>'
+    device = FakeDevice(overrides={feed.STREAM_PATH: (200, body)})
+    alarm, frames, states = await run_feed(device)
+    await _until(lambda: bool(states) and isinstance(states[-1][1], faults.Unsupported))
+    connects = alarm.stats.connects
+    await asyncio.sleep(0.2)
+    # Three quick connections, then the long retry: no more reconnects in a tight loop.
+    assert connects == alarm.stats.connects == 3
+    assert alarm.stats.last_error == feed.NO_STREAM
+    assert not alarm.connected
+    assert not frames
+
+
+async def test_quick_closes_back_off_instead_of_retrying_at_the_first_delay(
+    run_feed, monkeypatch
+) -> None:
+    # A multipart stream that closes at once with nothing in it is not "working": the backoff
+    # keeps growing (0.2 s, 0.4 s, ...) rather than reconnecting every 0.2 s.
+    monkeypatch.setattr(feed, "BACKOFF_FIRST", 0.2)
+    device = FakeDevice()
+    alarm, frames, _ = await run_feed(device)
+    await _until(lambda: alarm.stats.connects >= 1)
+    await asyncio.sleep(0.5)
+    assert 1 <= alarm.stats.connects <= 2
+    assert alarm.stats.last_error == feed.QUICK_CLOSE_ERROR
+    assert not frames
+
+
 async def test_wrong_password_stops_feed_for_good(run_feed, monkeypatch) -> None:
     monkeypatch.setattr(feed, "BACKOFF_FIRST", 0.01)
     device = FakeDevice()
