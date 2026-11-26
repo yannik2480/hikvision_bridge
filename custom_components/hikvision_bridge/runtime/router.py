@@ -19,7 +19,7 @@ from homeassistant.helpers.event import async_call_later
 from ..const import BUS_EVENT, DOMAIN, GRACE_BEFORE_UNAVAILABLE
 from ..model.features import recordings
 from ..model.vocabulary import DEVICE_WIDE, Kind, canonical
-from ..wire.faults import BridgeFault
+from ..wire.faults import BridgeFault, Unsupported
 from ..wire.feed import FeedFrame
 
 if TYPE_CHECKING:
@@ -71,6 +71,8 @@ class EventRouter:
         self._targets: dict[tuple[str, str], float] = {}
         self._feeds_up: dict[str, bool] = {}
         self._feeds_down_since: dict[str, float] = {}
+        # Feeds whose device has no usable event stream: down, but not a reason for unavailable.
+        self._feeds_unsupported: set[str] = set()
         self.recent: dict[str, deque[dict[str, Any]]] = {}
         self.unknown_channels: dict[str, int] = {}
         # Last plate notification per channel (ANPR), for the plate sensor.
@@ -82,6 +84,10 @@ class EventRouter:
     @callback
     def feed_state(self, name: str, connected: bool, fault: BridgeFault | None) -> None:
         self._feeds_up[name] = connected
+        if isinstance(fault, Unsupported):
+            self._feeds_unsupported.add(name)
+        elif connected or fault is None:
+            self._feeds_unsupported.discard(name)
         if connected:
             self._feeds_down_since.pop(name, None)
         else:
@@ -95,6 +101,8 @@ class EventRouter:
         now = time.monotonic()
         grace = GRACE_BEFORE_UNAVAILABLE.total_seconds()
         for name, up in self._feeds_up.items():
+            if name in self._feeds_unsupported:
+                continue
             if not up and now - self._feeds_down_since.get(name, now) >= grace:
                 return False
         return True
