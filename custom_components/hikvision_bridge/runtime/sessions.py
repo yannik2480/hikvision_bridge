@@ -11,10 +11,14 @@ real time and without decryption. Devices that send recorded files only from the
 play a time further into a file than they reach in READ_SECONDS over RTSP as well, if they can;
 a read that its pace shows will not reach the time in READ_SECONDS gives up after PACE_SECONDS.
 Where RTSP takes longer than READ_SECONDS to start on a device, the read may take that long.
-Devices that cannot download a time span play over RTSP first, which starts at the time.
-A recording that fails over RTSP is read from its file. Near the start of a recorded file
-(FILE_FIRST_SECONDS) they read the file first, though: it comes much faster than RTSP starts,
-and it ends with the file, where RTSP waits for the device to close the playback.
+Devices that cannot download a time span read their recorded files first, at any time in them:
+a file comes much faster than RTSP starts, and it ends with the file, where RTSP waits for the
+device to close the playback. Only a read too slow to reach the time gives up for RTSP. A
+recording that fails over RTSP is read from its file.
+
+A download ends where its span does, even if the device keeps the connection open after the
+end of the recording; a download that runs dry near that end, or stalls, ends there too. The
+playlist is only complete (and the player treats the video as on demand) once it has ended.
 
 One session covers one stretch of contiguous recordings, so a position in the video maps to
 the recorded time exactly (start of the session plus the playing time). Cameras serve only
@@ -29,6 +33,7 @@ from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+import math
 from pathlib import Path
 import re
 import secrets
@@ -72,8 +77,11 @@ PACE_SECONDS = 5
 READ_SECONDS = 10
 # Download kept while no key frame was found yet; past it the file plays from its start.
 SKIP_SEARCH_BYTES = 8 * 1024 * 1024
-# Devices that play over RTSP first read a recorded file instead up to this far into it.
-FILE_FIRST_SECONDS = 15
+# Longest wait for more data of a download once its span is (nearly) all received; the device
+# may keep the connection open after the end of the recording.
+END_PATIENCE = 2.0
+# Longest wait for more data of a download while its span is still far from its end.
+STALL_SECONDS = 30
 # From this far into a recorded file the device is asked to start it at the wanted time.
 LATER_START_SECONDS = 20
 # Bytes compared to tell whether the device sent a recorded file from its start anyway.
@@ -168,14 +176,6 @@ def covering(found: list[recordings.Recording], moment: datetime) -> recordings.
     return next((r for r in ordered if r.start <= moment < r.end), None) or next(
         (r for r in ordered if r.start > moment), None
     )
-
-
-def _near_file_start(found: list[recordings.Recording], moment: datetime) -> bool:
-    """Whether ``moment`` lies within FILE_FIRST_SECONDS of the start of its recorded file."""
-    recording = covering(found, moment)
-    if recording is None:
-        return False
-    return (moment - recording.start).total_seconds() <= FILE_FIRST_SECONDS
 
 
 def playback_uri(
@@ -545,10 +545,9 @@ class SessionManager:
                 await self.hass.async_add_executor_job(tempfile.mkdtemp, "", "hikvision_")
             )
             try:
-                far = source.rtsp_first  # the recorded file is the fallback
-                if (
-                    not source.rtsp_first or _near_file_start(found or [], start)
-                ) and source.link not in self._rtsp_only:
+                # A device that plays over RTSP first reads the file on if RTSP fails.
+                far = source.rtsp_first
+                if source.link not in self._rtsp_only:
                     try:
                         session = await self._download(
                             source, key, start, end, uri, quality, folder, found or [], origin
@@ -868,6 +867,10 @@ class SessionManager:
                 else:
                     chunks = playback.headed(chunks)
                 session.start -= timedelta(seconds=rest - cut)
+                # Video from the key frame on that the span holds; the device may send on past it.
+                wanted = (session.end - session.start).total_seconds()
+                if wanted <= 0:
+                    wanted = math.inf
                 session.process = await self._spawn(
                     session,
                     hls_args(
@@ -879,7 +882,15 @@ class SessionManager:
                 assert stdin is not None
                 ready.set_result(None)
                 played = (-1, 0.0)
-                async for data in chunks:
+                reader = chunks.__aiter__()
+                while (covered := stream.seconds - cut) < wanted:
+                    # Near the end, more data is waited for briefly only; the device may hold
+                    # the connection open after its recording ends.
+                    patience = END_PATIENCE if covered >= wanted - 1 else STALL_SECONDS
+                    try:
+                        data = await asyncio.wait_for(reader.__anext__(), patience)
+                    except (StopAsyncIteration, TimeoutError):
+                        break
                     stdin.write(data)
                     await stdin.drain()
                     while stream.seconds - cut > played[1] + READ_AHEAD:
@@ -890,6 +901,14 @@ class SessionManager:
                             played = (session.fetched, played_seconds(text or "", session.fetched))
                             continue
                         await asyncio.sleep(1)
+                if wanted < math.inf and stream.seconds - cut < wanted - 1:
+                    _LOGGER.debug(
+                        "Recorded file ended at %.0f s of the %.0f s wanted",
+                        stream.seconds - cut,
+                        wanted,
+                    )
+                # The rest of the device's answer is dropped with the connection.
+                await _close(reader)
         except asyncio.CancelledError:
             if not ready.done():
                 ready.cancel()
@@ -1064,6 +1083,14 @@ def _read(path: Path) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
+
+
+async def _close(chunks: AsyncIterator[bytes]) -> None:
+    """End a generator of chunks that is not read to its end."""
+    close = getattr(chunks, "aclose", None)
+    if close is not None:
+        with suppress(RuntimeError):
+            await close()
 
 
 async def _cancel(task: asyncio.Task | None) -> None:

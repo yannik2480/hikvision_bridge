@@ -757,6 +757,11 @@ class Player {
       } else {
         this.hls = new Hls({
           lowLatencyMode: this.mode === "live",
+          // A recording plays from its first segment. Its playlist is still being written
+          // while it plays, which hls.js takes for a live stream: it would start a few
+          // segments before the end of what is written so far, and rewind to there when it
+          // runs dry. Live pictures start at the live edge, as before.
+          startPosition: this.mode === "live" ? -1 : 0,
           // Load the first segment while the video element is still being set up.
           startFragPrefetch: true,
           backBufferLength: 120,

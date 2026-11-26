@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
 import stat
@@ -938,38 +940,55 @@ async def test_slow_recorded_file_plays_over_rtsp_from_the_first_seek(
     await manager.stop_all()
 
 
-async def test_device_without_download_by_time_plays_over_rtsp_first(
+NO_DOWNLOAD_BY_TIME = (
+    200,
+    '<DownloadAbility version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
+    "<isSupportDownloadbyTime>false</isSupportDownloadbyTime>"
+    "<isSupportDownloadbyFileName>true</isSupportDownloadbyFileName></DownloadAbility>",
+)
+
+
+class _Held:
+    """A download that sends its data and then keeps the connection open."""
+
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+        self.content = self
+
+    async def read(self, size: int) -> bytes:
+        chunk, self._data = self._data[:size], self._data[size:]
+        return chunk
+
+    async def iter_chunked(self, size: int) -> AsyncIterator[bytes]:
+        while self._data:
+            yield await self.read(size)
+        await asyncio.Event().wait()
+
+
+@asynccontextmanager
+async def _held(data: bytes) -> AsyncIterator[_Held]:
+    yield _Held(data)
+
+
+async def test_device_without_download_by_time_reads_files_first(
     hass: HomeAssistant,
     serve,
     hass_ws_client,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A device that reports no download by time plays over RTSP at once.
+    """A device that reports no download by time reads its recorded files at any time in them.
 
-    A recording that fails there is read from its file, and the next playback tries RTSP again.
+    No time span is asked for. A device that refuses its files plays over RTSP, and then goes
+    over RTSP at once for the next playbacks.
     """
-    capabilities = (
-        200,
-        '<DownloadAbility version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
-        "<isSupportDownloadbyTime>false</isSupportDownloadbyTime>"
-        "<isSupportDownloadbyFileName>true</isSupportDownloadbyFileName></DownloadAbility>",
-    )
     device, entry = await _setup(
-        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": capabilities}
+        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": NO_DOWNLOAD_BY_TIME}
     )
     data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
-
-    def download(_method: str, body: str) -> web.Response:
-        if "name=" not in body:
-            return web.Response(
-                status=400,
-                text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
-                content_type="application/xml",
-            )
-        return web.Response(body=data, content_type="application/binary")
-
-    device.responders[recordings.DOWNLOAD_PATH] = download
+    device.responders[recordings.DOWNLOAD_PATH] = lambda _m, _b: web.Response(
+        body=data, content_type="application/binary"
+    )
     _script(tmp_path, monkeypatch, HLS_PIPE)
     client = await hass_ws_client(hass)
 
@@ -993,90 +1012,106 @@ async def test_device_without_download_by_time_plays_over_rtsp_first(
         return len([w for w in device.writes if w[1] == recordings.DOWNLOAD_PATH])
 
     manager = sessions.manager(hass)
-    # RTSP at the time asked for, without reading the file first.
-    started, args = await play(START + timedelta(minutes=5))
-    assert started["start"] == (START + timedelta(minutes=5)).isoformat()
-    assert "/Streaming/tracks/101/?starttime=" in args
-    assert download_count() == 0
+    # Five minutes into the clip: the file, from its start; no span is asked for.
+    _started, args = await play(START + timedelta(minutes=5))
+    assert "pipe:0" in args
+    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
+    assert downloads
+    assert all("name=" in body for body in downloads)
     await manager.stop_all()
 
-    # A recording RTSP fails on is read from its file ...
-    _script(
-        tmp_path,
-        monkeypatch,
-        '#!/bin/sh\ncase "$*" in *rtsp://*) echo "Connection refused" >&2; exit 1;; esac\n'
-        + HLS_PIPE.removeprefix("#!/bin/sh\n"),
+    # A device that refuses its files plays over RTSP instead ...
+    device.responders[recordings.DOWNLOAD_PATH] = lambda _m, _b: web.Response(
+        status=400,
+        text="<ResponseStatus><statusCode>4</statusCode><statusString>Invalid XML Content</statusString></ResponseStatus>",
+        content_type="application/xml",
     )
     _started, args = await play(START + timedelta(minutes=6))
-    assert "pipe:0" in args
-    assert download_count() > 0
-    assert not manager._no_far_rtsp
+    assert "/Streaming/tracks/101/?starttime=" in args
     await manager.stop_all()
 
-    # ... and the next playback goes over RTSP again, without reading.
-    _script(tmp_path, monkeypatch, HLS_PIPE)
+    # ... and the next playbacks go over RTSP at once, without asking for the file.
     before = download_count()
-    started, args = await play(START + timedelta(minutes=7))
-    assert started["start"] == (START + timedelta(minutes=7)).isoformat()
+    _started, args = await play(START + timedelta(minutes=7))
     assert "/Streaming/tracks/101/?starttime=" in args
     assert download_count() == before
     await manager.stop_all()
 
 
-async def test_device_without_download_by_time_reads_file_near_its_start(
+async def test_download_ends_with_its_span(
     hass: HomeAssistant,
     serve,
     hass_ws_client,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Near the start of a recorded file, a device that plays over RTSP first reads the file.
+    """A download ends where its recording ends, though the device keeps the connection open.
 
-    The file comes faster than RTSP starts and ends with the file. No time span is asked for.
+    The motion clip is a minute long: the download is cut once the video of that minute is in,
+    so the playlist is complete and the player takes the video for a recording.
     """
-    capabilities = (
-        200,
-        '<DownloadAbility version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">'
-        "<isSupportDownloadbyTime>false</isSupportDownloadbyTime>"
-        "<isSupportDownloadbyFileName>true</isSupportDownloadbyFileName></DownloadAbility>",
+    _device, entry = await _setup(
+        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": NO_DOWNLOAD_BY_TIME}
     )
-    device, entry = await _setup(
-        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": capabilities}
-    )
-    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
-    device.responders[recordings.DOWNLOAD_PATH] = lambda _m, _b: web.Response(
-        body=data, content_type="application/binary"
-    )
+    data = b"IMKH" + bytes(36)
+    for number in range(1501):  # 25 frames a second, one key frame at the start
+        parameters = b"\x67\x42\x00\x1f\x00\x00\x00\x01\x65\x88" if number == 0 else b"\x41\x9a"
+        frame = b"\x00\x00\x00\x01" + parameters
+        data += PACK + _packets(frame + bytes(range(1, 200)), False, 3600 * number)
+    monkeypatch.setattr(recordings, "open_download", lambda _link, _uri: _held(data))
     _script(tmp_path, monkeypatch, HLS_PIPE)
     client = await hass_ws_client(hass)
-    manager = sessions.manager(hass)
+    await client.send_json_auto_id(
+        {
+            "type": f"{DOMAIN}/playback/start",
+            "entry_id": entry.entry_id,
+            "channel_id": "1",
+            "source": "auto",
+            "time": (START + timedelta(minutes=30)).isoformat(),
+        }
+    )
+    answer = await client.receive_json()
+    assert answer["success"], answer
+    session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+    assert session.end - session.start == timedelta(minutes=1)
+    # The video keeps the time stamps of its recorded file (the offset is 0 at its start).
+    args = await hass.async_add_executor_job((session.folder / "args").read_text)
+    assert "-output_ts_offset 0.000" in args
+    # The fake ffmpeg writes its playlist once its input ends, which is when the download is cut.
+    assert (session.folder / "input").stat().st_size > 0
+    await sessions.manager(hass).stop_all()
 
-    async def play(moment) -> str:
-        await client.send_json_auto_id(
-            {
-                "type": f"{DOMAIN}/playback/start",
-                "entry_id": entry.entry_id,
-                "channel_id": "1",
-                "source": "auto",
-                "time": moment.isoformat(),
-            }
-        )
-        answer = await client.receive_json()
-        assert answer["success"], answer
-        session = manager.sessions[answer["result"]["session_id"]]
-        return await hass.async_add_executor_job((session.folder / "args").read_text)
 
-    # The start of the motion clip, and a few seconds into it: the file.
-    for moment in (START + timedelta(minutes=30), START + timedelta(minutes=30, seconds=5)):
-        assert "pipe:0" in await play(moment)
-        await manager.stop_all()
-    downloads = [w[2] for w in device.writes if w[1] == recordings.DOWNLOAD_PATH]
-    assert downloads
-    assert all("name=" in body for body in downloads)
-
-    # Further in: RTSP at the time, as before.
-    assert "/Streaming/tracks/101/?starttime=" in await play(START + timedelta(minutes=5))
-    await manager.stop_all()
+async def test_download_held_open_ends_when_it_stalls(
+    hass: HomeAssistant,
+    serve,
+    hass_ws_client,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A download that stops short of its span, and sends nothing more, is ended after a stall."""
+    _device, entry = await _setup(
+        hass, serve, overrides={"/ISAPI/ContentMgmt/download/capabilities": NO_DOWNLOAD_BY_TIME}
+    )
+    data, _keys = _keyed(b"\x67\x42\x00\x1f", b"\x65\x88", b"\x41\x9a")
+    monkeypatch.setattr(recordings, "open_download", lambda _link, _uri: _held(data))
+    monkeypatch.setattr(sessions, "STALL_SECONDS", 0.2)
+    _script(tmp_path, monkeypatch, HLS_PIPE)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {
+            "type": f"{DOMAIN}/playback/start",
+            "entry_id": entry.entry_id,
+            "channel_id": "1",
+            "source": "auto",
+            "time": START.isoformat(),
+        }
+    )
+    answer = await client.receive_json()
+    assert answer["success"], answer
+    session = sessions.manager(hass).sessions[answer["result"]["session_id"]]
+    assert (session.folder / "input").stat().st_size > 0
+    await sessions.manager(hass).stop_all()
 
 
 async def test_playback_start_replaced_while_starting(

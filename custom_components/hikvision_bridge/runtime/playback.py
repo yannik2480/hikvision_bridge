@@ -84,7 +84,8 @@ class PlaybackSource:
     code: str | None = None
     # False if the channel records no audio: RTSP playback then leaves the audio track out.
     audio: bool | None = None
-    # True if the device cannot download a time span: playback starts over RTSP.
+    # True if the device cannot download a time span: its recorded files are read instead, and
+    # RTSP is the fallback.
     rtsp_first: bool = False
 
 
