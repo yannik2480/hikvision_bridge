@@ -23,6 +23,11 @@ def quick(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(spool, "DONE_SECONDS", 0.0)
 
 
+def _spools() -> spool.Spools:
+    """Spools whose tasks are plain loop tasks (Home Assistant's are checked in the HTTP test)."""
+    return spool.Spools(lambda coro, name: asyncio.get_running_loop().create_task(coro, name=name))
+
+
 async def _until(condition) -> None:
     for _ in range(400):  # about 2 seconds
         if condition():
@@ -39,7 +44,7 @@ async def test_range_waits_for_bytes_not_made_yet(tmp_path: Path) -> None:
         await release.wait()
         await write(b"efgh")
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("key", produce)
     try:
         with found.reading():
@@ -65,7 +70,7 @@ async def test_failed_conversion_is_kept_for_readers_then_dropped() -> None:
         await write(b"ab")
         raise ValueError("no video")
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("key", produce)
     await _until(lambda: found.finished)
     assert isinstance(found.error, ValueError)
@@ -81,7 +86,7 @@ async def test_finished_spool_is_kept_for_its_readers(quick, monkeypatch) -> Non
     async def produce(write) -> None:
         await write(b"0123456789")
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("key", produce)
     await _until(lambda: found.finished)
     assert spools.get("key") is found
@@ -103,7 +108,7 @@ async def test_unread_conversion_stops_and_its_file_goes(quick) -> None:
             stopped.set()
             raise
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("key", produce)
     await _until(lambda: found.written > 0)
     await _until(stopped.is_set)
@@ -117,7 +122,7 @@ async def test_read_conversion_is_not_stopped_while_read(quick) -> None:
             await write(b"x")
             await asyncio.sleep(0.01)
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("key", produce)
     with found.reading():
         await asyncio.sleep(0.1)
@@ -133,7 +138,7 @@ async def test_least_recently_read_idle_spool_makes_room(monkeypatch) -> None:
     async def produce(write) -> None:
         await asyncio.sleep(60)
 
-    spools = spool.Spools()
+    spools = _spools()
     first = spools.open("first", produce)
     second = spools.open("second", produce)
     with second.reading():
@@ -153,7 +158,7 @@ async def test_full_of_read_spools_refuses_another(monkeypatch) -> None:
     async def produce(write) -> None:
         await asyncio.sleep(60)
 
-    spools = spool.Spools()
+    spools = _spools()
     found = spools.open("first", produce)
     with found.reading(), pytest.raises(spool.SpoolsFull):
         spools.open("second", produce)
@@ -212,3 +217,6 @@ async def test_streamed_mp4_answers_byte_ranges(hass, serve, hass_client) -> Non
 
     beyond = await client.get(path, headers={"Range": f"bytes={total}-"})
     assert beyond.status == 416
+    # Unloading the entry stops its spools and removes their files.
+    spool.drop_entry(hass, entry.entry_id)
+    await asyncio.sleep(0)
