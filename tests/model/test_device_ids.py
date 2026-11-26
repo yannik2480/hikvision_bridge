@@ -5,14 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from aiohikvision.isapi.model import discover
+from aiohikvision.isapi.model.features import io, linkage, ptz
+from aiohikvision.isapi.model.inventory import IoPort
+from aiohikvision.isapi.wire.feed import FeedFrame
+from aiohikvision.isapi.wire.xmlview import parse
 import pytest
 
-from custom_components.hikvision_bridge.model import discover
-from custom_components.hikvision_bridge.model.features import io, linkage, ptz
-from custom_components.hikvision_bridge.model.inventory import IoPort
 from custom_components.hikvision_bridge.runtime.hookin import WEBHOOK_TOLERANCE, FreshnessGate
-from custom_components.hikvision_bridge.wire.feed import FeedFrame
-from custom_components.hikvision_bridge.wire.xmlview import parse
 
 NS = 'xmlns="http://www.isapi.org/ver20/XMLSchema"'
 

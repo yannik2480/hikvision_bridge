@@ -10,9 +10,8 @@ import secrets
 import time
 from typing import Any
 
+from aiohikvision.isapi.wire.scrub import LOG_SCRUBBER, scrubbed_logger
 import aiohttp
-
-from ..wire.scrub import LOG_SCRUBBER, scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
 

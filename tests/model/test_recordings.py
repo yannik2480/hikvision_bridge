@@ -6,15 +6,15 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 import re
 
+from aiohikvision.isapi.model.features import recordings
+from aiohikvision.isapi.wire.faults import BridgeFault
+from aiohikvision.isapi.wire.link import Endpoint, IsapiLink
+from aiohikvision.isapi.wire.xmlview import parse
 import aiohttp
 from aiohttp import web
 import pytest
 
-from custom_components.hikvision_bridge.model.features import recordings
 from custom_components.hikvision_bridge.runtime import playback
-from custom_components.hikvision_bridge.wire.faults import BridgeFault
-from custom_components.hikvision_bridge.wire.link import Endpoint, IsapiLink
-from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.fakedevice import FakeDevice
 
 T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)

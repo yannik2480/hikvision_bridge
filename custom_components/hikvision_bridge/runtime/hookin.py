@@ -4,20 +4,20 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from aiohttp import web
-from homeassistant.components import webhook
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-
-from ..const import DOMAIN, EVENT_PATH_BOTH, EVENT_PATH_WEBHOOK, OPT_EVENT_PATH, OPT_WEBHOOK_ID
-from ..wire.feed import (
+from aiohikvision.isapi.wire.feed import (
     FeedFrame,
     MultipartSplitter,
     Part,
     boundary_of,
     frame_from_part,
 )
-from ..wire.scrub import scrubbed_logger
+from aiohikvision.isapi.wire.scrub import scrubbed_logger
+from aiohttp import web
+from homeassistant.components import webhook
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+
+from ..const import DOMAIN, EVENT_PATH_BOTH, EVENT_PATH_WEBHOOK, OPT_EVENT_PATH, OPT_WEBHOOK_ID
 from .router import Origin
 
 _LOGGER = scrubbed_logger(__name__)

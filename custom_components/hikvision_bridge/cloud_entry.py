@@ -8,6 +8,7 @@ import math
 import time
 from typing import Any
 
+from aiohikvision.isapi.wire.scrub import scrubbed_logger
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
@@ -35,7 +36,6 @@ from .cloud.actions import fetch_devices, open_door_relay, set_area_defence_mode
 from .cloud.catalog import CloudArea, CloudDevice
 from .const import CLOUD_INTERVAL, CONF_ACCOUNT, CONF_REGION_HOST, DOMAIN
 from .runtime.identity import VENDOR
-from .wire.scrub import scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
 

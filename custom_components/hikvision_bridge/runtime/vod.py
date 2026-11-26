@@ -20,10 +20,10 @@ import struct
 import time
 from urllib.parse import parse_qsl, urlsplit
 
+from aiohikvision.isapi.model.features import recordings
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from ..model.features import recordings
 from . import sessions
 from .playback import PlaybackSource
 from .sessions import Session, SessionError

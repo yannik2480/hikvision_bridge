@@ -6,6 +6,8 @@ import asyncio
 import logging
 from typing import Any
 
+from aiohikvision.isapi.model.features import signals
+from aiohikvision.isapi.wire.faults import BridgeFault, DeviceRejected, detail
 from homeassistant.components.siren import SirenEntity, SirenEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -14,9 +16,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import BridgeEntity, add_entities
-from .model.features import signals
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault, DeviceRejected, detail
 
 PARALLEL_UPDATES = 1
 # Seconds between triggers while the siren is on. A trigger that comes while the sound still

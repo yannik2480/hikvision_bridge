@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from custom_components.hikvision_bridge.model.features import park, ptz
-from custom_components.hikvision_bridge.model.features.image import ImageValue
-from custom_components.hikvision_bridge.wire.xmlview import parse
+from aiohikvision.isapi.model.features import park, ptz
+from aiohikvision.isapi.model.features.image import ImageValue
+from aiohikvision.isapi.wire.xmlview import parse
 
 NS = 'version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema"'
 CAPS = (

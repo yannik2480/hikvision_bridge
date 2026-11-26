@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.features.storage import HEALTHY
+from aiohikvision.isapi.model.inventory import IoPort
+from aiohikvision.isapi.model.vocabulary import Kind
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -14,9 +17,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_ENTRY_KIND, KIND_CLOUD, OPT_TARGET_SENSORS
 from .entity import PolledEntity, PushEntity, add_entities, drop_entities
-from .model.features.storage import HEALTHY
-from .model.inventory import IoPort
-from .model.vocabulary import Kind
 from .runtime.bridge import MAIN_FEED, DeviceBridge
 from .runtime.router import DEVICE_SCOPE, signal_state
 

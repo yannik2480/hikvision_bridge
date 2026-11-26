@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.features.image import ImageCapability
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfTime
@@ -9,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .entity import ImageSettingEntity, add_entities, drop_entities, image_entities
-from .model.features.image import ImageCapability
 from .runtime.bridge import DeviceBridge
 
 PARALLEL_UPDATES = 1

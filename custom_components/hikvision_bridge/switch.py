@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from aiohikvision.isapi.model.features import detection, io, privacy
+from aiohikvision.isapi.model.inventory import IoPort
+from aiohikvision.isapi.model.vocabulary import Kind
+from aiohikvision.isapi.wire.faults import BridgeFault
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
@@ -13,11 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import ImageSettingEntity, PolledEntity, add_entities, image_entities
-from .model.features import detection, io, privacy
-from .model.inventory import IoPort
-from .model.vocabulary import Kind
 from .runtime.bridge import DeviceBridge
-from .wire.faults import BridgeFault
 
 PARALLEL_UPDATES = 1
 

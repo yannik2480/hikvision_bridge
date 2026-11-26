@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import struct
 
+from aiohikvision.isapi.model.features.scrambling import cipher_key
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import pytest
 
-from custom_components.hikvision_bridge.model.features.scrambling import cipher_key
 from custom_components.hikvision_bridge.runtime.live import H264Decryptor, LiveError
 
 CODE = "ABCDEF"

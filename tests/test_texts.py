@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 import re
 
-from custom_components.hikvision_bridge.model.audit import Finding
-from custom_components.hikvision_bridge.model.vocabulary import SMART, SWITCHABLE
+from aiohikvision.isapi.model.audit import Finding
+from aiohikvision.isapi.model.vocabulary import SMART, SWITCHABLE
 
 PACKAGE = Path(__file__).parent.parent / "custom_components" / "hikvision_bridge"
 EN = json.loads((PACKAGE / "translations" / "en.json").read_text(encoding="utf-8"))

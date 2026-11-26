@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.vocabulary import SMART, Kind
 from homeassistant.components.event import EventDeviceClass, EventEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -10,7 +11,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_ENTRY_KIND, KIND_CLOUD
 from .entity import BridgeEntity, add_entities, drop_entities
-from .model.vocabulary import SMART, Kind
 from .runtime.bridge import DeviceBridge
 from .runtime.router import DEVICE_SCOPE, Hit, signal_trigger
 

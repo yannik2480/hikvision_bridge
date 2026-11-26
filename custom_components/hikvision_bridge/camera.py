@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+from aiohikvision.isapi.model.inventory import StreamSpec
+from aiohikvision.isapi.wire.faults import BridgeFault, DeviceRejected, Unsupported, detail
+from aiohikvision.isapi.wire.link import IsapiLink
+from aiohikvision.isapi.wire.scrub import scrubbed_logger
 from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -20,12 +24,8 @@ from .const import (
     SUBENTRY_CHANNEL_LINK,
 )
 from .entity import BridgeEntity, add_entities
-from .model.inventory import StreamSpec
 from .runtime.bridge import DeviceBridge
 from .runtime.live import LiveRelay
-from .wire.faults import BridgeFault, DeviceRejected, Unsupported, detail
-from .wire.link import IsapiLink
-from .wire.scrub import scrubbed_logger
 
 _LOGGER = scrubbed_logger(__name__)
 PARALLEL_UPDATES = 0

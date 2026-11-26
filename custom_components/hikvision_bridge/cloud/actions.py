@@ -5,7 +5,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 
-from ..wire.scrub import scrubbed_logger
+from aiohikvision.isapi.wire.scrub import scrubbed_logger
+
 from .account import CaptchaRequired, CloudAccount, CloudAuthFailed, CloudError
 from .catalog import (
     MAX_PAGES,

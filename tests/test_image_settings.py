@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.features.image import (
+    option_key,
+    parse_capabilities,
+    parse_values,
+)
+from aiohikvision.isapi.wire.xmlview import parse
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_HOST,
@@ -14,12 +20,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.hikvision_bridge.const import DOMAIN, SUBENTRY_CHANNEL_LINK
-from custom_components.hikvision_bridge.model.features.image import (
-    option_key,
-    parse_capabilities,
-    parse_values,
-)
-from custom_components.hikvision_bridge.wire.xmlview import parse
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
 

@@ -9,6 +9,10 @@ import secrets
 from types import MappingProxyType
 from typing import Any
 
+from aiohikvision.isapi.model.discover import read_identity_only
+from aiohikvision.isapi.model.inventory import Identity
+from aiohikvision.isapi.wire import faults
+from aiohikvision.isapi.wire.link import Endpoint, IsapiLink
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -85,13 +89,9 @@ from .const import (
     STREAM_SOURCE_RECORDER,
     SUBENTRY_CHANNEL_LINK,
 )
-from .model.discover import read_identity_only
-from .model.inventory import Identity
 from .panel import PANEL_DEFAULTS, async_set_panel_settings, panel_settings
 from .runtime.identity import channel_name
 from .runtime.tls import device_context
-from .wire import faults
-from .wire.link import Endpoint, IsapiLink
 
 CONF_REUSE = "reuse_recorder_credentials"
 CONF_CAPTCHA = "captcha"

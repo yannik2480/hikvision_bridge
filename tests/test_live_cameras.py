@@ -5,13 +5,13 @@ from __future__ import annotations
 import asyncio
 from urllib.parse import urlsplit
 
+from aiohikvision.isapi.model.discover import CLOUD_PATH
 from homeassistant.components.camera import CameraEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 import pytest
 
 from custom_components.hikvision_bridge.const import OPT_STREAM_KEY, OPT_TRY_ENCRYPTED_STREAM
-from custom_components.hikvision_bridge.model.discover import CLOUD_PATH
 from tests.conftest import device_entry
 from tests.fakedevice import FIXTURES, FakeDevice
 

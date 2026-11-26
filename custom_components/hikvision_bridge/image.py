@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from aiohikvision.isapi.model.vocabulary import Kind
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -9,7 +10,6 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .entity import BridgeEntity, add_entities
-from .model.vocabulary import Kind
 from .runtime.bridge import DeviceBridge
 from .runtime.router import Hit, signal_trigger
 

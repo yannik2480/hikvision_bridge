@@ -12,15 +12,15 @@ from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Any
 
+from aiohikvision.isapi.model.features import recordings
+from aiohikvision.isapi.model.vocabulary import DEVICE_WIDE, Kind, canonical
+from aiohikvision.isapi.wire.faults import BridgeFault
+from aiohikvision.isapi.wire.feed import FeedFrame
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 
 from ..const import BUS_EVENT, DOMAIN, GRACE_BEFORE_UNAVAILABLE
-from ..model.features import recordings
-from ..model.vocabulary import DEVICE_WIDE, Kind, canonical
-from ..wire.faults import BridgeFault
-from ..wire.feed import FeedFrame
 
 if TYPE_CHECKING:
     from .bridge import DeviceBridge
