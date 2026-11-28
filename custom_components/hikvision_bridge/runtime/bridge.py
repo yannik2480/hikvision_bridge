@@ -20,7 +20,7 @@ from aiohikvision.isapi.model.features import (
 from aiohikvision.isapi.model.inventory import CloudLinkState, DeviceProfile
 from aiohikvision.isapi.model.vocabulary import Kind
 from aiohikvision.isapi.wire.faults import BadCredentials, BridgeFault, LockedOut, Unsupported
-from aiohikvision.isapi.wire.feed import stream_missing
+from aiohikvision.isapi.wire.feed import AlarmFeed, stream_missing
 from aiohikvision.isapi.wire.link import Endpoint, IsapiLink
 from aiohikvision.isapi.wire.scrub import scrubbed_logger
 from homeassistant.config_entries import ConfigEntry
@@ -60,7 +60,6 @@ from .hookin import webhook_wanted
 from .live import LiveRelay
 from .refresh import StatusRefresher
 from .router import EventRouter, Origin
-from .stream_feed import StreamFeed
 from .tls import device_context
 
 _LOGGER = scrubbed_logger(__name__)
@@ -117,7 +116,7 @@ class DeviceBridge:
     refresher: StatusRefresher = field(init=False)
     router: EventRouter = field(init=False)
     routes: dict[str, ChannelRoute] = field(default_factory=dict)
-    feeds: dict[str, StreamFeed] = field(default_factory=dict)
+    feeds: dict[str, AlarmFeed] = field(default_factory=dict)
     live_relays: dict[str, LiveRelay] = field(default_factory=dict)
     report: audit.AuditReport | None = None
     device_ids: dict[str | None, str] = field(default_factory=dict)
@@ -309,7 +308,7 @@ class DeviceBridge:
         camera_channels = frozenset(
             cid for cid, route in self.routes.items() if route.events_from_camera and route.healthy
         )
-        main = StreamFeed(
+        main = AlarmFeed(
             self.link,
             self.router.make_handler(Origin(MAIN_FEED, exclusive_channels=camera_channels)),
             lambda up, fault: self.router.feed_state(MAIN_FEED, up, fault),
@@ -318,7 +317,7 @@ class DeviceBridge:
         for channel_id in camera_channels:
             route = self.routes[channel_id]
             name = f"channel_{channel_id}"
-            self.feeds[name] = StreamFeed(
+            self.feeds[name] = AlarmFeed(
                 route.link,
                 self.router.make_handler(
                     Origin(name, channel_map={route.remote_channel: channel_id})
