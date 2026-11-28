@@ -6,6 +6,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 import json
 import logging
+import time
 
 from aiohikvision.isapi.model.vocabulary import Kind, canonical
 from aiohikvision.isapi.wire.feed import frame_from_json, frame_from_xml
@@ -110,7 +111,8 @@ async def test_intercom_entities_setup_and_unlock(hass: HomeAssistant, serve) ->
     assert MAIN_FEED in bridge.feeds
     assert _entity(hass, entry, "binary_sensor", "_event_link") is not None
     bridge.router._feeds_up[MAIN_FEED] = False
-    bridge.router._feeds_down_since[MAIN_FEED] = 0.0
+    # monotonic() counts from boot: 0.0 is still inside the grace period on a fresh runner
+    bridge.router._feeds_down_since[MAIN_FEED] = time.monotonic() - 3600
     assert not bridge.router.feeds_healthy()
     bridge.refresher.async_update_listeners()
     await hass.async_block_till_done()
