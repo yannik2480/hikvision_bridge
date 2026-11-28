@@ -45,5 +45,5 @@ jobs:
         with:
           python-version: "3.14"
       - run: sudo apt-get update && sudo apt-get install -y libturbojpeg0
-      - run: pip install ${{ matrix.phcc }} PyTurboJPEG
+      - run: pip install ${{ matrix.phcc }} PyTurboJPEG $(jq -r '.requirements[]' custom_components/hikvision_bridge/manifest.json)
       - run: python -m pytest -q
