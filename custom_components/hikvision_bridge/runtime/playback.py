@@ -61,6 +61,50 @@ HEAD_BYTES = 256 * 1024
 CHUNK = 64 * 1024
 H264_MAX_WIDTH = 1920
 THUMBNAIL_WIDTH = 320
+# A video time stamp further than this from the one before is a jump in the recording's clock,
+# not playing time. ffmpeg, which makes the video, smooths over jumps from the same size on
+# (its dts_delta_threshold).
+PTS_JUMP = 10 * 90000
+# A time stamp this little before the one before is frame order, not a jump back.
+PTS_REORDER = 90000
+
+
+class TimedStream(ProgramStream):
+    """A ProgramStream whose playing time runs on over jumps in the time stamps (#82).
+
+    ProgramStream counts from the first time stamp to the latest. Some recorded files jump in
+    their time stamps partway through, mostly back: the difference then wraps to about a day,
+    and a download read only up to the end of its span stopped right there, mid-clip, every
+    time that file played. Here only steps of normal size add up; a jump starts a new count
+    from where it landed.
+    """
+
+    def __init__(self, key: bytes | None = None, codec: str | None = None) -> None:
+        self._latest: int | None = None
+        self._played = 0
+        super().__init__(key, codec)
+
+    @property
+    def _pts(self) -> int:
+        return self._latest or 0
+
+    @_pts.setter
+    def _pts(self, value: int) -> None:
+        if self._first_pts is None:
+            return  # the reset before the first time stamp
+        if self._latest is None:
+            self._latest = value
+            return
+        step = (value - self._latest) % scrambling.PTS_WRAP
+        if step <= PTS_JUMP:
+            self._played += step
+            self._latest = value
+        elif scrambling.PTS_WRAP - step > PTS_REORDER:
+            self._latest = value
+
+    @property
+    def seconds(self) -> float:
+        return self._played / 90000
 
 
 class RecordingEncrypted(Exception):
@@ -359,7 +403,7 @@ async def unscrambler(source: PlaybackSource, head: bytes, codec: str | None) ->
             probe = ProgramStream(key, codec)
             probe.feed(head)
             if probe.key_fits is not False:
-                return ProgramStream(key, codec)
+                return TimedStream(key, codec)
     raise RecordingEncrypted
 
 
@@ -380,7 +424,7 @@ async def prepare(source: PlaybackSource, head: bytes) -> tuple[MediaHead, Progr
         raise NoRecording
     if info.scrambled:
         return info, await unscrambler(source, head, info.codec)
-    return info, ProgramStream(codec=info.codec)
+    return info, TimedStream(codec=info.codec)
 
 
 async def passed(

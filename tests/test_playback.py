@@ -40,7 +40,7 @@ from custom_components.hikvision_bridge.views import decode_token, recording_url
 from tests.conftest import device_entry
 from tests.fakedevice import FakeDevice
 from tests.model.test_recordings import match, program_stream, result, searcher
-from tests.model.test_scrambling import CODE, recording
+from tests.model.test_scrambling import CODE, PACK, _packets, recording
 
 # Noon in the US/Pacific test time zone, so recordings two hours earlier are still "today".
 NOW = datetime(2026, 10, 21, 19, 0, tzinfo=UTC)
@@ -588,3 +588,30 @@ def test_stamp_leaves_other_output_alone() -> None:
     stamp = playback.DurationStamp(10.0)
     assert stamp.feed(_header()[:30]) == b""
     assert stamp.flush() == _header()[:30]
+
+
+def _timed(stamps: list[int]) -> playback.TimedStream:
+    stream = playback.TimedStream(codec="hevc")
+    frame = b"\x00\x00\x00\x01\x02\x01" + bytes(range(1, 40))
+    data = b"".join(PACK + _packets(frame, False, p) for p in stamps)
+    stream.feed(data)
+    stream.flush()
+    return stream
+
+
+def test_playing_time_runs_on_over_time_stamp_jumps() -> None:
+    """#82: a recorded file whose time stamps jump back mid-file played only up to the jump."""
+    second = 90000
+    # 25 fps for 14 s, then the clock jumps back an hour and runs on for 10 s.
+    first = [3600 * second + n * 3600 for n in range(14 * 25)]
+    later = [n * 3600 for n in range(10 * 25)]
+    stream = _timed(first + later)
+    assert abs(stream.seconds - 24) < 0.2
+    # A jump forward beyond PTS_JUMP does not count either, an ordinary gap does.
+    stream = _timed([0, second, 3 * second, 3600 * second, 3601 * second])
+    assert abs(stream.seconds - 4) < 0.01
+    # Frames in reordered time stamps (slightly back) neither add nor reset the count.
+    stream = _timed([0, 3600, 7200, 3600, 10800])
+    assert abs(stream.seconds - 10800 / second) < 1e-6
+    # Plain streams count as before.
+    assert _timed([1000 + n * second for n in range(46)]).seconds == 45

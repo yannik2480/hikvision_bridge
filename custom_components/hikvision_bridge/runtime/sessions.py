@@ -171,11 +171,17 @@ def locate(found: list[recordings.Recording], moment: datetime) -> tuple[datetim
 
 
 def covering(found: list[recordings.Recording], moment: datetime) -> recordings.Recording | None:
-    """The recorded file holding ``moment``; in a gap, the next one."""
+    """The recorded file holding ``moment``; in a gap, the next one.
+
+    Event recordings overlap when events come back to back (pre-record time, #86): of the
+    files holding ``moment`` the one reaching furthest plays, so a jump to the start of the
+    later file plays that file, not the last seconds of the one before.
+    """
     ordered = sorted(found, key=lambda r: r.start)
-    return next((r for r in ordered if r.start <= moment < r.end), None) or next(
-        (r for r in ordered if r.start > moment), None
-    )
+    holding = [r for r in ordered if r.start <= moment < r.end]
+    if holding:
+        return max(holding, key=lambda r: r.end)
+    return next((r for r in ordered if r.start > moment), None)
 
 
 def playback_uri(

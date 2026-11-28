@@ -324,16 +324,30 @@ const STYLE = `
   .controls .middle [data-action="toggle"] { width: 48px; height: 48px; }
   .controls .middle [data-action="toggle"] svg { width: 30px; height: 30px; }
   .controls select { min-width: 0; max-width: 100%; }
+  .controls .pickers, .controls .tools { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+  /* Phone widths: two rows, Live, the playback buttons and the speed above, the quality and
+     the sound, download and full screen buttons below. */
   @container (max-width: 640px) {
-    .controls { grid-template-columns: auto 1fr; grid-template-areas: "middle middle" "start end"; padding: 2px 4px; }
-    .controls .middle { grid-area: middle; }
+    .controls {
+      grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "start middle speed" "pickers pickers tools";
+      padding: 2px 4px; row-gap: 2px;
+    }
     .controls .start { grid-area: start; }
-    .controls .end { grid-area: end; }
+    .controls .middle { grid-area: middle; gap: 0; }
+    .controls .end { display: contents; }
+    .controls .pickers { grid-area: pickers; justify-self: start; }
+    .controls .speed { grid-area: speed; justify-self: end; }
+    .controls .tools { grid-area: tools; justify-self: end; }
     .controls select { font-size: 13px; padding: 4px; min-height: 32px; }
-    .controls .icon-button { width: 36px; height: 36px; }
-    .controls .end { row-gap: 4px; }
-    .day-bar .icon-button { width: 36px; height: 36px; }
-    .legend { gap: 6px; padding: 0 8px 4px; }
+    .controls .icon-button { width: 34px; height: 34px; padding: 6px; }
+    .controls .middle [data-action="toggle"] { width: 42px; height: 42px; }
+    .controls .live-button { padding: 4px 10px 4px 6px; }
+    .day-bar .icon-button { width: 34px; height: 34px; padding: 6px; }
+    .legend { gap: 6px; padding: 2px 8px 4px; }
+  }
+  @container (max-width: 400px) {
+    .controls .live-button span { display: none; }
+    .controls .live-button { padding: 4px 8px; }
   }
   .controls .live-button { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--hb-line); background: none; border-radius: 18px; padding: 4px 12px 4px 8px; cursor: pointer; min-height: 34px; }
   .controls .live-button svg { width: 18px; height: 18px; fill: #e5484d; }
@@ -352,12 +366,17 @@ const STYLE = `
     .date-button .long { display: none; }
     .date-button .short { display: inline; }
   }
-  /* Phone widths: the day bar takes two rows, the date and arrows above, the view and zoom below. */
+  /* Phone widths: the date, its arrows and the view switch share one row; the unread count
+     wraps below when it does not fit. */
   @container (max-width: 560px) {
     .day-bar { flex-wrap: wrap; row-gap: 4px; }
     .day-bar .spacer { display: none; }
     .day-bar .date-picker { flex: none; }
     .day-bar .view-switch { margin-left: auto; }
+    .day-bar .today { padding: 4px 8px; margin-left: 0; }
+    .view-switch button { padding: 6px 10px; }
+    .day-bar .unread { order: 1; margin-left: 4px; }
+    .day-bar .mark-read { order: 1; }
   }
   .calendar {
     position: fixed; inset: auto; margin: 0; width: min(296px, calc(100vw - 16px)); box-sizing: border-box;
@@ -407,7 +426,8 @@ const STYLE = `
   .timeline { position: relative; user-select: none; touch-action: none; }
   .timeline canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
   .tooltip { position: absolute; top: 2px; transform: translateX(-50%); background: var(--hb-text); color: var(--hb-surface); font-size: 12px; padding: 2px 6px; border-radius: 4px; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--hb-muted); padding: 0 12px 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--hb-muted); padding: 2px 12px 6px; }
+  .legend:empty { display: none; }
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
   .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
   .legend span.event::before { display: none; }
@@ -435,6 +455,13 @@ const STYLE = `
   .clip-card.failed .none { display: flex; }
   .clip-card .clip-time { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .clip-card .clip-kind { font-size: 12px; color: var(--hb-muted); }
+  .clip-card .clip-kind.with-events { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .clip-card .clip-kind.with-events::before { display: none; }
+  .clip-card .clip-events { display: inline-flex; gap: 2px; flex: none; }
+  .clip-card .clip-events span { display: inline-flex; }
+  .clip-card .clip-events svg { width: 14px; height: 14px; padding: 2px; border-radius: 50%; background: var(--c); fill: #fff; box-sizing: border-box; }
+  .clip-card .dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--hb-accent); box-shadow: 0 0 0 1.5px #fff; display: none; }
+  .clip-card.has-unread .dot { display: block; }
   .clip-card .clip-kind::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--c, var(--hb-line)); }
 `;
 
@@ -1378,12 +1405,16 @@ class Viewer {
             <button class="icon-button" data-action="next">${ICONS.next}</button>
           </div>
           <div class="group end">
-            <select class="source" hidden></select>
-            <select class="quality"></select>
+            <span class="pickers">
+              <select class="source" hidden></select>
+              <select class="quality"></select>
+            </span>
             <select class="speed" hidden></select>
-            <button class="icon-button" data-action="sound">${ICONS.soundOff}</button>
-            <button class="icon-button" data-action="download">${ICONS.download}</button>
-            <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
+            <span class="tools">
+              <button class="icon-button" data-action="sound">${ICONS.soundOff}</button>
+              <button class="icon-button" data-action="download">${ICONS.download}</button>
+              <button class="icon-button" data-action="fullscreen">${ICONS.fullscreen}</button>
+            </span>
           </div>
         </div>
         <div class="day-bar">
@@ -1404,9 +1435,9 @@ class Viewer {
           <button class="icon-button zoom" data-action="zoom-out">${ICONS.minus}</button>
           <button class="icon-button zoom" data-action="zoom-in">${ICONS.plus}</button>
         </div>
+        <div class="legend"></div>
         <div class="timeline"></div>
         <div class="clips" hidden></div>
-        <div class="legend"></div>
         <div class="hint" hidden></div>
       </div>`;
     this.video = root.querySelector("video");
@@ -1663,6 +1694,7 @@ class Viewer {
       button.setAttribute("aria-label", t(key));
     }
     this.root.querySelector(".live-button span").textContent = t("live");
+    this.root.querySelector(".live-button").title = t("live");
     this._soundButton();
     this.root.querySelector(".today").textContent = t("today");
     this.root.querySelector('[data-action="view-timeline"]').textContent = t("view_timeline");
@@ -1873,6 +1905,7 @@ class Viewer {
     badge.textContent = `${this.t.ui("unread")} ${count}`;
     button.textContent = this.t.ui("mark_all_read");
     badge.hidden = button.hidden = count === 0;
+    this._clipDots();
   }
 
   // Opening a clip reads the events it shows: the ones around the moment played from.
@@ -1954,14 +1987,21 @@ class Viewer {
     const box = this.root.querySelector(".clips");
     const camera = this.camera;
     const source = this.source;
+    // Recorders mark event recordings just "event": the kinds of the events in a clip tell
+    // what set it off (motion, intrusion, ...), the most telling first (#64).
+    const eventKinds = (clip) =>
+      [...new Set(this.data.events.filter((ev) => ev.start < clip.end && ev.end >= clip.start).map((ev) => ev.kind))].sort(
+        (a, b) => eventRank(b) - eventRank(a),
+      );
     this._clips = camera && source
       ? clipsOf(this.data.recordings).map((clip) => ({
           ...clip,
+          events: eventKinds(clip),
           thumb: `/api/${DOMAIN}/thumbnail/${camera.entry_id}/${camera.channel_id}/${source}/${clip.token}`,
         }))
       : [];
     const signature = `${camera ? `${camera.entry_id}/${camera.channel_id}/${source}` : ""}#${this._clips
-      .map((c) => `${c.start}|${c.end}|${c.kind}|${c.token}`)
+      .map((c) => `${c.start}|${c.end}|${c.kind}|${c.token}|${c.events.join(",")}`)
       .join(";")}`;
     if (!force && signature === this._clipSignature) return;
     this._clipSignature = signature;
@@ -1970,14 +2010,20 @@ class Viewer {
     this._clipObserver = null;
     box.innerHTML = this._clips
       .map((clip, index) => {
-        const time = `${clock(new Date(clip.start), false)} - ${clock(new Date(clip.end), false)}`;
-        const kind = this.t.kind(clip.kind);
+        const time = `${clock(new Date(clip.start))} - ${clock(new Date(clip.end))}`;
+        const kind = clip.events.length ? clip.events.map((k) => this.t.event(k)).join(", ") : this.t.kind(clip.kind);
+        const label = clip.events.length
+          ? `<span class="clip-events">${clip.events
+              .map((k) => `<span style="--c:${EVENT_COLORS[k] || "var(--hb-accent)"}">${symbolIcon(k)}</span>`)
+              .join("")}</span>${kind}`
+          : kind;
         return `<button class="clip-card" data-action="clip" data-index="${index}" style="--c:${KIND_COLORS[clip.kind] || KIND_COLORS.other}" aria-label="${time} ${kind}">
-          <span class="thumb"><img alt="" data-index="${index}"><span class="none">${this.t.ui("no_picture")}</span></span>
-          <span class="clip-time">${time}</span><span class="clip-kind">${kind}</span>
+          <span class="thumb"><img alt="" data-index="${index}"><span class="none">${this.t.ui("no_picture")}</span><span class="dot" title="${this.t.ui("unread")}"></span></span>
+          <span class="clip-time">${time}</span><span class="clip-kind${clip.events.length ? " with-events" : ""}">${label}</span>
         </button>`;
       })
       .join("");
+    this._clipDots();
     const images = box.querySelectorAll("img");
     if (typeof IntersectionObserver === "function") {
       this._clipObserver = new IntersectionObserver(
@@ -1994,6 +2040,16 @@ class Viewer {
     } else {
       for (const img of images) this._loadPicture(img);
     }
+  }
+
+  // Clips with events not read yet get a dot, like those events on the timeline (#70).
+  _clipDots() {
+    const box = this.root.querySelector(".clips");
+    const unread = this.data.events.filter((ev) => !ev.read);
+    this._clips.forEach((clip, index) => {
+      const card = box.querySelector(`.clip-card[data-index="${index}"]`);
+      card?.classList.toggle("has-unread", unread.some((ev) => ev.start < clip.end && ev.end >= clip.start));
+    });
   }
 
   async _loadPicture(img) {
@@ -2099,13 +2155,16 @@ class Viewer {
       return;
     }
     this._brokeOff = null;
-    if (stuck) {
-      const after = this.data.recordings.find((r) => r.start > position + 1000);
-      if (after) this.player.play(this.camera, this.source, after.start, this.quality);
-      return;
-    }
-    const next = this.data.recordings.find((r) => r.start > this.player.session.end - 1000);
-    if (next) this.player.play(this.camera, this.source, next.start, this.quality);
+    const from = stuck ? position : this.player.session.end;
+    const current = this._recordingAt(stuck ? position : this.player.session.end - 1000);
+    // Recordings of back-to-back events overlap (pre-record time): the next one may start
+    // before this one ends. It plays on from where this one stopped (#86).
+    const next = [...this.data.recordings]
+      .sort((a, b) => a.start - b.start)
+      .find((r) => r !== current && r.end > from + 1000 && (!current || r.start > current.start));
+    if (!next) return;
+    if (next.start >= from - 1000) this.player.play(this.camera, this.source, next.start, this.quality);
+    else this.player.play(this.camera, this.source, from, this.quality, from);
   }
 
   /*
@@ -2470,10 +2529,10 @@ class HikvisionBridgePanel extends HTMLElement {
           .day-bar { padding: 0 2px; }
         }
         @media (max-width: 860px) and (orientation: portrait) {
-          .viewer { height: auto; }
           .stage { flex: none; aspect-ratio: 16 / 9; }
-          /* The page scrolls: the clip list keeps several rows of cards visible below the player. */
-          .clips { height: auto; min-height: 55vh; }
+          /* The clip list takes the room below the player and scrolls on its own: the player
+             and its controls stay in place. Only a very short screen scrolls the page. */
+          .clips { flex: 1 1 0; height: auto; min-height: 180px; }
         }
       </style>
       <div class="layout">

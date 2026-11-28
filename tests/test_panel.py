@@ -181,6 +181,21 @@ def test_covering() -> None:
     assert sessions.covering(found, T0 + timedelta(hours=1)) is None
 
 
+def test_covering_overlapping_files() -> None:
+    """#86: back-to-back events record overlapping files; the later one is not cut short."""
+
+    def file(name: str, start: int, end: int) -> recordings.Recording:
+        at = T0 + timedelta(seconds=start), T0 + timedelta(seconds=end)
+        return recordings.Recording("101", *at, "event", f"rtsp://x/{name}", name)
+
+    found = [file("one", 0, 28), file("two", 25, 44), file("three", 60, 70)]
+    # The start of the second file lies in the first: the second plays, to its end.
+    assert sessions.covering(found, T0 + timedelta(seconds=25)).name == "two"
+    assert sessions.covering(found, T0 + timedelta(seconds=10)).name == "one"
+    assert sessions.covering(found, T0 + timedelta(seconds=28)).name == "two"
+    assert sessions.covering(found, T0 + timedelta(seconds=50)).name == "three"
+
+
 def test_played_seconds() -> None:
     playlist = "#EXTM3U\n#EXTINF:4.0,\nseg00000.m4s\n#EXTINF:3.5,\nseg00001.m4s\n#EXTINF:4,\nseg00002.m4s\n"
     assert sessions.played_seconds(playlist, -1) == 0
